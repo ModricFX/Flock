@@ -73,7 +73,7 @@ export default function Profile() {
       // Add logic to log out the user
       console.log('Logging out user...');
       await appwriteService.logout();
-      router.replace('/login'); // Redirect to login page after logout
+      router.replace('/auth/login'); // Redirect to login page after logout
     } catch (error) {
       console.error('Logout failed:', error);
       Alert.alert('Error', 'Failed to log out. Please try again.');
