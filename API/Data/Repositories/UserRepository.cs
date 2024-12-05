@@ -1,0 +1,75 @@
+﻿using flock.Data.DbContext;
+using flock.Data.Repositories.Interfaces;
+using flock.Models;
+using Dapper;
+using MySqlConnector;
+
+namespace flock.Data.Repositories
+{
+    public class UserRepository : IUserRepository
+    {
+        private readonly DapperContext _context;
+
+        public UserRepository(DapperContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<User> GetUserByEmailAsync(string email)
+        {
+            var query = "SELECT * FROM `user` WHERE `email` = @Email AND `sysrowstate` = 1";
+
+            using (var connection = _context.CreateConnection())
+            {
+                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Email = email });
+            }
+        }
+
+        public async Task<int> CreateUserAsync(User user)
+        {
+            var query = @"
+                INSERT INTO `user` (`id_role`, `first_name`, `last_name`, `email`, `password`, `email_verified`, `date_created`, `date_updated`, `sysrowstate`)
+                VALUES (@Id_role, @First_name, @Last_name, @Email, @Password, @Email_verified, @Date_created, @Date_updated, @SysRowState);
+                SELECT LAST_INSERT_ID();
+            ";
+
+            using (var connection = _context.CreateConnection())
+            {
+                var id = await connection.QuerySingleAsync<int>(query, user);
+                return id;
+            }
+        }
+
+        public async Task UpdateUserAsync(User user)
+        {
+            var query = @"
+                UPDATE `user`
+                SET 
+                    `id_role` = @Id_role,
+                    `first_name` = @First_name,
+                    `last_name` = @Last_name,
+                    `email` = @Email,
+                    `password` = @Password,
+                    `email_verified` = @Email_verified,
+                    `date_updated` = @Date_updated,
+                    `sysrowstate` = @SysRowState
+                WHERE `id_user` = @Id_user;
+            ";
+
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(query, user);
+            }
+        }
+
+        public async Task DeleteUserAsync(int id)
+        {
+            var query = "UPDATE `user` SET `sysrowstate` = 0 WHERE `id_user` = @Id_user";
+
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(query, new { Id_user = id });
+            }
+        }
+    }
+}

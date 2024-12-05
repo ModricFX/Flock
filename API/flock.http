@@ -1,0 +1,6 @@
+@flock_HostAddress = http://localhost:5044
+
+GET {{flock_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
