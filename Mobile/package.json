@@ -2,6 +2,9 @@
   "name": "flock",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=23.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "start-development": "cross-env ENVFILE=.env.development expo start",
