@@ -45,21 +45,6 @@ jobs:
       #   working-directory: Web
       #   run: npm test -- --ci --coverage
 
-      ### SET UP .NET AND CACHE DEPENDENCIES FOR API ###
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Cache NuGet packages
-        id: nuget-cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
       ### RESTORE, BUILD, AND PUBLISH API ###
       - name: Restore API dependencies
         working-directory: API
