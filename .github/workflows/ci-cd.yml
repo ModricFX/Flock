@@ -1,0 +1,98 @@
+name: Build and Deploy API and Web
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: self-hosted
+
+    steps:
+      ### CHECKOUT REPO ###
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      ### SET UP NODE.JS AND CACHE DEPENDENCIES FOR WEB ###
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Cache npm dependencies
+        id: npm-cache
+        uses: actions/cache@v3
+        with:
+          path: Web/node_modules
+          key: ${{ runner.os }}-npm-${{ hashFiles('Web/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      ### INSTALL AND BUILD WEB (REACT) ###
+      - name: Install dependencies (Web)
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        working-directory: Web
+        run: npm ci
+
+      - name: Build Web
+        working-directory: Web
+        run: npm run build
+
+      ### (OPTIONAL) RUN TESTS FOR WEB ###
+      # - name: Test Web
+      #   working-directory: Web
+      #   run: npm test -- --ci --coverage
+
+      ### SET UP .NET AND CACHE DEPENDENCIES FOR API ###
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        id: nuget-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      ### RESTORE, BUILD, AND PUBLISH API ###
+      - name: Restore API dependencies
+        working-directory: API
+        run: dotnet restore
+
+      - name: Build and Publish API
+        working-directory: API
+        run: dotnet publish -c Release -o /flock/api
+
+      ### (OPTIONAL) RUN TESTS FOR API ###
+      # - name: Test API
+      #   working-directory: API
+      #   run: dotnet test --no-build --verbosity normal
+
+      ### DEPLOY WEB ###
+      - name: Deploy Web
+        run: |
+          echo "Deploying Web to /var/www/flock/"
+          sudo rm -rf /var/www/flock/
+          sudo mkdir -p /var/www/flock/
+          # Copy the built files from the Web build directory
+          sudo cp -r Web/build/* /var/www/flock/
+          echo "Web deployment completed."
+
+      - name: Copy appsettings
+        run: |
+          echo "Copying production appsettings to /flock/api"
+          sudo cp /flock/appsettings.json /flock/api/
+
+      ### RESTART API SERVICE ###
+      - name: Deploy API
+        run: |
+          echo "Restarting flock-api.service..."
+          sudo systemctl daemon-reload
+          sudo systemctl restart flock-api.service
+          echo "API service restarted successfully."
