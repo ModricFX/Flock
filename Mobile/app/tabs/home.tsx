@@ -2,18 +2,18 @@
 import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import AppwriteService from '../services/appwriteservice';
 import { useRouter } from 'expo-router';
-import { Models } from 'appwrite'; // Import Models namespace
+import { Models } from 'appwrite';
+import { authService } from '../services/authservice';
 
 export default function Home() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<Models.User<{}> | null>(null); // Use Appwrite's User type
     const router = useRouter();
-    const appwriteService = new AppwriteService();
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const currentUser = await appwriteService.getCurrentUser();
+                const currentUser = await authService.getUserData();
                 setUser(currentUser); // Set the user with Appwrite's type
             } catch (error) {
                 console.error('Error fetching user:', error);
@@ -28,7 +28,7 @@ export default function Home() {
 
     const handleLogout = async () => {
         try {
-            await appwriteService.logout();
+            await authService.logout();
             router.push('/auth/login'); // Redirect to login after logout
         } catch (error) {
             console.error('Error logging out:', error);

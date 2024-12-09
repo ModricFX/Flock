@@ -1,26 +1,15 @@
-﻿// services/ApiService.ts
-import axios, { AxiosInstance } from 'axios';
+﻿import axios, { AxiosInstance } from 'axios';
 import Constants from 'expo-constants';
-
-import { AuthService } from './authservice';
-import { TokenStorage } from '../storage/TokenStorage';
-
-// Placeholder imports for other services
-// import { EventService } from './EventService';
-// import { FriendService } from './FriendService';
+import { tokenStorage } from '../storage'; // Use the centralized tokenStorage
 
 interface AppConfig {
     apiEndpoint: string;
 }
 
-export class ApiService {
+class ApiService {
     private api: AxiosInstance;
-    private tokenStorage: TokenStorage;
-    public authService: AuthService;
-    // public eventService: EventService;
-    // public friendService: FriendService;
 
-    constructor(tokenStorage: TokenStorage) {
+    constructor() {
         const appConfig = Constants.manifest?.extra as AppConfig;
 
         if (!appConfig?.apiEndpoint) {
@@ -31,20 +20,20 @@ export class ApiService {
             baseURL: appConfig.apiEndpoint,
         });
 
-        this.tokenStorage = tokenStorage;
-
-        // Set up request interceptor to include the token
+        // Intercept requests to add token
         this.api.interceptors.request.use(async (config) => {
-            const token = await this.tokenStorage.getToken();
+            const token = await tokenStorage.getToken();
             if (token) {
                 config.headers['Authorization'] = `Bearer ${token}`;
             }
             return config;
         });
+    }
 
-        // Initialize services
-        this.authService = new AuthService(this.api, this.tokenStorage);
-        // this.eventService = new EventService(this.api);
-        // this.friendService = new FriendService(this.api);
+    getApi(): AxiosInstance {
+        return this.api;
     }
 }
+
+// Export a singleton instance
+export const apiService = new ApiService();

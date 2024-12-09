@@ -2,19 +2,18 @@
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import AppwriteService from './services/appwriteservice';
 import { useRouter } from 'expo-router';
-import { ApiProvider } from './context/ApiContext';
+import { authService } from './services/authservice';
 
 export default function HomePage() {
     const [loading, setLoading] = useState(true);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const router = useRouter();
-    const appwriteService = new AppwriteService();
 
 
     useEffect(() => {
         const checkLoginStatus = async () => {
             try {
-                const user = await appwriteService.getCurrentUser();
+                const user = await authService.getUserData();
                 setIsLoggedIn(!!user);
             } catch (error) {
                 console.log('Error fetching user xxxxx:', error);

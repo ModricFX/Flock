@@ -10,7 +10,8 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import AppwriteService from '../services/appwriteservice';
+import { authService } from '../services/authservice';
+import {WebTokenStorage} from "@/app/storage/WebTokenStorage";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -21,8 +22,6 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isFocused, setIsFocused] = useState(false); // Track focus on input fields
-  
-    const appwriteService = new AppwriteService();
 
   const handleRegister = async () => {
     if (
@@ -43,7 +42,12 @@ export default function RegisterScreen() {
     }
 
     try {
-      await appwriteService.register(email, password, name, username);
+      await authService.register({
+        "first_name": name,
+        "last_name": surname,
+        "email": email,
+        "password": password
+      });
       Alert.alert(
           'Success',
           `Account created for ${name} ${surname} with username "${username}".`

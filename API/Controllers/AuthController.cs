@@ -77,7 +77,9 @@ namespace flock.Controllers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim("ID_user", user.Id_user.ToString()),
-                    new Claim(ClaimTypes.Name, user.Email)
+                    new Claim(ClaimTypes.Name, user.Email),
+                    // Add the Date_updated claim
+                    new Claim("Date_updated", user.Date_updated.ToUniversalTime().Ticks.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.TokenValidityInMinutes),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -88,27 +90,43 @@ namespace flock.Controllers
             return tokenHandler.WriteToken(token);
         }
 
+
         
         [HttpPost("renew-token")]
         [Authorize]
-        public IActionResult RenewToken()
+        public async Task<IActionResult> RenewToken()
         {
             var userId = User.FindFirst("ID_user")?.Value;
             if (userId == null)
                 return Unauthorized("Invalid token.");
 
-            // Retrieve user data if necessary
             var userEmail = User.Identity.Name;
-
-            var user = _userRepository.GetUserByEmailAsync(userEmail).Result;
+            var user = await _userRepository.GetUserByEmailAsync(userEmail);
             if (user == null)
                 return Unauthorized("User not found.");
 
-            // Generate new JWT token
-            var token = GenerateJwtToken(user);
+            // Extract the Date_updated ticks from the token
+            var dateUpdatedClaim = User.FindFirst("Date_updated")?.Value;
+            if (dateUpdatedClaim == null)
+                return Unauthorized("Invalid token format.");
 
-            return Ok(new { Token = token });
+            if (!long.TryParse(dateUpdatedClaim, out long tokenDateUpdatedTicks))
+                return Unauthorized("Invalid token format.");
+
+            var tokenDateUpdated = new DateTime(tokenDateUpdatedTicks, DateTimeKind.Utc);
+
+            // Compare current user's Date_updated with the token's Date_updated
+            if (user.Date_updated.ToUniversalTime() != tokenDateUpdated)
+            {
+                // The user has changed since the token was issued, do not renew.
+                return Unauthorized("User data changed. Please log in again.");
+            }
+
+            // If unchanged, generate a new token
+            var newToken = GenerateJwtToken(user);
+            return Ok(new { Token = newToken });
         }
+
     }
     
 }

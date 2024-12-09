@@ -1,42 +1,43 @@
-﻿// services/AuthService.ts
-import { AxiosInstance } from 'axios';
-import { TokenStorage } from '../storage/TokenStorage';
+﻿import { apiService } from './ApiService';
+import { tokenStorage } from '../storage';
 import jwtDecode from 'jwt-decode';
 
 interface DecodedToken {
     exp: number;
 }
 
-export class AuthService {
-    private api: AxiosInstance;
-    private tokenStorage: TokenStorage;
+class AuthService {
     private tokenRefreshThreshold = 60; // seconds
 
-    constructor(api: AxiosInstance, tokenStorage: TokenStorage) {
-        this.api = api;
-        this.tokenStorage = tokenStorage;
-    }
-
-    async register(data: { First_name: string; Last_name: string; Email: string; Password: string }) {
-        const response = await this.api.post('/auth/register', data);
+    // No need to pass storage or api; we have singletons
+    async register(data: { first_name: string; last_name: string; email: string; password: string }) {
+        const response = await apiService.getApi().post('/Auth/Register', data);
         return response.data;
     }
 
     async login(email: string, password: string) {
-        const response = await this.api.post('/auth/login', { Email: email, Password: password });
-        const { Token } = response.data;
-        await this.tokenStorage.setToken(Token);
+        const response = await apiService.getApi().post('/Auth/Login', { Email: email, Password: password });
+        console.log(response, response.data, response.data.token);
+        const token = response.data.token;
+        await tokenStorage.setToken(token);
+        console.log('Token:', token);
+        console.log( tokenStorage.getToken());
         return response.data;
     }
 
     async logout() {
-        await this.tokenStorage.removeToken();
+        await tokenStorage.removeToken();
     }
 
     async getUserData() {
-        const response = await this.api.get('/user/profile');
+        const token = await tokenStorage.getToken();
+        const response = await apiService.getApi().get('/User/Profile', {
+            headers: {
+                'Authorization': `${token}`
+            }
+        });
         return response.data;
     }
-
-    // ... Include token renewal logic if applicable
 }
+
+export const authService = new AuthService();
