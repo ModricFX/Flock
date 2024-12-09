@@ -10,10 +10,10 @@ class ApiService {
     private api: AxiosInstance;
 
     constructor() {
-        const appConfig = Constants.manifest?.extra as AppConfig;
+        const appConfig = Constants.expoConfig?.extra as AppConfig;
 
         if (!appConfig?.apiEndpoint) {
-            throw new Error('Missing API endpoint configuration');
+            throw new Error('Missing API endpoint configuration!');
         }
 
         this.api = axios.create({
