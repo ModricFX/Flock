@@ -11,7 +11,12 @@ class AuthService {
 
     // No need to pass storage or api; we have singletons
     async register(data: { first_name: string; last_name: string; email: string; password: string }) {
-        const response = await apiService.getApi().post('/Auth/Register', data);
+        const response = await apiService.getApi().post('/Auth/Register', data, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': ``
+            },
+        });
         return response.data;
     }
 
