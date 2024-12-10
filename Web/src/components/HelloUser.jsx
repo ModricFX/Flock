@@ -22,6 +22,14 @@ const HelloUser = () => {
         <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
           Welcome to your account.
         </Typography>
+        <Container>
+          <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
+            Your events:
+          </Typography>
+          <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
+            <a href="/events/create">Create an event</a>
+          </Typography>
+        </Container>
       </Paper>
     </Container>
   );
