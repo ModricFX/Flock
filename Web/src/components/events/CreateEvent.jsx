@@ -17,16 +17,24 @@ import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 const CreateEvent = ({route}) => {
     const navigate = useNavigate();
     const {state} = useLocation();
+    const [image, setImage] = useState(null); 
 
     console.log(state);
     if(state != null){
-      const {name, location, description} = state;
-      
+      const {name, location, description, image} = state;
+
       //enter data to database
-      console.log(name, location, description);
+      console.log(name, location, description, image);
 
       navigate('/Hello');
     }
+
+    const handleImageChange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        setImage(file);
+      }
+    };
 
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -35,14 +43,20 @@ const CreateEvent = ({route}) => {
       const eventLocation = e.target["event-location"].value;
       const eventDescription = e.target["event-description"].value;
 
-      //validate data
+      if (!eventName || !eventLocation || !eventDescription || !image) {
+        alert("Please fill in all fields and upload an image.");
+        return;
+      }
+
+      // validate data
       
       navigate('/events/create', 
         {
           state :{
             name: eventName,
             location: eventLocation,
-            description: eventDescription
+            description: eventDescription,
+            image: image
           }
         });
     };
@@ -97,6 +111,28 @@ const CreateEvent = ({route}) => {
               id="event-description"
               name="event-description"
             />
+             <Button
+            variant="contained"
+            component="label"
+            fullWidth
+            sx={{
+              bgcolor: "#1976d2",
+              color: "#fff",
+              fontWeight: "bold",
+              mb: 2,
+            }}
+          >
+            Upload Image
+            <input
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleImageChange}
+            />
+          </Button>
+          {image && (
+            <Typography sx={{ mb: 2 }}>Selected file: {image.name}</Typography>
+          )}
             <Button
             type="submit"
             variant="contained"
