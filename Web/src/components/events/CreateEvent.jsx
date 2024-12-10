@@ -12,15 +12,39 @@ import {
     //Link
   } from "@mui/material";
 import '@fontsource/roboto';
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 
-const CreateEvent = () => {
+const CreateEvent = ({route}) => {
     const navigate = useNavigate();
+    const {state} = useLocation();
 
-      const handleSubmit = (e) => {
+    console.log(state);
+    if(state != null){
+      const {name, location, description} = state;
+      
+      //enter data to database
+      console.log(name, location, description);
+
+      navigate('/Hello');
+    }
+
+    const handleSubmit = (e) => {
       e.preventDefault();
 
-      navigate("/Hello"); // Po uspešnem loginu preusmerimo na /Hello
+      const eventName = e.target["event-name"].value;
+      const eventLocation = e.target["event-location"].value;
+      const eventDescription = e.target["event-description"].value;
+
+      //validate data
+      
+      navigate('/events/create', 
+        {
+          state :{
+            name: eventName,
+            location: eventLocation,
+            description: eventDescription
+          }
+        });
     };
   
     return (
@@ -41,7 +65,7 @@ const CreateEvent = () => {
             sx={{ mt: 1 }}
           >
             <TextField
-              placeholder="MyEvent"
+              placeholder="Enter event name (MyEvent)"
               label="Event name"
               variant="outlined"
               fullWidth
@@ -66,7 +90,6 @@ const CreateEvent = () => {
               label="Description"
               variant="outlined"
               fullWidth
-              required
               sx={{ mb: 2 }}
               multiline
               rows={4}
