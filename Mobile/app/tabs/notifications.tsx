@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
     description: {
         fontSize: 14,
         color: "#555",
+        paddingRight: 15,
     },
     time: {
         fontSize: 12,
