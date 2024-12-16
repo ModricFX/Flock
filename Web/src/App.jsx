@@ -34,7 +34,7 @@ const drawerWidth = 240;
 
 const App = () => {
   const [userEvents, setUserEvents] = useState([]);
-  const [otherEvents, setOtherEvents] = useState([
+  const [otherEvents] = useState([
     { title: "Community Meetup", startDate: "2024-12-15", location: "City Park" },
     { title: "Tech Talk: Future of AI", startDate: "2024-12-20", location: "Tech Hub" },
   ]);
