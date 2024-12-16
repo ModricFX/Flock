@@ -36,6 +36,11 @@ jobs:
         working-directory: Web
         run: npm ci
 
+      ### Copy .env file
+      - name: Copy environment file
+        working-directory: Web
+        run: cp /flock/.env ./
+
       - name: Build Web
         working-directory: Web
         run: npm run build
