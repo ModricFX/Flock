@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Container,
-  Paper,
   Typography,
   Box,
   Button,
@@ -13,12 +12,16 @@ import {
   List,
   ListItem,
   ListItemText,
+  Paper,
+  IconButton,
 } from "@mui/material";
+import ShareIcon from "@mui/icons-material/Share";
 
-const HomePage = () => {
-  const [events, setEvents] = useState([]); // Seznam dogodkov
-  const [open, setOpen] = useState(false); // Modalno okno za kreacijo dogodka
-  const [editEventIndex, setEditEventIndex] = useState(null); // Indeks dogodka, ki ga urejamo
+const YourEvents = ({ events, setEvents }) => {
+  const [open, setOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [editEventIndex, setEditEventIndex] = useState(null);
+  const [shareEventIndex, setShareEventIndex] = useState(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     startDate: "",
@@ -27,17 +30,21 @@ const HomePage = () => {
     endTime: "",
     description: "",
     location: "",
-    participants: 0, // Dodano za število udeležencev
-  }); // State za nov dogodek
+    participants: 0,
+  });
 
-  // Odpri modalno okno za kreacijo dogodka
+  const [friends, setFriends] = useState([
+    "John Doe",
+    "Jane Smith",
+    "Alice Johnson",
+    "Bob Brown",
+  ]);
+
   const handleOpen = (eventIndex = null) => {
     if (eventIndex !== null) {
-      // Če je index, bomo urejali obstoječi dogodek
       setEditEventIndex(eventIndex);
-      setNewEvent(events[eventIndex]); // Napolni podatke za urejanje
+      setNewEvent(events[eventIndex]);
     } else {
-      // Če ni indexa, ustvarjamo nov dogodek
       setNewEvent({
         title: "",
         startDate: "",
@@ -52,31 +59,32 @@ const HomePage = () => {
     setOpen(true);
   };
 
-  // Zapri modalno okno za kreacijo dogodka
   const handleClose = () => {
     setOpen(false);
-    setEditEventIndex(null); // Resetiranje indeksa
+    setEditEventIndex(null);
   };
 
-  // Funkcija za obravnavo spremembe datuma
+  const handleShareOpen = (eventIndex) => {
+    setShareEventIndex(eventIndex);
+    setShareOpen(true);
+  };
+
+  const handleShareClose = () => {
+    setShareOpen(false);
+    setShareEventIndex(null);
+  };
+
+  const handleShare = (friend) => {
+    const sharedEvent = events[shareEventIndex];
+    console.log(`Event "${sharedEvent.title}" shared with ${friend}`);
+    handleShareClose();
+  };
+
   const handleDateChange = (e, type) => {
-    const date = e.target.value;
-    setNewEvent({ ...newEvent, [type]: date });
+    const value = e.target.value;
+    setNewEvent((prev) => ({ ...prev, [type]: value }));
   };
 
-  // Funkcija za obravnavo spremembe časa
-  const handleTimeChange = (e, type) => {
-    const time = e.target.value;
-    setNewEvent({ ...newEvent, [type]: time });
-  };
-
-  // Funkcija za obravnavo spremembe števila udeležencev
-  const handleParticipantsChange = (e) => {
-    const participants = e.target.value;
-    setNewEvent({ ...newEvent, participants: participants });
-  };
-
-  // Shrani nov dogodek
   const handleSave = () => {
     if (
       newEvent.title &&
@@ -89,85 +97,91 @@ const HomePage = () => {
       newEvent.participants >= 0
     ) {
       if (editEventIndex !== null) {
-        // Če urejamo obstoječi dogodek, posodobimo
         const updatedEvents = [...events];
         updatedEvents[editEventIndex] = newEvent;
         setEvents(updatedEvents);
       } else {
-        // Če ustvarjamo nov dogodek
         setEvents([...events, newEvent]);
       }
-      handleClose(); // Zapri modalno okno za kreacijo dogodka
+      handleClose();
     }
   };
 
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
-      {/* Pozdravni del */}
-      <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
-        <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
-          Hi User!
-        </Typography>
-        <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
-          Welcome to your account. Below are your created events.
-        </Typography>
-      </Paper>
+      <Typography variant="h4" align="center" sx={{ fontWeight: "bold", marginBottom: 3 }}>
+        Your Events
+      </Typography>
 
-      {/* Seznam dogodkov */}
-      <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-          Your Events
-        </Typography>
+      <Paper elevation={5} sx={{ padding: 3, marginBottom: 3 }}>
         {events.length === 0 ? (
-          <Typography>No events yet. Create one by clicking the "+" button!</Typography>
+          <Typography>No events yet. Click "+" to add one!</Typography>
         ) : (
           <List>
             {events.map((event, index) => (
-              <ListItem key={index} sx={{ flexDirection: "column", alignItems: "flex-start" }}>
-                <ListItemText
-                  primary={`${event.title} (${event.startDate} ${event.startTime} - ${event.endDate} ${event.endTime})`}
-                  secondary={
-                    <>
-                      <Typography>
-                        <strong>Location:</strong> {event.location}
-                      </Typography>
-                      <Typography>
-                        <strong>Description:</strong> {event.description}
-                      </Typography>
-                      <Typography>
-                        <strong>Participants:</strong> {event.participants} people
-                      </Typography>
-                    </>
-                  }
-                />
-                {/* Gumb za urejanje dogodka */}
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => handleOpen(index)}
-                  sx={{ marginTop: 2 }}
-                >
-                  Edit
-                </Button>
-              </ListItem>
+              <Paper
+                key={index}
+                elevation={3}
+                sx={{ marginBottom: 2, padding: 2, backgroundColor: "#f5f5f5" }}
+              >
+                <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                  <ListItemText
+                    primary={`${event.title} (${event.startDate} ${event.startTime} - ${event.endDate} ${event.endTime})`}
+                    secondary={
+                      <>
+                        <Typography>
+                          <strong>Location:</strong> {event.location}
+                        </Typography>
+                        <Typography>
+                          <strong>Description:</strong> {event.description}
+                        </Typography>
+                        <Typography>
+                          <strong>Participants:</strong> {event.participants}
+                        </Typography>
+                      </>
+                    }
+                  />
+                  <Box sx={{ display: "flex", gap: 2, marginTop: 2 }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => handleOpen(index)}
+                    >
+                      Edit
+                    </Button>
+                    <IconButton
+                      color="secondary"
+                      onClick={() => handleShareOpen(index)}
+                    >
+                      <ShareIcon />
+                    </IconButton>
+                  </Box>
+                </ListItem>
+              </Paper>
             ))}
           </List>
         )}
       </Paper>
 
-      {/* Gumb za dodajanje dogodka */}
+      {/* Add Event Button */}
       <Box sx={{ textAlign: "center", marginTop: 3 }}>
         <Button
           variant="contained"
-          color="primary"
+          color="success"
           onClick={() => handleOpen()}
-          sx={{ fontSize: 24, padding: "10px 20px", borderRadius: "50%" }}
+          sx={{
+            fontSize: 16,
+            padding: "6px 12px",
+            borderRadius: "50%",
+            minWidth: "40px",
+            minHeight: "40px",
+          }}
         >
           +
         </Button>
       </Box>
 
-      {/* Modalno okno za kreacijo ali urejanje dogodka */}
+      {/* Event Dialog */}
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{editEventIndex !== null ? "Edit Event" : "Create New Event"}</DialogTitle>
         <DialogContent>
@@ -180,8 +194,6 @@ const HomePage = () => {
             value={newEvent.title}
             onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
           />
-
-          {/* Začetni datum in ura */}
           <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
             <TextField
               margin="dense"
@@ -205,11 +217,9 @@ const HomePage = () => {
               }}
               variant="outlined"
               value={newEvent.startTime}
-              onChange={(e) => handleTimeChange(e, "startTime")}
+              onChange={(e) => handleDateChange(e, "startTime")}
             />
           </Box>
-
-          {/* Končni datum in ura */}
           <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
             <TextField
               margin="dense"
@@ -233,10 +243,9 @@ const HomePage = () => {
               }}
               variant="outlined"
               value={newEvent.endTime}
-              onChange={(e) => handleTimeChange(e, "endTime")}
+              onChange={(e) => handleDateChange(e, "endTime")}
             />
           </Box>
-
           <TextField
             margin="dense"
             label="Location"
@@ -262,8 +271,9 @@ const HomePage = () => {
             fullWidth
             variant="outlined"
             value={newEvent.participants}
-            onChange={handleParticipantsChange}
-            inputProps={{ min: 0 }}
+            onChange={(e) =>
+              setNewEvent({ ...newEvent, participants: Math.max(0, e.target.value) })
+            }
           />
         </DialogContent>
         <DialogActions>
@@ -275,8 +285,27 @@ const HomePage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Share Dialog */}
+      <Dialog open={shareOpen} onClose={handleShareClose}>
+        <DialogTitle>Share Event</DialogTitle>
+        <DialogContent>
+          <List>
+            {friends.map((friend, index) => (
+              <ListItem key={index} button onClick={() => handleShare(friend)}>
+                <ListItemText primary={friend} />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleShareClose} color="error">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
 
-export default HomePage;
+export default YourEvents;
