@@ -74,11 +74,11 @@ const YourEvents = ({ events, setEvents }) => {
     setShareEventIndex(null);
   };
 
-  const handleShare = (friend) => {
+  /*const handleShare = (friend) => {
     const sharedEvent = events[shareEventIndex];
     console.log(`Event "${sharedEvent.title}" shared with ${friend}`);
     handleShareClose();
-  };
+  };*/
 
   const handleDateChange = (e, type) => {
     const value = e.target.value;
