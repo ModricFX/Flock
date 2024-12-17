@@ -33,12 +33,12 @@ const YourEvents = ({ events, setEvents }) => {
     participants: 0,
   });
 
-  const [friends, setFriends] = useState([
+  /*const [friends, setFriends] = useState([
     "John Doe",
     "Jane Smith",
     "Alice Johnson",
     "Bob Brown",
-  ]);
+  ]);*/
 
   const handleOpen = (eventIndex = null) => {
     if (eventIndex !== null) {
@@ -291,11 +291,11 @@ const YourEvents = ({ events, setEvents }) => {
         <DialogTitle>Share Event</DialogTitle>
         <DialogContent>
           <List>
-            {friends.map((friend, index) => (
+            {/*{friends.map((friend, index) => (
               <ListItem key={index} button onClick={() => handleShare(friend)}>
                 <ListItemText primary={friend} />
               </ListItem>
-            ))}
+            ))}*/}
           </List>
         </DialogContent>
         <DialogActions>
