@@ -21,7 +21,7 @@ const YourEvents = ({ events, setEvents }) => {
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [editEventIndex, setEditEventIndex] = useState(null);
-  //const [shareEventIndex, setShareEventIndex] = useState(null);
+  const [shareEventIndex, setShareEventIndex] = useState(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     startDate: "",
