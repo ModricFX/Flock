@@ -30,7 +30,7 @@ namespace flock.Controllers
             Description = "Login the user by creating the temporary authentication token."
         )]
         [HttpPost()]
-        public async Task<IActionResult> Login(UserLoginDto request)
+        public async Task<IActionResult> Login(CreateUserTokenDto request)
         {
             var user = await _userRepository.GetUserByEmailAsync(request.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
