@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace flock.Controllers
 {
@@ -24,6 +25,10 @@ namespace flock.Controllers
             _jwtSettings = jwtSettings.Value;
         }
 
+        [SwaggerOperation(
+            Summary = "Login user",
+            Description = "Login the user by creating the temporary authentication token."
+        )]
         [HttpPost()]
         public async Task<IActionResult> Login(UserLoginDto request)
         {
@@ -59,6 +64,10 @@ namespace flock.Controllers
             return tokenHandler.WriteToken(token);
         }
 
+        [SwaggerOperation(
+            Summary = "Renew auth token",
+            Description = "Creates a new auth token given the old one. Operation fails if the user resource was updated since the old token was issued."
+        )]
         [HttpPost("renew")]
         [Authorize]
         public async Task<IActionResult> RenewToken()
@@ -95,5 +104,5 @@ namespace flock.Controllers
         }
 
     }
-    
+
 }

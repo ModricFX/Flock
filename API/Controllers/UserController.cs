@@ -1,10 +1,9 @@
-﻿// Controllers/UserController.cs
-
-using flock.Data.Repositories.Interfaces;
+﻿using flock.Data.Repositories.Interfaces;
 using flock.Models;
 using flock.Models.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace flock.Controllers
 {
@@ -14,12 +13,16 @@ namespace flock.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
-    
+
         public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
 
+        [SwaggerOperation(
+            Summary = "Create user",
+            Description = "Creates the user resource with the password of choice and all the other info."
+        )]
         [HttpPost()]
         public async Task<IActionResult> Register(CreateUserDto request)
         {
@@ -49,9 +52,13 @@ namespace flock.Controllers
 
             return Ok(new { UserId = userId, Message = "Registration successful." });
         }
-    
+
+        [SwaggerOperation(
+            Summary = "Get authenticated user",
+            Description = "Returns the user resource for the currently authenticated user."
+        )]
         [HttpGet("me")]
-        public async Task<IActionResult> GetUserProfile()
+        public async Task<IActionResult> GetAuthenticatedUser()
         {
             // Check if the user is authenticated
             if (!User.Identity.IsAuthenticated)
