@@ -1,6 +1,6 @@
 ﻿namespace flock.Models.Auth
 {
-    public class UserRegisterDto
+    public class CreateUserDto
     {
         public string First_name { get; set; }
         public string Last_name { get; set; }

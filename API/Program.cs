@@ -15,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new Exception("Missing JWT configuration");
 var key = Encoding.ASCII.GetBytes(jwtSettings.Secret);
 
 builder.Services.AddAuthentication(options =>
@@ -43,6 +43,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSwaggerGen(opt =>
 {
     opt.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "My Api", Version = "v1" });
+
+    opt.EnableAnnotations();
 
     // Add Security Definition for Bearer authentication
     opt.AddSecurityDefinition("bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
