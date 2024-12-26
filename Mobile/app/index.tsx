@@ -31,7 +31,7 @@ export default function HomePage() {
             if (isLoggedIn) {
                 router.replace("/tabs/home");
             } else {
-                router.push('/auth/login'); // Redirect to login page for not-logged-in users
+                router.push('/tabs/home'); // Redirect to login page for not-logged-in users
             }
         }
     }, [loading, isLoggedIn]);

@@ -9,10 +9,10 @@ import {
     TouchableWithoutFeedback,
     TouchableOpacity,
     Pressable,
+    Button,
+    Animated,
 } from 'react-native';
 
-
-// Example notifications data
 const notifications = [
     { id: "1", title: "Event Reminder", description: "Don't miss the 'Tech Conference' tomorrow!", unread: true, date: new Date(Date.now() - 6000) }, // 6 seconds ago
     { id: "2", title: "Event Cancelled", description: "The event 'Cooking Class' has been cancelled.", unread: false, date: new Date(Date.now() - 6 * 60 * 1000) }, // 6 minutes ago
@@ -27,169 +27,148 @@ const notifications = [
     { id: "11", title: "Achievement Unlocked", description: "Congratulations on completing 10 events!", unread: true, date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // 1 month ago
     { id: "12", title: "Friend Joined", description: "Your friend Charlie just joined the app.", unread: false, date: new Date(Date.now() - 2 * 30 * 24 * 60 * 60 * 1000) }, // 2 months ago
 ];
-
-
 export default function Notifications() {
     const [data, setData] = useState(notifications);
     const [filter, setFilter] = useState("all");
-    const [menuVisible, setMenuVisible] = useState(false);
     const [popupVisible, setPopupVisible] = useState(false);
-    const [selectedNotification, setSelectedNotification] = useState<any>(null); // Track the selected notification for options
+    const [selectedNotification, setSelectedNotification] = useState<any>(null);
+    const [notificationPopupVisible, setNotificationPopupVisible] = useState(false);
+    const slideAnim = useState(new Animated.Value(300))[0];
 
     const handleNotificationClick = (notification: any) => {
-        console.log("Clicked notification: ", notification);
+        setSelectedNotification(notification);
+        setNotificationPopupVisible(true);
+        Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const closeNotificationPopup = () => {
+        Animated.timing(slideAnim, {
+            toValue: 300,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(() => {
+            setNotificationPopupVisible(false);
+        });
+    };
+
+    const markAsRead = () => {
         setData((prevData) =>
             prevData.map((item) =>
-                item.id === notification.id ? { ...item, unread: false } : item
+                item.id === selectedNotification.id ? { ...item, unread: false } : item
             )
         );
-    };
-
-    const markAllAsRead = () => {
-        setData((prevData) =>
-            prevData.map((item) => ({ ...item, unread: false }))
-        );
-        setMenuVisible(false);
-    };
-
-    const markAsUnread = () => {
-        setData((prevData) =>
-            prevData.map((item) =>
-                item.id === selectedNotification?.id ? { ...item, unread: true } : item
-            )
-        );
-        setSelectedNotification(null);
-    };
-
-    const deleteNotification = () => {
-        setData((prevData) =>
-            prevData.filter((item) => item.id !== selectedNotification?.id)
-        );
-        setSelectedNotification(null);
+        closeNotificationPopup();
     };
 
     const filteredData = filter === "all" ? data : data.filter((item) => item.unread);
 
-    const formatTime = (date: string) => {
+    const formatTime = (date: Date) => {
         const now = new Date();
-        const notificationDate = new Date(date);
-        const diff = now.getTime() - notificationDate.getTime();
-        const seconds = Math.floor(diff / 1000);
-        const minutes = Math.floor(seconds / 60);
+        const diff = now.getTime() - date.getTime();
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 60) return `${minutes} min ago`;
         const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hr ago`;
         const days = Math.floor(hours / 24);
-        const weeks = Math.floor(days / 7);
-        const months = Math.floor(days / 30);
-        const years = Math.floor(months / 12);
-
-        if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
-        if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
-        if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-        if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-        if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-        if (minutes > 0) return `${minutes} min${minutes > 1 ? "s" : ""} ago`;
-        return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
+        return `${days} days ago`;
     };
 
     const renderNotification = ({ item }: any) => (
-        <View style={styles.notificationView}>
-            <Pressable
-                onPress={() => {
-                    handleNotificationClick(item);
-                    setMenuVisible(false);
-                }}
-                onLongPress={() => {
-                    setSelectedNotification(item);
-                    setPopupVisible(true); // Show the options menu
-                }}
-                android_ripple={{ color: "#bcbcbc", borderless: true }}
-                style={styles.notification}>
-                {item.unread && <View style={styles.unreadDot} />}
-                <View style={styles.textContainer}>
-                    <Text style={styles.title}>{item.title}</Text>
-                    <Text style={styles.description}>{item.description}</Text>
-                </View>
-                <View pointerEvents="none">
-                    <Text style={[styles.time, item.unread && styles.unreadTime]}>{formatTime(item.date)}</Text>
-                </View>
-            </Pressable>
-        </View>
+        <Pressable
+            onPress={() => handleNotificationClick(item)}
+            onLongPress={() => {
+                setSelectedNotification(item);
+                setPopupVisible(true);
+            }}
+            style={[styles.notification, item.unread && styles.unreadNotification]}
+        >
+            {item.unread && <View style={styles.unreadDot} />}
+            <View style={styles.textContainer}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.time}>{formatTime(item.date)}</Text>
+            </View>
+        </Pressable>
     );
 
     return (
-        <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
+        <TouchableWithoutFeedback>
             <View style={styles.container}>
-                <StatusBar backgroundColor="#f9f9f9" barStyle="dark-content" translucent={false} />
+                <StatusBar barStyle="dark-content" />
                 <View style={styles.header}>
-                    <TouchableOpacity
-                        onPress={() => {
-                            setFilter("all");
-                            setMenuVisible(false);
-                        }}
-                        style={[styles.tagButton, filter === "all" && styles.activeTagButton]}
-                    >
-                        <Text style={styles.tagButtonText}>All</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => {
-                            setFilter("unread");
-                            setMenuVisible(false);
-                        }}
-                        style={[styles.tagButton, filter === "unread" && styles.activeTagButton]}
-                    >
-                        <Text style={styles.tagButtonText}>Unread</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.menuButton}
-                        onPress={() => setMenuVisible(!menuVisible)}
-                    >
-                        <Text style={styles.menuDots}>...</Text>
-                    </TouchableOpacity>
-                </View>
-                {menuVisible && (
-                    <View style={styles.menu}>
-                        <TouchableOpacity onPress={markAllAsRead}>
-                            <Text style={styles.menuOption}>Mark All as Read</Text>
+                    <Text style={styles.headerText}>Notifications</Text>
+                    <View style={styles.filters}>
+                        <TouchableOpacity onPress={() => setFilter("all")}>
+                            <Text style={[styles.filterText, filter === "all" && styles.activeFilterText]}>All</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setFilter("unread")}>
+                            <Text style={[styles.filterText, filter === "unread" && styles.activeFilterText]}>Unread</Text>
                         </TouchableOpacity>
                     </View>
-                )}
+                </View>
                 <FlatList
                     data={filteredData}
                     renderItem={renderNotification}
                     keyExtractor={(item) => item.id}
-                    contentContainerStyle={{ paddingBottom: 8 }}  // Add padding after the last notification
+                    contentContainerStyle={{ paddingBottom: 8 }}
                 />
 
-                {/* Popup Modal for notification options (Mark as unread, Delete) */}
                 <Modal
                     visible={popupVisible && selectedNotification !== null}
-                    transparent={true}
+                    transparent
                     animationType="fade"
                     onRequestClose={() => setPopupVisible(false)}
-                    // terrific solution, but I'm not wasting another 3 hours figuring out how to properly fix this
-                    onShow={() => {
-                        StatusBar.setBackgroundColor("#636363");
-                        StatusBar.setBarStyle("light-content");
-                        } // Darken the status bar
-                    }
-                    onDismiss={() => {
-                        StatusBar.setBackgroundColor("#f9f9f9");
-                        StatusBar.setBarStyle("dark-content");
-                        } // Reset status bar
-                    }
                 >
                     <TouchableWithoutFeedback onPress={() => setPopupVisible(false)}>
                         <View style={styles.modalOverlay}>
                             <View style={styles.modalContent}>
-                                <TouchableOpacity onPress={markAsUnread}>
-                                    <Text style={styles.modalOption}>Mark as unread</Text>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setData((prev) =>
+                                            prev.map((item) =>
+                                                item.id === selectedNotification.id
+                                                    ? { ...item, unread: true }
+                                                    : item
+                                            )
+                                        );
+                                        setPopupVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalOption}>Mark as Unread</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity onPress={deleteNotification}>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setData((prev) =>
+                                            prev.filter((item) => item.id !== selectedNotification.id)
+                                        );
+                                        setPopupVisible(false);
+                                    }}
+                                >
                                     <Text style={styles.modalOption}>Delete</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
+                </Modal>
+
+                {/* Notification Popup */}
+                <Modal
+                    visible={notificationPopupVisible && selectedNotification !== null}
+                    transparent
+                    animationType="none"
+                    onRequestClose={closeNotificationPopup}
+                >
+                    <View style={styles.popupOverlay}>
+                        <Animated.View style={[styles.popupContent, { transform: [{ translateY: slideAnim }] }]}>
+                            <Text style={styles.popupTitle}>{selectedNotification?.title}</Text>
+                            <Text style={styles.popupDescription}>{selectedNotification?.description}</Text>
+                            <Button title="OK" onPress={markAsRead} />
+                        </Animated.View>
+                    </View>
                 </Modal>
             </View>
         </TouchableWithoutFeedback>
@@ -202,42 +181,40 @@ const styles = StyleSheet.create({
         backgroundColor: "#f9f9f9",
     },
     header: {
-        flexDirection: "row",
-        marginVertical: 8,
-    },
-    menuButton: {
-        marginLeft: "auto",
-    },
-    menuDots: {
-        fontSize: 26,
-        fontWeight: "bold",
-        color: "#555",
-        marginRight: 24,
-    },
-    menu: {
-        position: "absolute",
-        top: 55,
-        right: 10,
+        paddingHorizontal: 16,
+        paddingTop: 50,
+        paddingBottom: 10,
         backgroundColor: "#fff",
-        padding: 10,
-        borderRadius: 6,
-        elevation: 8,  // Android shadow
-        shadowColor: "#000",  // iOS shadow
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        zIndex: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#ddd",
     },
-    menuOption: {
+    headerText: {
+        fontSize: 24,
+        fontWeight: "600",
+        marginBottom: 10,
+    },
+    filters: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+    },
+    filterText: {
         fontSize: 16,
-        color: "#333",
-        padding: 6,
+        color: "#555",
+    },
+    activeFilterText: {
+        fontWeight: "600",
+        color: "#000",
     },
     notification: {
         flexDirection: "row",
         alignItems: "center",
+        padding: 16,
         backgroundColor: "#fff",
-        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "#eee",
+    },
+    unreadNotification: {
+        backgroundColor: "#e6f7ff",
     },
     unreadDot: {
         width: 10,
@@ -250,66 +227,56 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     title: {
-        fontWeight: "bold",
         fontSize: 16,
-        color: "#333",
+        fontWeight: "600",
     },
     description: {
         fontSize: 14,
         color: "#555",
-        paddingRight: 15,
     },
     time: {
         fontSize: 12,
         color: "#888",
-    },
-    unreadTime: {
-        color: "#0A84FF",
+        marginTop: 5,
     },
     modalOverlay: {
         flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
     },
     modalContent: {
         backgroundColor: "#fff",
-        paddingHorizontal: 18,
-        paddingVertical: 12,
         borderRadius: 10,
-        width: "60%",
+        padding: 20,
+        width: "80%",
+        alignItems: "center",
     },
     modalOption: {
         fontSize: 16,
-        marginVertical: 16,
         color: "#333",
+        marginVertical: 10,
     },
-    tagButton: {
-        paddingVertical: 7,
-        paddingHorizontal: 18,
-        borderRadius: 24,
-        backgroundColor: "#cdcdcd",
-        marginLeft: 12,
+    popupOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
-    activeTagButton: {
-        backgroundColor: "#4CAF50",
+    popupContent: {
+        backgroundColor: "#fff",
+        padding: 20,
+        borderRadius: 10,
+        width: "80%",
     },
-    tagButtonText: {
+    popupTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 10,
+    },
+    popupDescription: {
         fontSize: 16,
-        fontWeight: "600",
-        color: "#fff",
-        textAlign: "center",
+        color: "#555",
+        marginBottom: 20,
     },
-    notificationView: {
-        alignSelf: 'stretch',
-        justifyContent: 'center',
-        borderRadius: 8,
-        elevation: 3,  // Android shadow
-        shadowColor: '#000',  // iOS shadow
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        margin: 5,
-        marginHorizontal: 10,
-    }
 });

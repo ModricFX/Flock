@@ -7,7 +7,11 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  Image,
+  Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
 import AppWriteService from '../services/appwriteservice';
 
@@ -19,48 +23,56 @@ export default function Profile() {
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
-  const handleUpdateUsername = async () => {
-    if (!username) {
-      Alert.alert('Error', 'Username is required.');
+  // Dropdown states for Language
+  const [openLang, setOpenLang] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default: English
+  const [languageItems, setLanguageItems] = useState([
+    { label: 'English', value: 'en' },
+    { label: 'Spanish', value: 'es' },
+    { label: 'French', value: 'fr' },
+  ]);
+
+  // Dropdown states for Theme
+  const [openTheme, setOpenTheme] = useState(false);
+  const [theme, setTheme] = useState('light'); // Default: Light
+  const [themeItems, setThemeItems] = useState([
+    { label: 'Light', value: 'light' },
+    { label: 'Dark', value: 'dark' },
+  ]);
+
+  // -- Update Profile Info (Username, Email) --
+  const handleSaveProfileInfo = async () => {
+    if (!username && !email) {
+      Alert.alert('Error', 'Please fill out at least one field (username or email).');
       return;
     }
-
     try {
-      // TODO: Add logic to update username
-      console.log('Updating username:', username);
-      Alert.alert('Success', 'Username updated successfully!');
+      if (username) {
+        console.log('Updating username:', username);
+        // call your service or function
+      }
+      if (email) {
+        console.log('Updating email:', email);
+        // call your service or function
+      }
+      Alert.alert('Success', 'Profile information updated successfully!');
     } catch (error) {
-      console.error('Username update failed:', error);
-      Alert.alert('Error', 'Failed to update username. Please try again.');
+      console.error('Profile update failed:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
   };
 
-  const handleUpdateEmail = async () => {
-    if (!email) {
-      Alert.alert('Error', 'Email is required.');
-      return;
-    }
-
-    try {
-      // TODO: Add logic to update email
-      console.log('Updating email:', email);
-      Alert.alert('Success', 'Email updated successfully!');
-    } catch (error) {
-      console.error('Email update failed:', error);
-      Alert.alert('Error', 'Failed to update email. Please try again.');
-    }
-  };
-
+  // -- Change Password --
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) {
       Alert.alert('Error', 'Both current and new passwords are required.');
       return;
     }
-
     try {
-      // TODO: Add logic to change password
       console.log('Changing password:', { currentPassword, newPassword });
+      // call your service or function
       Alert.alert('Success', 'Password updated successfully!');
     } catch (error) {
       console.error('Password change failed:', error);
@@ -68,146 +80,354 @@ export default function Profile() {
     }
   };
 
+  // -- Logout --
   const handleLogout = async () => {
     try {
-      // Add logic to log out the user
       console.log('Logging out user...');
       await appwriteService.logout();
-      router.replace('/auth/login'); // Redirect to login page after logout
+      router.replace('/auth/login');
     } catch (error) {
       console.error('Logout failed:', error);
       Alert.alert('Error', 'Failed to log out. Please try again.');
     }
   };
 
+  // -- Delete Account --
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account?',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Deleting user account...');
+              // call your service or function
+              Alert.alert('Success', 'Your account has been deleted.');
+              router.replace('/auth/login');
+            } catch (error) {
+              console.error('Account deletion failed:', error);
+              Alert.alert('Error', 'Failed to delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // -- Pick or Change Profile Image --
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Account Settings</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true} // Allows dropdown scrolling
+    >
+      {/* Screen Title */}
+      <Text style={styles.screenTitle}>Profile Settings</Text>
 
-      {/* Update Username Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Update Username</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor="#555"
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleUpdateUsername}>
-          <Text style={styles.buttonText}>Update Username</Text>
+      {/* Profile Image Card */}
+      <View style={styles.card}>
+        <View style={styles.profileHeader}>
+          <TouchableOpacity onPress={pickImage}>
+            <Image
+              source={
+                profileImage
+                  ? { uri: profileImage }
+                  : require('..\\assets\\images\\default_profile.png')
+              }
+              style={styles.profileImage}
+            />
+            <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Personal Info Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Personal Information</Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter new username"
+            placeholderTextColor="#888"
+            value={username}
+            onChangeText={setUsername}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter new email"
+            placeholderTextColor="#888"
+            value={email}
+            onChangeText={setEmail}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleSaveProfileInfo}>
+          <Text style={styles.primaryButtonText}>Save Changes</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Update Email Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Update Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#555"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleUpdateEmail}>
-          <Text style={styles.buttonText}>Update Email</Text>
+      {/* Security Settings Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Security</Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Current Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter current password"
+            placeholderTextColor="#888"
+            secureTextEntry
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>New Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter new password"
+            placeholderTextColor="#888"
+            secureTextEntry
+            value={newPassword}
+            onChangeText={setNewPassword}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handleChangePassword}>
+          <Text style={styles.primaryButtonText}>Update Password</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Change Password Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Change Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Current Password"
-          placeholderTextColor="#555"
-          secureTextEntry
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="New Password"
-          placeholderTextColor="#555"
-          secureTextEntry
-          value={newPassword}
-          onChangeText={setNewPassword}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
-          <Text style={styles.buttonText}>Change Password</Text>
+      {/* Appearance Settings Card */}
+      <View style={[styles.card, { zIndex: 9999, position: 'relative' }]}>
+        <Text style={styles.cardTitle}>Appearance</Text>
+
+        {/* LANGUAGE DROPDOWN */}
+        <View style={[styles.fieldGroup, { zIndex: 9999 }]}>
+          <Text style={styles.label}>Language</Text>
+          <DropDownPicker
+            open={openLang}
+            value={selectedLanguage}
+            items={languageItems}
+            setOpen={setOpenLang}
+            setValue={setSelectedLanguage}
+            setItems={setLanguageItems}
+            placeholder="Select a language"
+            listMode="SCROLLVIEW"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropDownContainer}
+            zIndex={9999}
+            zIndexInverse={4000}
+          />
+        </View>
+
+        {/* THEME DROPDOWN */}
+        <View style={[styles.fieldGroup, { zIndex: 9998 }]}>
+          <Text style={styles.label}>Theme</Text>
+          <DropDownPicker
+            open={openTheme}
+            value={theme}
+            items={themeItems}
+            setOpen={setOpenTheme}
+            setValue={setTheme}
+            setItems={setThemeItems}
+            placeholder="Select a theme"
+            listMode="SCROLLVIEW"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropDownContainer}
+            zIndex={9999}
+            zIndexInverse={4000}
+          />
+        </View>
+      </View>
+
+      {/* Danger Zone Card (lower zIndex) */}
+      <View style={[styles.card, styles.dangerZoneCard, { zIndex: 1 }]}>
+        <Text style={[styles.cardTitle, styles.dangerZoneTitle]}>Danger Zone</Text>
+        <Text style={styles.dangerZoneText}>
+          Deleting your account is permanent. All data will be lost.
+        </Text>
+        <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAccount}>
+          <Text style={styles.dangerButtonText}>Delete Account</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Logout Section */}
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Logout</Text>
+      </TouchableOpacity>
+
+      {/* Spacing at the bottom */}
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Container
   container: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#f9f9f9',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    backgroundColor: '#FAFAFA',
+    position: 'relative',
   },
-  title: {
-    fontSize: 24,
+  // Screen Title
+  screenTitle: {
+    fontSize: 26,
     fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 15,
     textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-    marginTop: 50,
   },
-  section: {
-    marginBottom: 30,
+  // Card
+  card: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 15,
+
+    // Shadow for Android
+    elevation: 2,
+
+    // Shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
-  sectionTitle: {
+  // Card Title
+  cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#555',
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
   },
+  // Field Group
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  // Label
+  label: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  // Text Input
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 15,
-    backgroundColor: '#f7f7f7',
+    height: 44,
+    paddingHorizontal: 12,
+    fontSize: 15,
   },
-  button: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 12,
+  // Dropdown
+  dropdown: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E3E3E3',
   },
-  buttonText: {
+  dropDownContainer: {
+    borderColor: '#E3E3E3',
+  },
+  // Profile Header (Key Changes Here)
+  profileHeader: {
+    flex: 1, 
+    width: '100%',
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginBottom: 12,
+  },
+  // Profile Image
+  profileImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: '#ECECEC',
+  },
+  
+  changePhotoText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 14,
     textAlign: 'center',
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
+    marginTop: 8,
   },
-  logoutButton: {
-    backgroundColor: '#e53935',
+  // Primary Button
+  primaryButton: {
+    backgroundColor: '#007AFF',
     borderRadius: 8,
     paddingVertical: 12,
+    marginTop: 8,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Danger Zone
+  dangerZoneCard: {
+    borderColor: '#FFDAD7',
+    borderWidth: 1,
+    backgroundColor: '#FFF0F0',
+  },
+  dangerZoneTitle: {
+    color: '#E53935',
+  },
+  dangerZoneText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+  },
+  dangerButton: {
+    backgroundColor: '#E53935',
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  dangerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Logout Button
+  logoutButton: {
+    backgroundColor: '#333',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 5,
   },
   logoutButtonText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#FFF',
+    fontWeight: '600',
   },
 });
