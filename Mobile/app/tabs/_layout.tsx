@@ -3,6 +3,17 @@ import { FontAwesome } from '@expo/vector-icons';
 import Home from './home';
 import Notifications from './notifications';
 import Profile from './profile';
+import Friends from './friends';
+
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+
+export type TabParamList = {
+    Home: undefined;
+    Notifications: undefined;
+    Friends: undefined;
+    Profile: undefined;
+};
+
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +37,16 @@ export default function TabsLayout() {
                     title: "Notifications",
                     tabBarIcon: ({ color, size }) => (
                         <FontAwesome name="bell" color={color} size={size} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Friends"
+                component={Friends}
+                options={{
+                    title: "Friends",
+                    tabBarIcon: ({ color, size }) => (
+                        <FontAwesome name="users" color={color} size={size} />
                     ),
                 }}
             />

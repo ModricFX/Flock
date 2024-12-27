@@ -124,16 +124,18 @@ export default function Profile() {
   // -- Pick or Change Profile Image --
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
+        mediaTypes: 'images', // Correct value is lowercase 'images'
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setProfileImage(result.assets[0].uri);
+        setProfileImage(result.assets[0].uri);
     }
-  };
+};
+
+
 
   return (
     <ScrollView
@@ -298,11 +300,9 @@ const styles = StyleSheet.create({
   },
   // Screen Title
   screenTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 15,
-    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 10,
   },
   // Card
   card: {
@@ -357,10 +357,10 @@ const styles = StyleSheet.create({
   },
   // Profile Header (Key Changes Here)
   profileHeader: {
-    flex: 1, 
+    flex: 1,
     width: '100%',
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
   // Profile Image
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#ECECEC',
   },
-  
+
   changePhotoText: {
     color: '#007AFF',
     fontWeight: '600',
