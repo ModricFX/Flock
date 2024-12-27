@@ -39,11 +39,8 @@ interface DaySchedule {
 }
 
 /**
- * "status":
- *  - "voting" if now < endVoting
- *  - "finished" if now >= endVoting
- *
- * "eventDate": The final chosen date/time for the event, if any.
+ * "EventData" with scheduleOptions stored by day-of-week,
+ * a multi-step approach for both create and edit.
  */
 interface EventData {
     id: string;
@@ -52,15 +49,16 @@ interface EventData {
     description: string;
     location: string;
 
+    /* Days (Mon–Sun) each with start/end times */
     scheduleOptions: Record<string, DaySchedule>;
-    participants: Participant[];
 
-    endVoting: Date;
-    eventDate?: Date;
+    participants: Participant[];
+    endVoting: Date;            // People can vote until this date/time
+    eventDate?: Date;          // The final chosen date/time (if set)
 
     createdAt: Date;
     updatedAt: Date;
-    votes: Record<string, any>;
+    votes: Record<string, any>; // optional: store user votes, not used here
 }
 
 /* Mock "current" user */
@@ -112,7 +110,7 @@ const initialEvents: EventData[] = [
             { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
         ],
         endVoting: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
-        eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48), // event is 2 days from now
+        eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
         votes: {},
@@ -129,59 +127,81 @@ const daysOfWeek = [
     'Sunday',
 ];
 
+/* Utility: get 'voting' or 'finished' from endVoting */
+function getEventStatus(evt: EventData) {
+    const now = Date.now();
+    if (evt.endVoting.getTime() > now) return 'voting';
+    return 'finished';
+}
+
+function formatDate(date: Date) {
+    return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export default function HomeScreen() {
-    /* Simulate user fetch */
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-    /* Storing events and friend list in local states */
-    const [friends, setFriends] = useState<User[]>(mockFriends);
     const [events, setEvents] = useState<EventData[]>(initialEvents);
+    const [friends] = useState<User[]>(mockFriends);
 
-    /* Multi-step creation state */
-    const [createStep, setCreateStep] = useState(1);
+    /* ---------------------------------------
+         CREATE EVENT (4 Steps)
+    --------------------------------------- */
     const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [createStep, setCreateStep] = useState(1);
 
-    // Basic Info
     const [createTitle, setCreateTitle] = useState('');
     const [createDesc, setCreateDesc] = useState('');
     const [createLoc, setCreateLoc] = useState('');
-
-    // Days & Times
     const [createSchedule, setCreateSchedule] = useState<Record<string, DaySchedule>>({});
-
-    // Invites
     const [invitees, setInvitees] = useState<Participant[]>([]);
     const [typedInvite, setTypedInvite] = useState('');
-
-    // Voting Deadline
     const [endVotingDate, setEndVotingDate] = useState<Date>(
         new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
     );
 
-    /* Edit Flow */
+    /* ---------------------------------------
+         EDIT EVENT (4 Steps)
+    --------------------------------------- */
     const [editModalVisible, setEditModalVisible] = useState(false);
-    const [editEvent, setEditEvent] = useState<EventData | null>(null);
+    const [editStep, setEditStep] = useState(1);
+
+    // All the fields for editing steps
+    const [editTitle, setEditTitle] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [editLoc, setEditLoc] = useState('');
+    const [editSchedule, setEditSchedule] = useState<Record<string, DaySchedule>>({});
+    const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
+    const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
+    const [editEvent, setEditEvent] = useState<EventData | null>(null);
 
-    /* View/Vote Flow (others) */
-    const [voteModalVisible, setVoteModalVisible] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+    /* -------------- Voting & TimePicker Modals -------------- */
+    // Voting date/time modal is used by both create & edit
+    const [votingPickerVisible, setVotingPickerVisible] = useState(false);
+    const [votingPickerMode, setVotingPickerMode] = useState<'create' | 'edit'>('create');
 
-    /* Time Picker (shared) */
+    // Time Picker (shared for day start/end)
     const [timePickerVisible, setTimePickerVisible] = useState(false);
     const [timePickerDay, setTimePickerDay] = useState('');
     const [timePickerField, setTimePickerField] = useState<'start' | 'end'>('start');
     const [timePickerMode, setTimePickerMode] = useState<'create' | 'edit'>('create');
     const [tempTime, setTempTime] = useState(new Date());
 
-    /* Voting date/time (like the day/time modals) */
-    const [votingPickerVisible, setVotingPickerVisible] = useState(false);
+    /* -------------------------------------------------- 
+         VIEW / VOTE (Other Events) 
+    -------------------------------------------------- */
+    const [voteModalVisible, setVoteModalVisible] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
 
-    // Keyboard offset for iOS
-    const [keyboardOffset, setKeyboardOffset] = useState<'padding' | undefined>(undefined);
 
-    // On mount, pretend to fetch user
+    // Simulate fetching user
     useEffect(() => {
         setTimeout(() => {
             setCurrentUser(mockCurrentUser);
@@ -189,7 +209,6 @@ export default function HomeScreen() {
         }, 800);
     }, []);
 
-    /* Loading fallback */
     if (loading) {
         return (
             <View style={styles.container}>
@@ -198,30 +217,9 @@ export default function HomeScreen() {
         );
     }
 
-    /* --------------------------------------------------
-         UTILS
-    -------------------------------------------------- */
-    function getEventStatus(evt: EventData) {
-        const now = Date.now();
-        if (evt.endVoting.getTime() > now) return 'voting';
-        return 'finished';
-    }
 
-    function formatDate(date: Date) {
-        return date.toLocaleString([], {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    }
 
-    /* --------------------------------------------------
-         CREATE EVENT Flow
-    -------------------------------------------------- */
     function startCreateEvent() {
-        // Reset all
         setCreateStep(1);
         setCreateTitle('');
         setCreateDesc('');
@@ -239,17 +237,18 @@ export default function HomeScreen() {
 
     function handleNextStepCreate() {
         if (createStep < 4) {
-            setCreateStep(createStep + 1);
+            setCreateStep(prev => prev + 1);
         } else {
+            // finalize
             finalizeCreateEvent();
         }
     }
 
     function handlePrevStepCreate() {
-        if (createStep > 1) {
-            setCreateStep(createStep - 1);
-        } else {
+        if (createStep === 1) {
             closeCreateEvent();
+        } else {
+            setCreateStep(prev => prev - 1);
         }
     }
 
@@ -258,7 +257,7 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title for your event.');
             return;
         }
-        const newEvt: EventData = {
+        const newEvent: EventData = {
             id: Math.random().toString(),
             createdBy: currentUser?.id || 'unknown',
             title: createTitle,
@@ -272,159 +271,129 @@ export default function HomeScreen() {
             updatedAt: new Date(),
             votes: {},
         };
-        setEvents([...events, newEvt]);
+        setEvents([...events, newEvent]);
         closeCreateEvent();
     }
 
-    // Step2: Toggle day/time in creation
+    /* Step2 (Create): toggling day-of-week, picking times */
     function toggleDayCreate(day: string) {
         const copy = { ...createSchedule };
-        if (copy[day]) delete copy[day];
-        else copy[day] = { start: '08:00 AM', end: '10:00 PM' };
+        if (copy[day]) {
+            delete copy[day];
+        } else {
+            copy[day] = { start: '08:00 AM', end: '10:00 PM' };
+        }
         setCreateSchedule(copy);
     }
 
-    // Step2: open time picker for day in create
+    /* Step2: open time picker (create) */
     function openTimePickerCreate(day: string, field: 'start' | 'end') {
         setTimePickerDay(day);
         setTimePickerField(field);
         setTimePickerMode('create');
         setTempTime(new Date());
-
-        // Hide the creation modal so it won't block the time picker
+        // hide create modal => open time modal
         setCreateModalVisible(false);
-        // Then show time picker
         setTimePickerVisible(true);
     }
 
-    // Step3: Invites
+    /* Step3 (Create): Invites */
     function addFriendInvite(friend: User) {
-        const already = invitees.find((p) => p.email === friend.email);
-        if (!already) {
-            setInvitees((prev) => [
-                ...prev,
-                { username: friend.username, email: friend.email, status: 'pending' },
-            ]);
+        if (!invitees.find(i => i.email === friend.email)) {
+            setInvitees(prev => [...prev, { username: friend.username, email: friend.email, status: 'pending' }]);
         }
     }
-
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
-        const already = invitees.find((p) => p.email === typedInvite);
-        if (!already) {
-            setInvitees((prev) => [
-                ...prev,
-                {
-                    username: typedInvite.split('@')[0],
-                    email: typedInvite,
-                    status: 'pending',
-                },
-            ]);
+        if (!invitees.find(i => i.email === typedInvite)) {
+            const newPart: Participant = {
+                username: typedInvite.split('@')[0],
+                email: typedInvite,
+                status: 'pending',
+            };
+            setInvitees(prev => [...prev, newPart]);
         }
         setTypedInvite('');
     }
 
-    // Step4: set endVoting date/time
-    // Hide the creation modal, show the "endVoting" modal
-    function openVotingDatePicker() {
-        setCreateModalVisible(false);    // hide the Create Event modal
-        setVotingPickerVisible(true);    // show the End Voting modal
-        setTempTime(endVotingDate);      // initialize the tempTime to the existing endVoting
+    /* Step4: pick endVoting date/time => hide create modal => open special modal */
+    function openVotingDatePickerCreate() {
+        setCreateModalVisible(false);
+        setTempTime(endVotingDate);
+        setVotingPickerVisible(true);
+        setVotingPickerMode('create');
     }
 
-    function cancelVotingDate() {
-        // Cancel picking date => hide the voting modal, re-show the create modal
-        setVotingPickerVisible(false);
-        setCreateModalVisible(true);
-    }
+    /* ---------------------------------------
+         EDIT EVENT (4 Steps)
+    --------------------------------------- */
 
-    function saveVotingDate() {
-        // Save the date => set endVoting, hide this modal, re-show the create modal
-        setEndVotingDate(tempTime);
-        setVotingPickerVisible(false);
-        setCreateModalVisible(true);
-    }
+    function openEdit(event: EventData) {
+        setEditEvent(event);
+        setEditStep(1);
 
-    /* --------------------------------------------------
-         TIME PICKER SHARED (create/edit)
-    -------------------------------------------------- */
-    function onTimePickerChange(_event: DateTimePickerEvent, sel?: Date) {
-        if (sel) setTempTime(sel);
-    }
+        // Populate the fields with event data
+        setEditTitle(event.title || '');
+        setEditDesc(event.description || '');
+        setEditLoc(event.location || '');
+        setEditSchedule({ ...event.scheduleOptions });
+        setEditInvitees([...event.participants]);
+        setEditEndVoting(event.endVoting || new Date());
 
-    function cancelTimePicker() {
-        setTimePickerVisible(false);
-        // If we were in CREATE mode, re-show create modal
-        if (timePickerMode === 'create') {
-            setCreateModalVisible(true);
-        } else {
-            // EDIT mode
-            setEditModalVisible(true);
-        }
-    }
-
-    function saveTimePicker() {
-        if (timePickerMode === 'create') {
-            const updatedSchedule = { ...createSchedule };
-            if (!updatedSchedule[timePickerDay]) {
-                // If user toggled day off, do nothing
-                setTimePickerVisible(false);
-                setCreateModalVisible(true);
-                return;
-            }
-            updatedSchedule[timePickerDay][timePickerField] = tempTime.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            });
-            setCreateSchedule(updatedSchedule);
-
-            setTimePickerVisible(false);
-            setCreateModalVisible(true);
-
-        } else {
-            // EDIT mode
-            if (!editEvent) {
-                setTimePickerVisible(false);
-                return;
-            }
-            const copy = { ...editEvent.scheduleOptions };
-            if (!copy[timePickerDay]) {
-                setTimePickerVisible(false);
-                setEditModalVisible(true);
-                return;
-            }
-            copy[timePickerDay][timePickerField] = tempTime.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            });
-            setEditEvent({ ...editEvent, scheduleOptions: copy });
-
-            setTimePickerVisible(false);
-            setEditModalVisible(true);
-        }
-    }
-
-    /* --------------------------------------------------
-         EDIT EVENT Flow
-    -------------------------------------------------- */
-    function openEdit(e: EventData) {
-        setEditEvent({ ...e });
         setEditModalVisible(true);
-        setEditTypedInvite('');
     }
-    function closeEdit() {
+
+
+    function closeEditEvent() {
         setEditModalVisible(false);
         setEditEvent(null);
     }
 
-    function toggleDayEdit(day: string) {
+    function handleNextStepEdit() {
         if (!editEvent) return;
-        const copy = { ...editEvent.scheduleOptions };
+        if (editStep < 4) {
+            setEditStep(prev => prev + 1);
+        } else {
+            // finalize
+            finalizeEditEvent();
+        }
+    }
+
+    function handlePrevStepEdit() {
+        if (editStep === 1) {
+            closeEditEvent();
+        } else {
+            setEditStep(prev => prev - 1);
+        }
+    }
+
+    function finalizeEditEvent() {
+        if (!editEvent) return;
+        if (!editTitle.trim()) {
+            Alert.alert('Missing Title', 'Provide a title for your event.');
+            return;
+        }
+        // create a copy with the updated fields
+        const updated: EventData = {
+            ...editEvent,
+            title: editTitle,
+            description: editDesc,
+            location: editLoc,
+            scheduleOptions: editSchedule,
+            participants: editInvitees,
+            endVoting: editEndVoting,
+            updatedAt: new Date(),
+        };
+        setEvents(prev => prev.map(e => (e.id === updated.id ? updated : e)));
+        closeEditEvent();
+    }
+
+    /* Step2 (Edit): toggling days and picking times */
+    function toggleDayEdit(day: string) {
+        const copy = { ...editSchedule };
         if (copy[day]) delete copy[day];
         else copy[day] = { start: '08:00 AM', end: '10:00 PM' };
-        setEditEvent({ ...editEvent, scheduleOptions: copy });
+        setEditSchedule(copy);
     }
 
     function openTimePickerEdit(day: string, field: 'start' | 'end') {
@@ -432,46 +401,44 @@ export default function HomeScreen() {
         setTimePickerField(field);
         setTimePickerMode('edit');
         setTempTime(new Date());
-
-        // Hide edit modal, show time picker
+        // hide edit modal => open time picker
         setEditModalVisible(false);
         setTimePickerVisible(true);
     }
 
-    function removeParticipant(email: string) {
-        if (!editEvent) return;
-        const updated = editEvent.participants.filter((p) => p.email !== email);
-        setEditEvent({ ...editEvent, participants: updated });
+    /* Step3 (Edit): invites */
+    function addFriendInviteEdit(friend: User) {
+        if (!editInvitees.find(i => i.email === friend.email)) {
+            setEditInvitees(prev => [...prev, { username: friend.username, email: friend.email, status: 'pending' }]);
+        }
     }
-
-    function addParticipantToEdit() {
-        if (!editEvent || !editTypedInvite.trim()) return;
-        const already = editEvent.participants.find((p) => p.email === editTypedInvite);
-        if (!already) {
+    function addTypedInviteEdit() {
+        if (!editTypedInvite.trim()) return;
+        if (!editInvitees.find(i => i.email === editTypedInvite)) {
             const newPart: Participant = {
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
             };
-            setEditEvent({
-                ...editEvent,
-                participants: [...editEvent.participants, newPart],
-            });
+            setEditInvitees(prev => [...prev, newPart]);
         }
         setEditTypedInvite('');
     }
-
-    function saveEditEvent() {
-        if (!editEvent) return;
-        setEvents((prev) =>
-            prev.map((ev) =>
-                ev.id === editEvent.id ? { ...editEvent, updatedAt: new Date() } : ev
-            )
-        );
-        closeEdit();
+    function removeInviteEdit(email: string) {
+        setEditInvitees(prev => prev.filter(i => i.email !== email));
     }
 
-    function deleteEvent() {
+    /* Step4 (Edit): endVoting date/time */
+    function openVotingDatePickerEdit() {
+        // hide edit modal, open special modal
+        setTempTime(editEndVoting);
+        setVotingPickerMode('edit');
+        setEditModalVisible(false);
+        setVotingPickerVisible(true);
+    }
+
+    /* DELETING EVENT ENTIRELY */
+    function handleDeleteEvent() {
         if (!editEvent) return;
         Alert.alert('Confirm Delete', 'Are you sure you want to delete this event?', [
             { text: 'Cancel', style: 'cancel' },
@@ -479,31 +446,108 @@ export default function HomeScreen() {
                 text: 'Delete',
                 style: 'destructive',
                 onPress: () => {
-                    setEvents((prev) => prev.filter((ev) => ev.id !== editEvent.id));
-                    closeEdit();
+                    setEvents(prev => prev.filter(ev => ev.id !== editEvent.id));
+                    closeEditEvent();
                 },
             },
         ]);
     }
 
-    /* --------------------------------------------------
-         VIEW/VOTE (OTHER EVENTS)
+    /* -------------- Voting & TimePicker Modals -------------- */
+    // Voting date/time modal is used by both create & edit
+
+    function cancelVotingDate() {
+        setVotingPickerVisible(false);
+        if (votingPickerMode === 'create') {
+            // show create modal again
+            setCreateModalVisible(true);
+        } else {
+            // show edit modal again
+            setEditModalVisible(true);
+        }
+    }
+
+    function saveVotingDate() {
+        setVotingPickerVisible(false);
+        if (votingPickerMode === 'create') {
+            setEndVotingDate(tempTime);
+            setCreateModalVisible(true);
+        } else {
+            setEditEndVoting(tempTime);
+            setEditModalVisible(true);
+        }
+    }
+
+    // Time Picker (shared for day start/end)
+
+    function onTimePickerChange(_event: DateTimePickerEvent, sel?: Date) {
+        if (sel) setTempTime(sel);
+    }
+
+    function cancelTimePicker() {
+        setTimePickerVisible(false);
+        if (timePickerMode === 'create') {
+            setCreateModalVisible(true);
+        } else {
+            setEditModalVisible(true);
+        }
+    }
+
+    function saveTimePicker() {
+        setTimePickerVisible(false);
+        if (timePickerMode === 'create') {
+            // update createSchedule
+            if (!createSchedule[timePickerDay]) {
+                setCreateModalVisible(true);
+                return;
+            }
+            const copy = { ...createSchedule };
+            copy[timePickerDay][timePickerField] = tempTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            });
+            setCreateSchedule(copy);
+            setCreateModalVisible(true);
+        } else {
+            // update editSchedule
+            if (!editSchedule[timePickerDay]) {
+                setEditModalVisible(true);
+                return;
+            }
+            const copy = { ...editSchedule };
+            copy[timePickerDay][timePickerField] = tempTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            });
+            setEditSchedule(copy);
+            setEditModalVisible(true);
+        }
+    }
+
+    /* -------------------------------------------------- 
+         VIEW / VOTE (Other Events) 
     -------------------------------------------------- */
+
+
     function openView(e: EventData) {
         setSelectedEvent(e);
         setVoteModalVisible(true);
     }
+
     function closeView() {
         setVoteModalVisible(false);
         setSelectedEvent(null);
     }
+
     function handleAccept() {
         if (!selectedEvent || !currentUser) return;
-        setEvents((prev) =>
-            prev.map((ev) => {
+        setEvents(prev =>
+            prev.map(ev => {
                 if (ev.id === selectedEvent.id) {
                     const updated = { ...ev };
-                    updated.participants = updated.participants.map((p) =>
+                    updated.participants = updated.participants.map(p =>
                         p.email === currentUser.email ? { ...p, status: 'accepted' } : p
                     );
                     return updated;
@@ -513,13 +557,14 @@ export default function HomeScreen() {
         );
         closeView();
     }
+
     function handleDecline() {
         if (!selectedEvent || !currentUser) return;
-        setEvents((prev) =>
-            prev.map((ev) => {
+        setEvents(prev =>
+            prev.map(ev => {
                 if (ev.id === selectedEvent.id) {
                     const updated = { ...ev };
-                    updated.participants = updated.participants.map((p) =>
+                    updated.participants = updated.participants.map(p =>
                         p.email === currentUser.email ? { ...p, status: 'declined' } : p
                     );
                     return updated;
@@ -530,9 +575,9 @@ export default function HomeScreen() {
         closeView();
     }
 
-    /* Partition MY EVENTS vs OTHERS */
-    const myEvents = events.filter((e) => e.createdBy === currentUser?.id);
-    const otherEvents = events.filter((e) => e.createdBy !== currentUser?.id);
+    /* Partition MY vs OTHERS */
+    const myEvents = events.filter(e => e.createdBy === currentUser?.id);
+    const otherEvents = events.filter(e => e.createdBy !== currentUser?.id);
 
     return (
         <View style={styles.container}>
@@ -543,10 +588,7 @@ export default function HomeScreen() {
                     <TouchableOpacity onPress={() => Alert.alert('Notifications pressed')}>
                         <MaterialIcons name="notifications" size={30} color="white" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        style={{ marginLeft: 20 }}
-                        onPress={() => Alert.alert('Profile pressed')}
-                    >
+                    <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => Alert.alert('Profile pressed')}>
                         <MaterialIcons name="account-circle" size={30} color="white" />
                     </TouchableOpacity>
                 </View>
@@ -565,27 +607,27 @@ export default function HomeScreen() {
                     {myEvents.length === 0 ? (
                         <Text style={styles.noEvents}>No events. Create one below!</Text>
                     ) : (
-                        myEvents.map((evt) => {
-                            const status = getEventStatus(evt);
-                            return (
-                                <TouchableOpacity
-                                    key={evt.id}
-                                    style={styles.eventItem}
-                                    onPress={() => openEdit(evt)}
-                                >
-                                    <Text style={styles.eventTitle}>{evt.title}</Text>
-                                    <Text style={styles.eventDescription}>{evt.description}</Text>
+                        myEvents.map(evt => (
+                            <TouchableOpacity
+                                key={evt.id}
+                                style={styles.eventItem}
+                                onPress={() => openEdit(evt)}
+                            >
+                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                <Text style={styles.eventDescription}>{evt.description}</Text>
+                                <Text style={styles.eventDescription}>
+                                    Status: {getEventStatus(evt).toUpperCase()}
+                                </Text>
+                                <Text style={styles.eventDescription}>
+                                    Voting Ends: {formatDate(evt.endVoting)}
+                                </Text>
+                                {evt.eventDate && (
                                     <Text style={styles.eventDescription}>
-                                        Status: {status.toUpperCase()}
+                                        Event Date: {formatDate(evt.eventDate)}
                                     </Text>
-                                    {evt.eventDate && (
-                                        <Text style={styles.eventDescription}>
-                                            Event Date: {formatDate(evt.eventDate)}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })
+                                )}
+                            </TouchableOpacity>
+                        ))
                     )}
                 </View>
 
@@ -595,54 +637,48 @@ export default function HomeScreen() {
                     {otherEvents.length === 0 ? (
                         <Text style={styles.noEvents}>No other events are available.</Text>
                     ) : (
-                        otherEvents.map((evt) => {
-                            const status = getEventStatus(evt);
-                            return (
-                                <TouchableOpacity
-                                    key={evt.id}
-                                    style={styles.eventItem}
-                                    onPress={() => openView(evt)}
-                                >
-                                    <Text style={styles.eventTitle}>{evt.title}</Text>
-                                    <Text style={styles.eventDescription}>{evt.description}</Text>
+                        otherEvents.map(evt => (
+                            <TouchableOpacity
+                                key={evt.id}
+                                style={styles.eventItem}
+                                onPress={() => openView(evt)}
+                            >
+                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                <Text style={styles.eventDescription}>{evt.description}</Text>
+                                <Text style={styles.eventDescription}>
+                                    Status: {getEventStatus(evt).toUpperCase()}
+                                </Text>
+                                {evt.eventDate && (
                                     <Text style={styles.eventDescription}>
-                                        Status: {status.toUpperCase()}
+                                        Event Date: {formatDate(evt.eventDate)}
                                     </Text>
-                                    {evt.eventDate && (
-                                        <Text style={styles.eventDescription}>
-                                            Event Date: {formatDate(evt.eventDate)}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })
+                                )}
+                            </TouchableOpacity>
+                        ))
                     )}
                 </View>
+
             </ScrollView>
 
-            {/* FAB */}
+            {/* FAB: Start Creating */}
             <TouchableOpacity style={styles.fab} onPress={startCreateEvent}>
                 <MaterialIcons name="add" size={28} color="white" />
             </TouchableOpacity>
 
-            {/* ------------------------------------------------------
-                MULTI-STEP CREATE EVENT MODAL
-            ------------------------------------------------------ */}
+            {/* =====================
+          CREATE EVENT MODAL
+            ===================== */}
             <Modal
                 visible={createModalVisible}
                 transparent
                 animationType="slide"
                 onRequestClose={closeCreateEvent}
             >
-                <KeyboardAvoidingView
-                    style={styles.modalOverlay}
-                    behavior={Platform.OS === 'ios' ? keyboardOffset : undefined}
-                >
+                <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <View style={styles.modalContainer}>
-                        <Text style={styles.modalTitle}>
-                            Create Event (Step {createStep}/4)
-                        </Text>
+                        <Text style={styles.modalTitle}>Create Event (Step {createStep}/4)</Text>
                         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+                            {/* STEP 1: BASIC INFO */}
                             {createStep === 1 && (
                                 <>
                                     <Text style={styles.label}>Basic Info</Text>
@@ -670,10 +706,11 @@ export default function HomeScreen() {
                                 </>
                             )}
 
+                            {/* STEP 2: DAYS & TIMES */}
                             {createStep === 2 && (
                                 <>
                                     <Text style={styles.label}>Select Days & Times</Text>
-                                    {daysOfWeek.map((day) => (
+                                    {daysOfWeek.map(day => (
                                         <View key={day} style={styles.dayRow}>
                                             <TouchableOpacity
                                                 style={[
@@ -695,10 +732,7 @@ export default function HomeScreen() {
                                             {createSchedule[day] && (
                                                 <View style={styles.timeRow}>
                                                     <TouchableOpacity
-                                                        style={[
-                                                            styles.timeButton,
-                                                            { backgroundColor: '#f0f0f0' },
-                                                        ]}
+                                                        style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
                                                         onPress={() => openTimePickerCreate(day, 'start')}
                                                     >
                                                         <Text style={{ color: '#333' }}>
@@ -706,10 +740,7 @@ export default function HomeScreen() {
                                                         </Text>
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
-                                                        style={[
-                                                            styles.timeButton,
-                                                            { backgroundColor: '#f0f0f0' },
-                                                        ]}
+                                                        style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
                                                         onPress={() => openTimePickerCreate(day, 'end')}
                                                     >
                                                         <Text style={{ color: '#333' }}>
@@ -723,11 +754,12 @@ export default function HomeScreen() {
                                 </>
                             )}
 
+                            {/* STEP 3: INVITES */}
                             {createStep === 3 && (
                                 <>
                                     <Text style={styles.label}>Invite Friends</Text>
-                                    <ScrollView horizontal contentContainerStyle={{ flexDirection: 'row' }}>
-                                        {friends.map((f) => (
+                                    <ScrollView horizontal style={{ marginBottom: 8 }} contentContainerStyle={{ flexDirection: 'row' }}>
+                                        {friends.map(f => (
                                             <TouchableOpacity
                                                 key={f.id}
                                                 style={styles.inviteChip}
@@ -746,10 +778,7 @@ export default function HomeScreen() {
                                             onChangeText={setTypedInvite}
                                         />
                                         <TouchableOpacity
-                                            style={[
-                                                styles.timeButton,
-                                                { marginLeft: 8, backgroundColor: '#2196F3' },
-                                            ]}
+                                            style={[styles.timeButton, { marginLeft: 8, backgroundColor: '#2196F3' }]}
                                             onPress={addTypedInvite}
                                         >
                                             <Text style={{ color: '#fff' }}>Add</Text>
@@ -768,12 +797,13 @@ export default function HomeScreen() {
                                 </>
                             )}
 
+                            {/* STEP 4: VOTING DEADLINE */}
                             {createStep === 4 && (
                                 <>
                                     <Text style={styles.label}>Voting Deadline</Text>
                                     <TouchableOpacity
                                         style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
-                                        onPress={openVotingDatePicker}
+                                        onPress={openVotingDatePickerCreate}
                                     >
                                         <Text style={{ color: '#333' }}>
                                             End Voting: {formatDate(endVotingDate)}
@@ -784,8 +814,8 @@ export default function HomeScreen() {
                         </ScrollView>
                         <View style={styles.modalActions}>
                             <Button
-                                title={createStep > 1 ? 'Back' : 'Cancel'}
-                                onPress={createStep > 1 ? handlePrevStepCreate : closeCreateEvent}
+                                title={createStep === 1 ? 'Cancel' : 'Back'}
+                                onPress={handlePrevStepCreate}
                             />
                             <Button
                                 title={createStep < 4 ? 'Next' : 'Finish'}
@@ -796,7 +826,178 @@ export default function HomeScreen() {
                 </KeyboardAvoidingView>
             </Modal>
 
-            {/* Voting date-time modal (like day/time) */}
+            {/* =====================
+          EDIT EVENT MODAL
+      ===================== */}
+            <Modal
+                visible={editModalVisible}
+                transparent
+                animationType="slide"
+                onRequestClose={closeEditEvent}
+            >
+                {editEvent && (
+                    <KeyboardAvoidingView
+                        style={styles.modalOverlay}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    >
+                        <View style={styles.modalContainer}>
+                            <Text style={styles.modalTitle}>Edit Event (Step {editStep}/4)</Text>
+                            <ScrollView>
+                                {/* STEP 1: BASIC INFO */}
+                                {editStep === 1 && (
+                                    <>
+                                        <Text style={styles.label}>Basic Info</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Title"
+                                            placeholderTextColor="#999"
+                                            value={editTitle}
+                                            onChangeText={setEditTitle}
+                                        />
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Description"
+                                            placeholderTextColor="#999"
+                                            value={editDesc}
+                                            onChangeText={setEditDesc}
+                                        />
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="Location"
+                                            placeholderTextColor="#999"
+                                            value={editLoc}
+                                            onChangeText={setEditLoc}
+                                        />
+                                    </>
+                                )}
+                                {/* STEP 2: DAYS & TIMES */}
+                                {editStep === 2 && (
+                                    <>
+                                        <Text style={styles.label}>Days & Times</Text>
+                                        {daysOfWeek.map(day => (
+                                            <View key={day} style={styles.dayRow}>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.dayButton,
+                                                        editSchedule[day] && styles.dayButtonSelected,
+                                                    ]}
+                                                    onPress={() => toggleDayEdit(day)}
+                                                >
+                                                    <Text
+                                                        style={
+                                                            editSchedule[day]
+                                                                ? styles.dayButtonTextSelected
+                                                                : styles.dayButtonText
+                                                        }
+                                                    >
+                                                        {day}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                {editSchedule[day] && (
+                                                    <View style={styles.timeRow}>
+                                                        <TouchableOpacity
+                                                            style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
+                                                            onPress={() => openTimePickerEdit(day, 'start')}
+                                                        >
+                                                            <Text style={{ color: '#333' }}>
+                                                                Start: {editSchedule[day].start}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
+                                                            onPress={() => openTimePickerEdit(day, 'end')}
+                                                        >
+                                                            <Text style={{ color: '#333' }}>
+                                                                End: {editSchedule[day].end}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        ))}
+                                    </>
+                                )}
+
+                                {/* STEP 3: INVITES */}
+                                {editStep === 3 && (
+                                    <>
+                                        <Text style={styles.label}>Invite Friends</Text>
+                                        <ScrollView horizontal style={{ marginBottom: 8 }} contentContainerStyle={{ flexDirection: 'row' }}>
+                                            {friends.map(f => (
+                                                <TouchableOpacity
+                                                    key={f.id}
+                                                    style={styles.inviteChip}
+                                                    onPress={() => addFriendInviteEdit(f)}
+                                                >
+                                                    <Text style={styles.inviteChipText}>{f.username}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                        <View style={{ flexDirection: 'row', marginTop: 8 }}>
+                                            <TextInput
+                                                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                                                placeholder="Type username/email"
+                                                placeholderTextColor="#999"
+                                                value={editTypedInvite}
+                                                onChangeText={setEditTypedInvite}
+                                            />
+                                            <TouchableOpacity
+                                                style={[styles.timeButton, { marginLeft: 8, backgroundColor: '#2196F3' }]}
+                                                onPress={addTypedInviteEdit}
+                                            >
+                                                <Text style={{ color: '#fff' }}>Add</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                        {editInvitees.length > 0 && (
+                                            <View style={{ marginTop: 10 }}>
+                                                <Text style={[styles.label, { marginBottom: 5 }]}>Invited:</Text>
+                                                {editInvitees.map((p, idx) => (
+                                                    <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                                                        <Text style={{ flex: 1 }}>
+                                                            {p.username} ({p.email}) - {p.status}
+                                                        </Text>
+                                                        <TouchableOpacity onPress={() => removeInviteEdit(p.email)}>
+                                                            <Text style={{ color: 'red' }}>Remove</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* STEP 4: VOTING DEADLINE */}
+                                {editStep === 4 && (
+                                    <>
+                                        <Text style={styles.label}>Voting Deadline</Text>
+                                        <TouchableOpacity
+                                            style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
+                                            onPress={openVotingDatePickerEdit}
+                                        >
+                                            <Text style={{ color: '#333' }}>
+                                                End Voting: {formatDate(editEndVoting)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </>
+                                )}
+                            </ScrollView>
+                            <View style={styles.modalActions}>
+                                <Button
+                                    title={editStep === 1 ? 'Cancel' : 'Back'}
+                                    onPress={handlePrevStepEdit}
+                                />
+                                <Button
+                                    title={editStep < 4 ? 'Next' : 'Save'}
+                                    onPress={handleNextStepEdit}
+                                />
+                            </View>
+                        </View>
+                    </KeyboardAvoidingView>
+                )}
+            </Modal>
+
+
+            {/* VOTING date/time for CREATE or EDIT */}
             <Modal
                 transparent
                 animationType="fade"
@@ -832,7 +1033,7 @@ export default function HomeScreen() {
                 </TouchableWithoutFeedback>
             </Modal>
 
-            {/* SINGLE TIME PICKER MODAL (for both create/edit) */}
+            {/* TIME PICKER shared for CREATE or EDIT */}
             <Modal
                 transparent
                 animationType="fade"
@@ -865,124 +1066,6 @@ export default function HomeScreen() {
                 </TouchableWithoutFeedback>
             </Modal>
 
-            {/* EDIT EVENT MODAL */}
-            <Modal
-                visible={editModalVisible}
-                transparent
-                animationType="slide"
-                onRequestClose={closeEdit}
-            >
-                {editEvent && (
-                    <KeyboardAvoidingView
-                        style={styles.modalOverlay}
-                        behavior={Platform.OS === 'ios' ? keyboardOffset : undefined}
-                    >
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Edit: {editEvent.title}</Text>
-                            <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-                                <TextInput
-                                    style={[styles.input, { marginTop: 10 }]}
-                                    placeholder="Title"
-                                    placeholderTextColor="#999"
-                                    value={editEvent.title}
-                                    onChangeText={(val) => setEditEvent({ ...editEvent, title: val })}
-                                />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Description"
-                                    placeholderTextColor="#999"
-                                    value={editEvent.description}
-                                    onChangeText={(val) => setEditEvent({ ...editEvent, description: val })}
-                                />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Location"
-                                    placeholderTextColor="#999"
-                                    value={editEvent.location}
-                                    onChangeText={(val) => setEditEvent({ ...editEvent, location: val })}
-                                />
-
-                                <Text style={styles.label}>Days/Times</Text>
-                                {daysOfWeek.map((day) => (
-                                    <View key={day} style={styles.dayRow}>
-                                        <TouchableOpacity
-                                            style={[
-                                                styles.dayButton,
-                                                editEvent.scheduleOptions[day] && styles.dayButtonSelected,
-                                            ]}
-                                            onPress={() => toggleDayEdit(day)}
-                                        >
-                                            <Text
-                                                style={
-                                                    editEvent.scheduleOptions[day]
-                                                        ? styles.dayButtonTextSelected
-                                                        : styles.dayButtonText
-                                                }
-                                            >
-                                                {day}
-                                            </Text>
-                                        </TouchableOpacity>
-                                        {editEvent.scheduleOptions[day] && (
-                                            <View style={styles.timeRow}>
-                                                <TouchableOpacity
-                                                    style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
-                                                    onPress={() => openTimePickerEdit(day, 'start')}
-                                                >
-                                                    <Text style={{ color: '#333' }}>
-                                                        Start: {editEvent.scheduleOptions[day].start}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
-                                                    onPress={() => openTimePickerEdit(day, 'end')}
-                                                >
-                                                    <Text style={{ color: '#333' }}>
-                                                        End: {editEvent.scheduleOptions[day].end}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        )}
-                                    </View>
-                                ))}
-
-                                <Text style={styles.label}>Participants</Text>
-                                {editEvent.participants.map((p, idx) => (
-                                    <View key={idx} style={{ flexDirection: 'row', marginBottom: 5 }}>
-                                        <Text style={{ flex: 1 }}>
-                                            {p.username} ({p.email}) - {p.status}
-                                        </Text>
-                                        <TouchableOpacity onPress={() => removeParticipant(p.email)}>
-                                            <Text style={{ color: 'red' }}>Remove</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ))}
-                                <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-                                    <TextInput
-                                        style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                                        placeholder="Invite email/username"
-                                        placeholderTextColor="#999"
-                                        value={editTypedInvite}
-                                        onChangeText={setEditTypedInvite}
-                                    />
-                                    <TouchableOpacity
-                                        style={[styles.timeButton, { marginLeft: 8, backgroundColor: '#2196F3' }]}
-                                        onPress={addParticipantToEdit}
-                                    >
-                                        <Text style={{ color: '#fff' }}>Add</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <View style={styles.modalActions}>
-                                    <Button title="Cancel" onPress={closeEdit} />
-                                    <Button title="Delete" color="red" onPress={deleteEvent} />
-                                    <Button title="Save" onPress={saveEditEvent} />
-                                </View>
-                            </ScrollView>
-                        </View>
-                    </KeyboardAvoidingView>
-                )}
-            </Modal>
-
             {/* VIEW/VOTE MODAL */}
             <Modal visible={voteModalVisible} transparent onRequestClose={closeView}>
                 {selectedEvent && (
@@ -994,7 +1077,6 @@ export default function HomeScreen() {
                             <Text style={styles.label}>
                                 Status: {getEventStatus(selectedEvent).toUpperCase()}
                             </Text>
-
                             {getEventStatus(selectedEvent) === 'finished' && selectedEvent.eventDate && (
                                 <Text style={{ marginBottom: 6 }}>
                                     Final Event Date: {formatDate(selectedEvent.eventDate)}
