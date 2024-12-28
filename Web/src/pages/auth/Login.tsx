@@ -1,4 +1,4 @@
-﻿import React, { useState, FormEvent } from "react";
+﻿import React, {useState, FormEvent, useEffect} from "react";
 import {
   Box,
   Container,
@@ -14,21 +14,41 @@ import {
 import "/node_modules/@fontsource/roboto/index.css";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import ForgotPassword from "./ForgotPassword";
+import { authService } from '../../services/authservice';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState<boolean>(false);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    console.log("login");
+    useEffect(() => {
+        const checkUserData = async () => {
+            const result = await authService.getUserData();
+            if (result.success) {
+                navigate("/homepage");
+            }
+        };
+        checkUserData();
+    }, [navigate]);
 
-    // Save username to localStorage
-    localStorage.setItem("username", username);
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault();
+        try {
+            console.log('Attempting login with email:', username);
+            
+            const session = await authService.login(username, password);
+            console.log('Login successful:', session);
+            
+            navigate("/homepage");
+            console.log('Redirecting to /homepage');
 
-    navigate("/Hello"); // Redirect to /Hello after successful login
-  };
+        } catch (error) {
+            console.error('Login failed:', error);
+            // @ts-ignore
+            Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
+        }
+    };
 
   return (
     <Container maxWidth="sm">
@@ -89,6 +109,7 @@ const Login: React.FC = () => {
             fullWidth
             required
             type="password"
+            onChange={(e) => setPassword(e.target.value)}
             sx={{ mb: 2 }}
           />
           <FormControlLabel

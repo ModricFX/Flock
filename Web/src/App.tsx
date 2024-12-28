@@ -1,5 +1,6 @@
 import React, { useState, MouseEvent } from "react";
-import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
+
+import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
     AppBar,
     Toolbar,
@@ -32,6 +33,7 @@ import Notifications from "./pages/home/Notifications";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import HomePage from "./pages/home/HomePage";
+import {authService} from "./services/authservice.ts";
 
 const drawerWidth = 240;
 
@@ -53,6 +55,7 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
+    const navigate = useNavigate();
     const location = useLocation();
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [otherEvents] = useState<Event[]>([
@@ -75,6 +78,11 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
 
     const handleClose = (): void => {
         setAnchorEl(null);
+    };
+
+    const handleLogout = async () => {
+        await authService.logout();
+        navigate("/auth/login");
     };
 
     const handleNotificationClick = (): void => {
@@ -221,7 +229,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Settings fontSize="small" />
                     Settings
                 </MenuItem>
-                <MenuItem>
+                <MenuItem onClick={handleLogout}>
                     <Logout fontSize="small" />
                     Logout
                 </MenuItem>
