@@ -519,7 +519,7 @@ export default function HomeScreen() {
                 text: 'Remove',
                 style: 'destructive',
                 onPress: () => {
-                    setCreateDays(prev => prev.filter((_, idx) => idx !== i));
+                    setEditDays(prev => prev.filter((_, idx) => idx !== i));
                 }
             }
         ]);
@@ -1221,67 +1221,184 @@ export default function HomeScreen() {
                                 <ScrollView>
                                     {editStep === 1 && (
                                         <>
-                                            <Text style={styles.label}>Basic Info</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Title"
-                                                placeholderTextColor="#999"
-                                                value={editTitle}
-                                                onChangeText={setEditTitle}
-                                            />
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Description"
-                                                placeholderTextColor="#999"
-                                                value={editDesc}
-                                                onChangeText={setEditDesc}
-                                            />
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="Location"
-                                                placeholderTextColor="#999"
-                                                value={editLoc}
-                                                onChangeText={setEditLoc}
-                                            />
+                                            <View style={styles.sectionContainer}>
+                                                <MaterialIcons name="info" size={24} color="#4CAF50" style={styles.sectionIcon} />
+                                                <Text style={styles.label}>Basic Info</Text>
+                                            </View>
+                                            {/* Title Input */}
+                                            <View style={styles.inputContainer}>
+                                                <MaterialIcons name="event" size={24} color="#4CAF50" style={styles.iconStyle} />
+                                                <TextInput
+                                                    style={styles.input}
+                                                    placeholder="Title"
+                                                    placeholderTextColor="#999"
+                                                    value={editTitle}
+                                                    onChangeText={setEditTitle}
+                                                    accessible={true}
+                                                    accessibilityLabel="Event Title"
+                                                />
+                                            </View>
+
+                                            {/* Description Input */}
+                                            <View style={styles.inputContainer}>
+                                                <MaterialIcons name="description" size={24} color="#4CAF50" style={styles.iconStyle} />
+                                                <TextInput
+                                                    style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                                    placeholder="Description"
+                                                    placeholderTextColor="#999"
+                                                    value={editDesc}
+                                                    onChangeText={setEditDesc}
+                                                    multiline
+                                                    accessible={true}
+                                                    accessibilityLabel="Event Description"
+                                                />
+                                            </View>
+
+                                            {/* Location Input */}
+                                            <View style={styles.inputContainer}>
+                                                <MaterialIcons name="location-on" size={24} color="#4CAF50" style={styles.iconStyle} />
+                                                <TextInput
+                                                    style={styles.input}
+                                                    placeholder="Location"
+                                                    placeholderTextColor="#999"
+                                                    value={editLoc}
+                                                    onChangeText={setEditLoc}
+                                                    accessible={true}
+                                                    accessibilityLabel="Event Location"
+                                                />
+                                            </View>
+
+                                            {/* Event Duration Section */}
+                                            <View style={styles.sectionContainer}>
+                                                <MaterialIcons name="timer" size={24} color="#4CAF50" style={styles.sectionIcon} />
+                                                <Text style={styles.label}>Event Duration</Text>
+                                            </View>
+
+                                            {/* Duration Inputs 
+                                        TODO: add reader for current time
+                                        value={editDuration}
+                                        onChangeText={setEditDuration}
+                                        */}
+                                            <View style={styles.durationContainer}>
+                                                {/* Hours */}
+                                                <View style={styles.durationUnitContainer}>
+                                                    <Text style={styles.durationLabel}>Hours</Text>
+                                                    <View style={styles.stepperContainer}>
+                                                        <TouchableOpacity
+                                                            style={styles.stepperButton}
+                                                            onPress={() => {
+                                                                const current = parseInt(createDurationHours) || 1;
+                                                                const newHours = current > 0 ? (current - 1).toString() : '0';
+                                                                setCreateDurationHours(newHours);
+                                                            }}
+                                                            accessible={true}
+                                                            accessibilityLabel="Decrease hours"
+                                                        >
+                                                            <MaterialIcons name="remove" size={24} color="#fff" />
+                                                        </TouchableOpacity>
+                                                        <Text style={styles.stepperText}>{createDurationHours}</Text>
+                                                        <TouchableOpacity
+                                                            style={styles.stepperButton}
+                                                            onPress={() => {
+                                                                const current = parseInt(createDurationHours) || 0;
+                                                                const newHours = (current + 1).toString();
+                                                                setCreateDurationHours(newHours);
+                                                            }}
+                                                            accessible={true}
+                                                            accessibilityLabel="Increase hours"
+                                                        >
+                                                            <MaterialIcons name="add" size={24} color="#fff" />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+
+                                                {/* Minutes */}
+                                                <View style={styles.durationUnitContainer}>
+                                                    <Text style={styles.durationLabel}>Minutes</Text>
+                                                    <View style={styles.stepperContainer}>
+                                                        <TouchableOpacity
+                                                            style={styles.stepperButton}
+                                                            onPress={() => {
+                                                                let current = parseInt(createDurationMinutes) || 0;
+                                                                const newMinutes = current >= 5 ? (current - 5).toString().padStart(2, '0') : '00';
+                                                                setCreateDurationMinutes(newMinutes);
+                                                            }}
+                                                            accessible={true}
+                                                            accessibilityLabel="Decrease minutes"
+                                                        >
+                                                            <MaterialIcons name="remove" size={24} color="#fff" />
+                                                        </TouchableOpacity>
+                                                        <Text style={styles.stepperText}>{createDurationMinutes}</Text>
+                                                        <TouchableOpacity
+                                                            style={styles.stepperButton}
+                                                            onPress={() => {
+                                                                let current = parseInt(createDurationMinutes) || 0;
+                                                                const newMinutes = current < 55 ? (current + 5).toString().padStart(2, '0') : '60';
+                                                                setCreateDurationMinutes(newMinutes === '60' ? '00' : newMinutes);
+                                                                if (newMinutes === '60') {
+                                                                    const newHours = (parseInt(createDurationHours) || 0) + 1;
+                                                                    setCreateDurationHours(newHours.toString());
+                                                                }
+                                                            }}
+                                                            accessible={true}
+                                                            accessibilityLabel="Increase minutes"
+                                                        >
+                                                            <MaterialIcons name="add" size={24} color="#fff" />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            </View>
                                         </>
                                     )}
                                     {editStep === 2 && (
                                         <>
-                                            <Text style={styles.label}>Event Duration (hours)</Text>
-                                            <TextInput
-                                                style={styles.input}
-                                                placeholder="e.g. 2"
-                                                placeholderTextColor="#999"
-                                                value={editDuration}
-                                                onChangeText={setEditDuration}
-                                                keyboardType="numeric"
-                                            />
-                                            <Text style={styles.label}>Days</Text>
-                                            {editDays.length === 0 && <Text>No days yet.</Text>}
-                                            {editDays.map((d, i) => (
-                                                <TouchableOpacity
-                                                    key={i}
-                                                    style={[styles.dayItem, { marginBottom: 8 }]}
-                                                    onPress={() => openAddDayModalEdit(i)}
-                                                >
-                                                    <Text>
-                                                        {formatDay(d.date)} | {d.start} - {d.end}
-                                                    </Text>
-                                                    <TouchableOpacity
-                                                        onPress={() => removeDayEdit(i)}
-                                                        style={{ marginLeft: 10 }}
-                                                    >
-                                                        <Text style={{ color: 'red' }}>Remove</Text>
-                                                    </TouchableOpacity>
-                                                </TouchableOpacity>
-                                            ))}
-                                            <Button title="Add Day" onPress={() => openAddDayModalEdit()} />
+                                            {/* Days Selection Section */}
+                                            <View style={styles.sectionContainer}>
+                                                <MaterialIcons name="event" size={24} color="#4CAF50" style={styles.sectionIcon} />
+                                                <Text style={styles.label}>Days</Text>
+                                            </View>
+                                            {editDays.length === 0 && <Text style={styles.noDaysText}>No days added yet.</Text>}
+                                            <View style={styles.daysContainer}>
+                                                {editDays.map((d, i) => (
+                                                    <View key={i} style={styles.dayItem}>
+                                                        <TouchableOpacity
+                                                            style={styles.dayInfo}
+                                                            onPress={() => openAddDayModalEdit(i)}
+                                                        >
+                                                            <Text style={styles.dayText}>
+                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity
+                                                            onPress={() => removeDayEdit(i)}
+                                                            style={styles.removeDayButton}
+                                                        >
+                                                            <MaterialIcons name="delete" size={24} color="#e74c3c" />
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                ))}
+                                            </View>
+
+                                            {/* Add Day Button */}
+                                            <TouchableOpacity
+                                                style={styles.addDayButton}
+                                                onPress={() => openAddDayModalEdit()}
+                                            >
+                                                <MaterialIcons name="add-circle-outline" size={24} color="#fff" />
+                                                <Text style={styles.addDayButtonText}>Add Day</Text>
+                                            </TouchableOpacity>
                                         </>
                                     )}
+
                                     {editStep === 3 && (
                                         <>
-                                            <Text style={styles.label}>Invite Friends</Text>
-                                            <ScrollView horizontal style={{ marginBottom: 8 }}>
+                                            {/* Invite Friends Section */}
+                                            <View style={styles.sectionContainer}>
+                                                <MaterialIcons name="person-add" size={24} color="#4CAF50" style={styles.sectionIcon} />
+                                                <Text style={styles.label}>Invite Friends</Text>
+                                            </View>
+                                            {/* Friends List */}
+                                            <ScrollView horizontal style={styles.friendsScrollView}>
                                                 {mockFriends.map((f) => (
                                                     <TouchableOpacity
                                                         key={f.id}
@@ -1292,49 +1409,80 @@ export default function HomeScreen() {
                                                     </TouchableOpacity>
                                                 ))}
                                             </ScrollView>
-                                            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+
+                                            {/* Add Invitee Input */}
+                                            <View style={styles.inviteInputContainer}>
                                                 <TextInput
-                                                    style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                                                    style={styles.inviteInput}
                                                     placeholder="Type username/email"
                                                     placeholderTextColor="#999"
                                                     value={editTypedInvite}
                                                     onChangeText={setEditTypedInvite}
+                                                    onSubmitEditing={addTypedInviteEdit}
+                                                    returnKeyType="done"
                                                 />
                                                 <TouchableOpacity
-                                                    style={[styles.timeButton, { marginLeft: 8, backgroundColor: '#2196F3' }]}
+                                                    style={styles.addInviteButton}
                                                     onPress={addTypedInviteEdit}
                                                 >
-                                                    <Text style={{ color: '#fff' }}>Add</Text>
+                                                    <MaterialIcons name="add" size={24} color="#fff" />
                                                 </TouchableOpacity>
                                             </View>
+
+                                            {/* Display Invited Friends */}
                                             {editInvitees.length > 0 && (
-                                                <View style={{ marginTop: 10 }}>
-                                                    <Text style={[styles.label, { marginBottom: 5 }]}>Invited:</Text>
-                                                    {editInvitees.map((p, idx) => (
-                                                        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                                                            <Text style={{ flex: 1 }}>
-                                                                {p.username} ({p.email}) - {p.status}
-                                                            </Text>
-                                                            <TouchableOpacity onPress={() => removeInviteEdit(p.email)}>
-                                                                <Text style={{ color: 'red' }}>Remove</Text>
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    ))}
+                                                <View style={styles.invitedContainer}>
+                                                    <Text style={styles.invitedLabel}>Invited:</Text>
+                                                    <View style={styles.invitedList}>
+                                                        {editInvitees.map((p, idx) => (
+                                                            <View key={idx} style={styles.invitedItem}>
+                                                                <Text style={styles.invitedText}>
+                                                                    {p.username} ({p.email})
+                                                                </Text>
+                                                                <TouchableOpacity onPress={() => removeInviteEdit(p.email)}>
+                                                                    <MaterialIcons name="close" size={20} color="#e74c3c" />
+                                                                </TouchableOpacity>
+                                                            </View>
+                                                        ))}
+                                                    </View>
                                                 </View>
                                             )}
                                         </>
                                     )}
+
                                     {editStep === 4 && (
                                         <>
-                                            <Text style={styles.label}>Voting Deadline</Text>
+
+                                            {/* Voting Deadline Section */}
+                                            <View style={styles.sectionContainer}>
+                                                <MaterialIcons name="event-note" size={24} color="#4CAF50" style={styles.sectionIcon} />
+                                                <Text style={styles.label}>Voting Deadline</Text>
+                                            </View>
+
+                                            {/* Voting Deadline Button */}
                                             <TouchableOpacity
-                                                style={[styles.timeButton, { backgroundColor: '#f0f0f0' }]}
+                                                style={styles.votingButton}
                                                 onPress={openVotingDatePickerEdit}
+                                                accessible={true}
+                                                accessibilityLabel="Select Voting Deadline"
                                             >
-                                                <Text style={{ color: '#333' }}>
-                                                    End Voting: {formatDate(editEndVoting)}
+                                                <MaterialIcons name="calendar-today" size={24} color="#4CAF50" />
+                                                <Text style={styles.votingButtonText}>
+                                                    End Voting: {formatVotingDate(editEndVoting)}
                                                 </Text>
                                             </TouchableOpacity>
+
+                                            {/* DateTimePicker Modal */}
+                                            {showVotingPicker && (
+                                                <DateTimePicker
+                                                    value={endVotingDate}
+                                                    mode="datetime"
+                                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                                    onChange={handleVotingDateChange}
+                                                    minimumDate={new Date()} // Prevent selecting past dates
+                                                    textColor="black" // Ensures visibility
+                                                />
+                                            )}
                                         </>
                                     )}
                                 </ScrollView>
@@ -1968,7 +2116,7 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
 
-     /* ------------------- Time Styles ------------------- */
+    /* ------------------- Time Styles ------------------- */
     fieldContainer: {
         marginBottom: 15,
     },
@@ -1995,7 +2143,7 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
     },
 
-     /* ------------------- Value Styles ------------------- */
+    /* ------------------- Value Styles ------------------- */
     valueButtonRow: {
         flexDirection: 'row',
         alignItems: 'center',
