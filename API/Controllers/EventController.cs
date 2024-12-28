@@ -27,6 +27,7 @@ namespace flock.Controllers
         public async Task<IActionResult> Create(CreateEventDto request)
         {
             // TODO: Implement
+            throw new NotImplementedException();
         }
 
         [SwaggerOperation(
@@ -37,6 +38,7 @@ namespace flock.Controllers
         public async Task<IActionResult> Update(CreateEventDto request)
         {
            // TODO: Implement (make sure to check if a user is authorized to update the event)
+           throw new NotImplementedException();
         }
 
         [SwaggerOperation(
@@ -47,6 +49,7 @@ namespace flock.Controllers
         public async Task<IActionResult> List()
         {
             // TODO: Implement
+            throw new NotImplementedException();
         }
 
     }
