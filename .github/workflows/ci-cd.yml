@@ -68,7 +68,7 @@ jobs:
           echo "Deploying Web to /var/www/flock/"
           sudo rm -rf /var/www/flock/
           sudo mkdir -p /var/www/flock/
-          sudo cp -r Web/build/* /var/www/flock/
+          sudo cp -r Web/dist/* /var/www/flock/
           echo "Web deployment completed."
 
       ### COPY APPSETTINGS.JSON ###
