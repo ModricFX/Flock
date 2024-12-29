@@ -14,6 +14,7 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
+    SectionList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -58,6 +59,7 @@ interface EventData {
     createdAt: Date;
     updatedAt: Date;
     votes?: Record<string, any>; // optional
+    durationHours?: string;      // optional
 }
 
 /* Mock "current" user */
@@ -85,8 +87,8 @@ const initialEvents: EventData[] = [
         dayTimes: [
             {
                 date: new Date(2024, 0, 15),
-                start: '08:00 PM',
-                end: '11:00 PM',
+                start: '08:00',
+                end: '11:00',
             },
         ],
         participants: [
@@ -96,6 +98,7 @@ const initialEvents: EventData[] = [
         endVoting: new Date(Date.now() + 1000 * 60 * 60 * 24),
         createdAt: new Date(),
         updatedAt: new Date(),
+        durationHours: '3',
     },
     {
         id: 'evt-2',
@@ -106,8 +109,8 @@ const initialEvents: EventData[] = [
         dayTimes: [
             {
                 date: new Date(2024, 1, 5),
-                start: '09:00 AM',
-                end: '12:00 PM',
+                start: '09:00',
+                end: '12:00',
             },
         ],
         participants: [
@@ -118,13 +121,121 @@ const initialEvents: EventData[] = [
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
+        durationHours: '3',
+    },
+    {
+        id: 'evt-3',
+        createdBy: 'u-004', // belongs to Charlie
+        title: 'Test event',
+        description: 'Testing the events',
+        location: 'Home alone',
+        dayTimes: [
+            {
+                date: new Date(2024, 1, 5),
+                start: '09:00',
+                end: '13:00',
+            },
+            {
+                date: new Date(2024, 1, 6),
+                start: '15:00',
+                end: '20:00',
+            }
+        ],
+        participants: [
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
+            { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
+        ],
+        endVoting: new Date(Date.now() + 1000 * 60 * 60 * 2),
+        eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        durationHours: '3',
+    },
+    {
+        id: 'evt-4',
+        createdBy: 'u-003', // belongs to Bob
+        title: 'Beach Day',
+        description: 'Fun in the sun!',
+        location: 'Sunny Beach',
+        dayTimes: [
+            {
+                date: new Date(2024, 1, 5),
+                start: '09:00 AM',
+                end: '12:00 PM',
+            },
+        ],
+        participants: [
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+        ],
+        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        durationHours: '3',
+    },
+    {
+        id: 'evt-5',
+        createdBy: 'u-002', // belongs to Alice
+        title: 'Neki Day',
+        description: 'Fun',
+        location: 'House apartment',
+        dayTimes: [
+            {
+                date: new Date(2024, 1, 5),
+                start: '09:00',
+                end: '12:00',
+            },
+        ],
+        participants: [
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+        ],
+        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        eventDate: new Date(Date.now() - 500 * 60),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        durationHours: '3',
     },
 ];
 
-/* Returns 'voting' if now < endVoting, otherwise 'finished' */
-function getEventStatus(e: EventData): 'voting' | 'finished' {
-    return e.endVoting.getTime() > Date.now() ? 'voting' : 'finished';
+// Function to format time as HH:MM AM/PM
+const formatTime = (date: Date) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
+    return `${hours}:${minutesStr}`;
+};
+
+
+
+/* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet, 
+   and 'done' if the picked date is in the past. */
+function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
+    const now = Date.now();
+
+    if (e.endVoting && e.endVoting.getTime() > now) {
+        return 'voting';
+    }
+
+    if (e.eventDate) {
+        const eventStart = e.eventDate.getTime();
+        const durationHours = Number(e.durationHours) || 0;
+        const eventEnd = eventStart + durationHours * 60 * 60 * 1000; // Calculate event end time
+
+        if (now >= eventStart && now <= eventEnd) {
+            return 'in progress';
+        }
+
+        if (now > eventEnd) {
+            return 'completed';
+        }
+    }
+
+    return 'upcoming';
 }
+
+
 
 function formatDate(date: Date) {
     return date.toLocaleString([], {
@@ -133,8 +244,10 @@ function formatDate(date: Date) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        hourCycle: 'h23', // Use 24-hour format
     });
 }
+
 
 /** Returns string like "Monday, 15.01.2024" */
 function formatDay(date: Date) {
@@ -166,6 +279,46 @@ export default function HomeScreen() {
         }, 800);
     }, []);
 
+    const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+    useEffect(() => {
+        if (selectedEvent && selectedEvent.dayTimes) {
+            const newAvailability: {
+                [key: string]: {
+                    startTime: Date;
+                    endTime: Date;
+                    selectedTimes: Date[]; // Store multiple selected times
+                }
+            } = {};
+
+            selectedEvent.dayTimes.forEach((dayTime) => {
+                const dayKey = dayTime.date.toISOString(); // ISO string as key
+
+                // Parse start and end times
+                const [startHours, startMinutes] = dayTime.start.split(':').map(Number);
+                const [endHours, endMinutes] = dayTime.end.split(':').map(Number);
+
+                // Create Date objects for startTime and endTime
+                const startTime = new Date(dayTime.date);
+                startTime.setHours(startHours, startMinutes, 0, 0);
+
+                const endTime = new Date(dayTime.date);
+                endTime.setHours(endHours, endMinutes, 0, 0);
+
+                newAvailability[dayKey] = {
+                    startTime,
+                    endTime,
+                    selectedTimes: [], // Initialize as an empty array
+                };
+            });
+
+            setAvailability(newAvailability);
+        }
+    }, [selectedEvent]);
+
+
+
+    const [participationStatus, setParticipationStatus] = useState<string | null>(null);
+
     /* =============== CREATE EVENT =============== */
     const [createModalVisible, setCreateModalVisible] = useState(false);
     const [createStep, setCreateStep] = useState(1);
@@ -185,8 +338,9 @@ export default function HomeScreen() {
     const [addDayModalVisible, setAddDayModalVisible] = useState(false);
     const [tempDayIndex, setTempDayIndex] = useState<number | null>(null);
     const [tempDate, setTempDate] = useState(new Date());
-    const [tempStart, setTempStart] = useState('08:00 AM');
-    const [tempEnd, setTempEnd] = useState('10:00 PM');
+    const [tempStart, setTempStart] = useState('08:00'); // Default start time in 24-hour format
+    const [tempEnd, setTempEnd] = useState('22:00'); // Default end time in 24-hour format
+
 
     // Additional modals for date/time picking
     const [pickDateModalVisible, setPickDateModalVisible] = useState(false);
@@ -198,7 +352,12 @@ export default function HomeScreen() {
     const [typedInvite, setTypedInvite] = useState('');
 
     // Step4
-    const [endVotingDate, setEndVotingDate] = useState<Date>(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7));
+    const [endVotingDate, setEndVotingDate] = useState<Date>(() => {
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+        return oneWeekLater;
+    });
+
     const [votingPickerVisible, setVotingPickerVisible] = useState(false);
 
     // =============== EDIT EVENT ===============
@@ -218,8 +377,9 @@ export default function HomeScreen() {
     const [addDayModalVisibleEdit, setAddDayModalVisibleEdit] = useState(false);
     const [tempDayIndexEdit, setTempDayIndexEdit] = useState<number | null>(null);
     const [tempDateEdit, setTempDateEdit] = useState(new Date());
-    const [tempStartEdit, setTempStartEdit] = useState('08:00 AM');
-    const [tempEndEdit, setTempEndEdit] = useState('10:00 PM');
+    const [tempStartEdit, setTempStartEdit] = useState('08:00');
+    const [tempEndEdit, setTempEndEdit] = useState('22:00');
+
 
     // Additional modals for date/time picking (edit)
     const [pickDateModalEditVisible, setPickDateModalEditVisible] = useState(false);
@@ -230,23 +390,22 @@ export default function HomeScreen() {
 
     // =============== VIEW / VOTE ===============
     const [voteModalVisible, setVoteModalVisible] = useState(false);
-    const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
     const [showVotingPicker, setShowVotingPicker] = useState(false);
 
     /* ------------------------------------------
        Create Flow
     ------------------------------------------*/
     function startCreateEvent() {
-        setCreateStep(1);
-        setCreateTitle('');
-        setCreateDesc('');
-        setCreateLoc('');
-        setCreateDuration('');
-        setCreateDays([]);
-        setInvitees([]);
-        setTypedInvite('');
-        setEndVotingDate(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7));
-        setCreateModalVisible(true);
+        setCreateStep(1); // Reset the creation step to 1
+        setCreateTitle(''); // Clear the event title
+        setCreateDesc(''); // Clear the event description
+        setCreateLoc(''); // Clear the event location
+        setCreateDuration(''); // Clear the duration input (string expected)
+        setCreateDays([]); // Clear the days array
+        setInvitees([]); // Reset the list of invitees
+        setTypedInvite(''); // Clear the typed invite input
+        setEndVotingDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // Set end voting date to 7 days from now
+        setCreateModalVisible(true); // Open the modal for event creation
     }
 
     function closeCreateEvent() {
@@ -268,6 +427,46 @@ export default function HomeScreen() {
             setCreateStep(prev => prev - 1);
         }
     }
+
+    const openTimePicker = (dayKey: string) => {
+        setSelectedDay(dayKey); // Set the selected day
+        setShowTimePicker(true); // Show the DateTimePicker
+    };
+
+
+
+    // Get corresponding icon for status
+    function getStatusIcon(status: string): "schedule" | "play-arrow" | "done" | "autorenew" {
+        switch (status) {
+            case "upcoming":
+                return "schedule";
+            case "voting":
+                return "play-arrow";
+            case "completed":
+                return "done";
+            case "in progress":
+                return "autorenew"; // Represents "in progress" (can be changed to another icon if preferred)
+            default:
+                return "schedule"; // Default to "schedule" for unrecognized statuses
+        }
+    }
+
+    // Get corresponding status style
+    function getStatusStyle(status: string) {
+        switch (status) {
+            case 'upcoming':
+                return styles.statusUpcoming;
+            case 'voting':
+                return styles.statusVoting;
+            case 'completed':
+                return styles.statusCompleted;
+            case 'in progress':
+                return styles.statusInProgress;
+            default:
+                return styles.statusUpcoming; // Default to finished if unrecognized
+        }
+    }
+
 
     function finalizeCreateEvent() {
         if (!createTitle.trim()) {
@@ -293,21 +492,25 @@ export default function HomeScreen() {
     /* Step2 -> dayTimes => addDayModalCreate */
     function openAddDayModalCreate(index?: number) {
         if (typeof index === 'number') {
-            // editing
-            setTempDayIndex(index);
+            // Editing an existing day
             const existing = createDays[index];
+            setTempDayIndex(index);
             setTempDate(existing.date);
-            setTempStart(existing.start);
-            setTempEnd(existing.end);
+            setTempStart(existing.start); // Assuming `start` is already in the desired format
+            setTempEnd(existing.end);     // Assuming `end` is already in the desired format
         } else {
+            // Adding a new day
             setTempDayIndex(null);
             setTempDate(new Date());
-            setTempStart('08:00 AM');
-            setTempEnd('10:00 PM');
+            setTempStart('08:00'); // Default start time in 24-hour format
+            setTempEnd('10:00');   // Default end time in 24-hour format
         }
+
+        // Show the Add Day modal and hide the Create Event modal
         setAddDayModalVisible(true);
         setCreateModalVisible(false);
     }
+
     function closeAddDayModalCreate() {
         setAddDayModalVisible(false);
         setCreateModalVisible(true);
@@ -404,15 +607,61 @@ export default function HomeScreen() {
         if (sel) setEndVotingDate(sel);
     }
 
-    const formatVotingDate = (date: Date) => {
-        return date.toLocaleString([], {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+    const addSelectedTime = () => {
+        if (selectedDay && tempTime) {
+            setAvailability(prev => ({
+                ...prev,
+                [selectedDay]: {
+                    ...prev[selectedDay],
+                    selectedTimes: [...(prev[selectedDay].selectedTimes || []), tempTime],
+                },
+            }));
+            setTempTime(null);
+        }
+    };
+
+    const removeSelectedTime = (dayKey: string, index: number) => {
+        setAvailability(prev => ({
+            ...prev,
+            [dayKey]: {
+                ...prev[dayKey],
+                selectedTimes: prev[dayKey].selectedTimes.filter((_, i) => i !== index),
+            },
+        }));
+    };
+
+    // Function to check if voting is complete
+    const isVotingComplete = () => {
+        if (!selectedEvent) return false;
+
+        // Ensure at least one availability is selected for any day
+        return selectedEvent.dayTimes.some((day) => {
+            const dateKey = day.date.toISOString(); // Assuming `date` is a Date object
+            const selectedTimes = availability[dateKey]?.selectedTimes; // Use selectedTimes array from availability
+            return selectedTimes && selectedTimes.length > 0;
         });
     };
+
+    // Function to handle submission
+    const handleSubmitVoting = () => {
+        // Process the availability data
+        // For example, send it to your backend or update state
+        console.log('User Availability:', availability);
+        setIsVotingModalVisible(false);
+        alert('Your availability has been submitted!');
+    };
+
+    const formatVotingDate = (date: Date) => {
+        return date.toLocaleString([], {
+            month: 'short',        // e.g., "Jan"
+            day: 'numeric',        // e.g., "25"
+            year: 'numeric',       // e.g., "2024"
+            hour: '2-digit',       // e.g., "14"
+            minute: '2-digit',     // e.g., "30"
+            hour12: false,         // Ensures 24-hour time format
+        });
+    };
+
 
     // Function to handle date changes from the picker
     const handleVotingDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -422,21 +671,39 @@ export default function HomeScreen() {
         }
     };
 
+    const [isOtherEventsModalVisible, setIsOtherEventsModalVisible] = useState<boolean>(false);
+
+    const [isVotingModalVisible, setIsVotingModalVisible] = useState(false);
+    const [selectedDuration, setSelectedDuration] = useState<number>(3); // default duration in hours
+    const [availability, setAvailability] = useState<{
+        [key: string]: {
+            startTime: Date;
+            endTime: Date;
+            selectedTimes: Date[];
+        };
+    }>({});
+    const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+    const [tempTime, setTempTime] = useState<Date | null>(null);
+    const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+
+
     /* -----------------------------------------------
        EDIT EVENT
     -----------------------------------------------*/
     function openEdit(e: EventData) {
         setEditEvent(e);
         setEditStep(1);
-        setEditTitle(e.title);
-        setEditDesc(e.description);
-        setEditLoc(e.location);
-        setEditDuration('3'); // or empty
-        setEditDays(e.dayTimes ? [...e.dayTimes] : []);
-        setEditInvitees([...e.participants]);
-        setEditEndVoting(e.endVoting);
+        setEditTitle(e.title || '');
+        setEditDesc(e.description || '');
+        setEditLoc(e.location || '');
+        setEditDuration(e.durationHours || ''); // Pass durationHours as a string
+        setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
+        setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
+        setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
     }
+
     function closeEditEvent() {
         setEditModalVisible(false);
         setEditEvent(null);
@@ -478,22 +745,24 @@ export default function HomeScreen() {
 
     /* Step2 (edit) => addDayModalEdit */
     function openAddDayModalEdit(index?: number) {
-        if (typeof index === 'number') {
-            // editing
+        if (typeof index === 'number' && editDays[index]) {
+            // Editing an existing day
             setTempDayIndexEdit(index);
             const existing = editDays[index];
-            setTempDateEdit(existing.date);
-            setTempStartEdit(existing.start);
-            setTempEndEdit(existing.end);
+            setTempDateEdit(existing.date || new Date());
+            setTempStartEdit(existing.start || '08:00');
+            setTempEndEdit(existing.end || '10:00');
         } else {
+            // Adding a new day
             setTempDayIndexEdit(null);
             setTempDateEdit(new Date());
-            setTempStartEdit('08:00 AM');
-            setTempEndEdit('10:00 PM');
+            setTempStartEdit('08:00'); // Default start time in 24-hour format
+            setTempEndEdit('10:00'); // Default end time in 24-hour format
         }
         setAddDayModalVisibleEdit(true);
         setEditModalVisible(false);
     }
+
     function closeAddDayModalEdit() {
         setAddDayModalVisibleEdit(false);
         setEditModalVisible(true);
@@ -574,45 +843,14 @@ export default function HomeScreen() {
     }
 
     /* =============== VIEW / VOTE =============== */
-    function openView(e: EventData) {
-        setSelectedEvent(e);
-        setVoteModalVisible(true);
+    function openView(event: EventData) {
+        setSelectedEvent(event); // Set the selected event
+        setIsOtherEventsModalVisible(true); // Show the modal
     }
+
     function closeView() {
-        setVoteModalVisible(false);
-        setSelectedEvent(null);
-    }
-    function handleAccept() {
-        if (!selectedEvent || !currentUser) return;
-        setEvents(prev =>
-            prev.map(ev => {
-                if (ev.id === selectedEvent.id) {
-                    const updated = { ...ev };
-                    updated.participants = updated.participants.map(p =>
-                        p.email === currentUser.email ? { ...p, status: 'accepted' } : p
-                    );
-                    return updated;
-                }
-                return ev;
-            })
-        );
-        closeView();
-    }
-    function handleDecline() {
-        if (!selectedEvent || !currentUser) return;
-        setEvents(prev =>
-            prev.map(ev => {
-                if (ev.id === selectedEvent.id) {
-                    const updated = { ...ev };
-                    updated.participants = updated.participants.map(p =>
-                        p.email === currentUser.email ? { ...p, status: 'declined' } : p
-                    );
-                    return updated;
-                }
-                return ev;
-            })
-        );
-        closeView();
+        setIsOtherEventsModalVisible(false); // Hide the modal
+        setSelectedEvent(null); // Clear the selected event
     }
 
     /* Partition MY vs. OTHERS */
@@ -654,27 +892,72 @@ export default function HomeScreen() {
                         {myEvents.length === 0 ? (
                             <Text style={styles.noEvents}>No events. Create one below!</Text>
                         ) : (
-                            myEvents.map(evt => (
-                                <TouchableOpacity
-                                    key={evt.id}
-                                    style={styles.eventItem}
-                                    onPress={() => openEdit(evt)}
-                                >
-                                    <Text style={styles.eventTitle}>{evt.title}</Text>
-                                    <Text style={styles.eventDescription}>{evt.description}</Text>
-                                    <Text style={styles.eventDescription}>
-                                        Status: {getEventStatus(evt).toUpperCase()}
-                                    </Text>
-                                    <Text style={styles.eventDescription}>
-                                        Voting Ends: {formatDate(evt.endVoting)}
-                                    </Text>
-                                    {evt.eventDate && (
-                                        <Text style={styles.eventDescription}>
-                                            Event Date: {formatDate(evt.eventDate)}
+                            <ScrollView
+                                horizontal={false}
+                                showsVerticalScrollIndicator={false}
+                                style={styles.eventsList}
+                            >
+                                {myEvents.map(evt => (
+                                    <TouchableOpacity
+                                        key={evt.id}
+                                        style={styles.eventCard}
+                                        onPress={() => openEdit(evt)}
+                                        activeOpacity={0.8}
+                                        accessible={true}
+                                        accessibilityLabel={`Edit event ${evt.title}`}
+                                    >
+                                        {/* Event Header */}
+                                        <View style={styles.eventHeader}>
+                                            <Text style={styles.eventTitle}>{evt.title}</Text>
+                                            <View style={[
+                                                styles.statusBadge,
+                                                getStatusStyle(getEventStatus(evt))
+                                            ]}>
+                                                <MaterialIcons
+                                                    name={getStatusIcon(getEventStatus(evt))}
+                                                    size={16}
+                                                    color="#fff"
+                                                    style={{ marginRight: 4 }}
+                                                />
+                                                <Text style={styles.statusText}>
+                                                    {getEventStatus(evt).toUpperCase()}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        {/* Event Description */}
+                                        <Text style={styles.eventDescription} numberOfLines={2}>
+                                            {evt.description}
                                         </Text>
-                                    )}
-                                </TouchableOpacity>
-                            ))
+
+                                        {/* Event Dates */}
+                                        <View style={styles.eventDates}>
+                                            <View style={styles.dateRow}>
+                                                <MaterialIcons name="today" size={20} color="#4CAF50" />
+                                                <Text style={styles.dateText}>
+                                                    Voting Ends: {formatDate(evt.endVoting)}
+                                                </Text>
+                                            </View>
+                                            {evt.eventDate && (
+                                                <View style={styles.dateRow}>
+                                                    <MaterialIcons name="event" size={20} color="#4CAF50" />
+                                                    <Text style={styles.dateText}>
+                                                        Event Date: {formatDate(evt.eventDate)}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </View>
+
+                                        {/* Participants */}
+                                        <View style={styles.participants}>
+                                            <MaterialIcons name="people" size={20} color="#4CAF50" />
+                                            <Text style={styles.participantsText}>
+                                                {evt.participants.length} Participants
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         )}
                     </View>
 
@@ -684,26 +967,494 @@ export default function HomeScreen() {
                         {otherEvents.length === 0 ? (
                             <Text style={styles.noEvents}>No other events available.</Text>
                         ) : (
-                            otherEvents.map(evt => (
-                                <TouchableOpacity
-                                    key={evt.id}
-                                    style={styles.eventItem}
-                                    onPress={() => openView(evt)}
-                                >
-                                    <Text style={styles.eventTitle}>{evt.title}</Text>
-                                    <Text style={styles.eventDescription}>{evt.description}</Text>
-                                    <Text style={styles.eventDescription}>
-                                        Status: {getEventStatus(evt).toUpperCase()}
-                                    </Text>
-                                    {evt.eventDate && (
-                                        <Text style={styles.eventDescription}>
-                                            Event Date: {formatDate(evt.eventDate)}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            ))
+                            <ScrollView
+                                horizontal={false}
+                                showsVerticalScrollIndicator={false}
+                                style={styles.eventsList}
+                            >
+                                {otherEvents.map(evt => {
+                                    const eventStatus = getEventStatus(evt);
+                                    const userParticipant = evt.participants.find(p => p.email === currentUser?.email);
+                                    return (
+                                        <TouchableOpacity
+                                            key={evt.id}
+                                            style={styles.eventCard}
+                                            onPress={() => openView(evt)}
+                                            activeOpacity={0.8}
+                                            accessible={true}
+                                            accessibilityLabel={`View event ${evt.title}`}
+                                        >
+                                            {/* Event Header */}
+                                            <View style={styles.eventHeader}>
+                                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                                <View style={[
+                                                    styles.statusBadge,
+                                                    getStatusStyle(eventStatus)
+                                                ]}>
+                                                    <MaterialIcons
+                                                        name={getStatusIcon(eventStatus)}
+                                                        size={16}
+                                                        color="#fff"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                    <Text style={styles.statusText}>
+                                                        {eventStatus.toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            </View>
+
+                                            {/* Event Description */}
+                                            <Text style={styles.eventDescription} numberOfLines={2}>
+                                                {evt.description}
+                                            </Text>
+
+                                            {/* Event Dates or Location */}
+                                            <View style={styles.eventDates}>
+                                                {eventStatus === 'voting' ? (
+                                                    <View style={styles.dateRow}>
+                                                        <MaterialIcons name="today" size={20} color="#4CAF50" />
+                                                        <Text style={styles.dateText}>
+                                                            Voting Ends: {formatDate(evt.endVoting)}
+                                                        </Text>
+                                                    </View>
+                                                ) : (
+                                                    <View style={styles.dateRow}>
+                                                        <MaterialIcons name="location-on" size={20} color="#4CAF50" />
+                                                        <Text style={styles.dateText}>
+                                                            Location: {evt.location}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                                {eventStatus === 'in progress' && evt.eventDate && (
+                                                    <View style={styles.dateRow}>
+                                                        <MaterialIcons name="event" size={20} color="#4CAF50" />
+                                                        <Text style={styles.dateText}>
+                                                            Event Date: {formatDate(evt.eventDate)}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+
+                                            {/* Participants */}
+                                            <View style={styles.participants}>
+                                                <MaterialIcons name="people" size={20} color="#4CAF50" />
+                                                <Text style={styles.participantsText}>
+                                                    {evt.participants.length} Participants
+                                                </Text>
+                                            </View>
+
+                                            {/* User Voting Status */}
+                                            {eventStatus === 'voting' && userParticipant && (
+                                                <View style={styles.userStatus}>
+                                                    <MaterialIcons name="how-to-vote" size={20} color="#4CAF50" />
+                                                    <Text style={styles.userStatusText}>
+                                                        Your Vote: {userParticipant.status.toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                            )}
+                                        </TouchableOpacity>
+                                    )
+                                })}
+                            </ScrollView>
                         )}
                     </View>
+
+                    {/*Other Event Details Modal */}
+                    <Modal
+                        visible={isOtherEventsModalVisible}
+                        animationType="slide"
+                        transparent={true}
+                        onRequestClose={closeView}
+                    >
+                        <TouchableWithoutFeedback onPress={closeView}>
+                            <View style={styles.modalOverlay}>
+                                <TouchableWithoutFeedback onPress={() => { /* Prevent modal from closing when tapping inside */ }}>
+                                    <View style={styles.modalContainer}>
+                                        {selectedEvent ? (
+                                            (() => {
+                                                const eventStatus = getEventStatus(selectedEvent);
+
+                                                return (
+                                                    <>
+                                                        {/* Modal Header */}
+                                                        <View style={styles.modalHeader}>
+                                                            <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
+                                                            <TouchableOpacity onPress={closeView} accessibilityLabel="Close Modal">
+                                                                <MaterialIcons name="close" size={24} color="#333" />
+                                                            </TouchableOpacity>
+                                                        </View>
+
+                                                        {/* Event Details and Participants */}
+                                                        <SectionList
+                                                            sections={[
+                                                                {
+                                                                    title: 'Event Details',
+                                                                    data: selectedEvent
+                                                                        ? [
+                                                                            { label: 'Creator', value: mockFriends.find(friend => friend.id === selectedEvent.createdBy) ? `${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.email})` : 'Unknown' },
+                                                                            { label: 'Description', value: selectedEvent.description },
+                                                                            { label: 'Location', value: selectedEvent.location },
+                                                                            ...(eventStatus !== 'voting'
+                                                                                ? [
+                                                                                    {
+                                                                                        label: 'Event Date',
+                                                                                        value: selectedEvent.eventDate
+                                                                                            ? formatDate(selectedEvent.eventDate)
+                                                                                            : 'Not set',
+                                                                                    },
+                                                                                ]
+                                                                                : []),
+                                                                            ...(selectedEvent.endVoting && eventStatus === 'voting'
+                                                                                ? [
+                                                                                    {
+                                                                                        label: 'Voting Ends',
+                                                                                        value: formatDate(selectedEvent.endVoting),
+                                                                                    },
+                                                                                ]
+                                                                                : []),
+                                                                            { label: 'Duration', value: `${selectedEvent.durationHours || 'N/A'} hours` },
+                                                                        ]
+                                                                        : [],
+                                                                },
+                                                                {
+                                                                    title: 'Participants',
+                                                                    data: selectedEvent
+                                                                        ? selectedEvent.participants.map((participant) => ({
+                                                                            label: participant.username,
+                                                                            value: `${participant.email} - ${participant.status.toUpperCase()}`,
+                                                                        }))
+                                                                        : [],
+                                                                },
+                                                            ]}
+                                                            keyExtractor={(item, index) => item.label + index}
+                                                            renderItem={({ item }) => (
+                                                                <View style={styles.modalSection}>
+                                                                    <Text style={styles.modalLabel}>{item.label}:</Text>
+                                                                    <Text style={styles.modalText}>{item.value}</Text>
+                                                                </View>
+                                                            )}
+                                                            renderSectionHeader={({ section: { title } }) => (
+                                                                <Text style={styles.sectionHeader}>{title}</Text>
+                                                            )}
+                                                            contentContainerStyle={styles.sectionListContent}
+                                                            showsVerticalScrollIndicator={false}
+                                                        />
+
+                                                        {/* Action Buttons Based on Status */}
+                                                        <View style={styles.modalActions}>
+                                                            {eventStatus === 'voting' && (
+                                                                <>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.voteButton]}
+                                                                        onPress={() => {
+                                                                            setIsOtherEventsModalVisible(false); // Close current modal
+                                                                            setIsVotingModalVisible(true); // Open voting modal
+                                                                        }}
+                                                                    >
+                                                                        <MaterialIcons name="how-to-vote" size={20} color="#fff" />
+                                                                        <Text style={styles.buttonText}>Vote</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.closeButton]}
+                                                                        onPress={closeView}
+                                                                    >
+                                                                        <MaterialIcons name="close" size={20} color="#fff" />
+                                                                        <Text style={styles.buttonText}>Close</Text>
+                                                                    </TouchableOpacity>
+                                                                </>
+                                                            )}
+                                                            {eventStatus === 'upcoming' && (
+                                                                <>
+                                                                    <Text style={styles.modalLabel}>Confirm participation:</Text>
+
+                                                                    {participationStatus === 'confirmed' ? (
+                                                                        <View style={styles.statusContainer}>
+                                                                            <Text style={styles.statusTextParticipation}>Participation: <Text style={styles.confirmedText}>CONFIRMED</Text></Text>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.denyButton]}
+                                                                                onPress={() => setParticipationStatus('denied')} // Logic to toggle participation
+                                                                            >
+                                                                                <MaterialIcons name="cancel" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Change to Deny</Text>
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    ) : participationStatus === 'denied' ? (
+                                                                        <View style={styles.statusContainer}>
+                                                                            <Text style={styles.statusTextParticipation}>Participation: <Text style={styles.deniedText}>DENIED</Text></Text>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                onPress={() => setParticipationStatus('confirmed')} // Logic to toggle participation
+                                                                            >
+                                                                                <MaterialIcons name="check-circle" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Change to Confirm</Text>
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    ) : (
+                                                                        <>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                onPress={() => setParticipationStatus('confirmed')} // Set to confirmed
+                                                                            >
+                                                                                <MaterialIcons name="check-circle" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Confirm</Text>
+                                                                            </TouchableOpacity>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.denyButton]}
+                                                                                onPress={() => setParticipationStatus('denied')} // Set to denied
+                                                                            >
+                                                                                <MaterialIcons name="cancel" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Deny</Text>
+                                                                            </TouchableOpacity>
+                                                                        </>
+                                                                    )}
+
+                                                                    <TouchableOpacity style={[styles.actionButton, styles.closeButton]} onPress={closeView}>
+                                                                        <MaterialIcons name="close" size={20} color="#fff" />
+                                                                        <Text style={styles.buttonText}>Close</Text>
+                                                                    </TouchableOpacity>
+                                                                </>
+                                                            )}
+
+
+                                                            {eventStatus === 'in progress' && (
+                                                                <>
+                                                                    <Text style={styles.modalLabel}>Confirm participation:</Text>
+
+                                                                    {participationStatus === 'confirmed' ? (
+                                                                        <View style={styles.statusContainer}>
+                                                                            <Text style={styles.statusTextParticipation}>
+                                                                                Participation: <Text style={styles.confirmedText}>CONFIRMED</Text>
+                                                                            </Text>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.denyButton]}
+                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                            >
+                                                                                <MaterialIcons name="cancel" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Change to Deny</Text>
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    ) : participationStatus === 'denied' ? (
+                                                                        <View style={styles.statusContainer}>
+                                                                            <Text style={styles.statusTextParticipation}>
+                                                                                Participation: <Text style={styles.deniedText}>DENIED</Text>
+                                                                            </Text>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                            >
+                                                                                <MaterialIcons name="check-circle" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Change to Confirm</Text>
+                                                                            </TouchableOpacity>
+                                                                        </View>
+                                                                    ) : (
+                                                                        <>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                            >
+                                                                                <MaterialIcons name="check-circle" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Confirm</Text>
+                                                                            </TouchableOpacity>
+                                                                            <TouchableOpacity
+                                                                                style={[styles.actionButton, styles.denyButton]}
+                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                            >
+                                                                                <MaterialIcons name="cancel" size={20} color="#fff" />
+                                                                                <Text style={styles.buttonText}>Deny</Text>
+                                                                            </TouchableOpacity>
+                                                                        </>
+                                                                    )}
+
+                                                                    <TouchableOpacity style={[styles.actionButton, styles.closeButton]} onPress={closeView}>
+                                                                        <MaterialIcons name="close" size={20} color="#fff" />
+                                                                        <Text style={styles.buttonText}>Close</Text>
+                                                                    </TouchableOpacity>
+                                                                </>
+                                                            )}
+
+                                                            {eventStatus === 'completed' && (
+                                                                <TouchableOpacity style={[styles.actionButton, styles.closeButton]} onPress={closeView}>
+                                                                    <MaterialIcons name="close" size={20} color="#fff" />
+                                                                    <Text style={styles.buttonText}>Close</Text>
+                                                                </TouchableOpacity>
+                                                            )}
+                                                        </View>
+                                                    </>
+                                                );
+                                            })()
+                                        ) : (
+                                            <ActivityIndicator size="large" color="#4CAF50" />
+                                        )}
+                                    </View>
+                                </TouchableWithoutFeedback>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
+
+
+                    {/* VOTING MODAL SYSTEM */}
+                    <Modal
+                        visible={isVotingModalVisible}
+                        animationType="slide"
+                        transparent={true}
+                        onRequestClose={() => setIsVotingModalVisible(false)}
+                    >
+                        <TouchableWithoutFeedback onPress={() => setIsVotingModalVisible(false)}>
+                            <View style={styles.modalOverlay}>
+                                <TouchableWithoutFeedback onPress={() => { /* Prevent modal from closing when tapping inside */ }}>
+                                    <View style={styles.votingModalContainer}>
+                                        <View style={styles.votingModalHeader}>
+                                            <Text style={styles.modalTitle}>
+                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.title || 'Event'}</Text>
+                                            </Text>
+
+                                            <TouchableOpacity
+                                                onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
+                                                accessibilityLabel="Close Voting Modal"
+                                            >
+                                                <MaterialIcons name="close" size={24} color="#333" />
+                                            </TouchableOpacity>
+                                        </View>
+
+                                        <ScrollView contentContainerStyle={styles.votingModalContent}>
+                                            {/* Duration Selection */}
+                                            <View style={styles.fieldContainer}>
+                                                <Text style={styles.modalLabel}>
+                                                    Duration: <Text style={styles.durationText}>{selectedEvent?.durationHours || 'N/A'} hours</Text>
+                                                </Text>
+                                            </View>
+
+                                            {/* Availability Selection for Each Day */}
+                                            {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
+                                                const dayKey = dayTime.date.toISOString();
+                                                return (
+                                                    <View key={index} style={styles.dayContainer}>
+                                                        <View style={styles.dayHeader}>
+                                                            <Text style={styles.dayTitle}>{dayTime.date.toLocaleDateString('en-US', { weekday: 'long' })}, {dayTime.date.toLocaleDateString()}</Text>
+                                                            <View style={styles.availableContainer}>
+                                                                <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
+                                                                <Text style={styles.availableText}>
+                                                                    Available: {dayTime.start} - {dayTime.end}
+                                                                </Text>
+                                                            </View>
+                                                        </View>
+                                                        <View style={styles.selectTimeSection}>
+                                                            <Text style={styles.modalLabel}>Select Start Time:</Text>
+                                                            {availability[dayKey]?.selectedTimes && availability[dayKey].selectedTimes.length > 0 && (
+                                                                <View style={styles.selectedTimesList}>
+                                                                    {availability[dayKey].selectedTimes.map((time, idx) => {
+                                                                        const endTime = new Date(
+                                                                            time.getTime() + ((Number(selectedEvent?.durationHours) || 3) * 60 * 60 * 1000)
+                                                                        );
+                                                                        return (
+                                                                            <View key={idx} style={styles.selectedTimeItem}>
+                                                                                <View style={styles.timeTextContainer}>
+                                                                                    <Text style={styles.selectedTimeText}>
+                                                                                        {formatTime(time)} - {formatTime(endTime)}
+                                                                                    </Text>
+                                                                                </View>
+                                                                                <TouchableOpacity onPress={() => removeSelectedTime(dayKey, idx)}>
+                                                                                    <MaterialIcons name="delete" size={24} color="#e74c3c" />
+                                                                                </TouchableOpacity>
+                                                                            </View>
+                                                                        );
+                                                                    })}
+                                                                </View>
+                                                            )}
+                                                            <TouchableOpacity
+                                                                style={styles.selectTimeButton}
+                                                                onPress={() => openTimePicker(dayKey)}
+                                                            >
+                                                                <MaterialIcons name="access-time" size={24} color="#fff" />
+                                                                <Text style={styles.buttonText}>Pick Start Time</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                );
+                                            })}
+
+
+                                            {/* DateTimePicker Modal */}
+                                            {showTimePicker && selectedDay && availability[selectedDay] && (
+                                                <View style={styles.timePickerContainer}>
+                                                    <DateTimePicker
+                                                        value={tempTime || new Date()} // Default to the current time if tempTime is not set
+                                                        mode="time"
+                                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                                        onChange={(event, selectedTime) => {
+                                                            if (selectedTime) {
+                                                                const updatedTime = new Date(selectedTime);
+
+                                                                // Update minutes based on the hour
+                                                                const startHour = availability[selectedDay].startTime.getHours();
+                                                                const startMinute = availability[selectedDay].startTime.getMinutes();
+                                                                const endHour = availability[selectedDay].endTime.getHours();
+                                                                const endMinute = availability[selectedDay].endTime.getMinutes();
+                                                                const selectedHour = updatedTime.getHours();
+
+                                                                if (selectedHour === startHour) {
+                                                                    updatedTime.setMinutes(
+                                                                        Math.max(updatedTime.getMinutes(), startMinute)
+                                                                    );
+                                                                } else if (selectedHour === endHour) {
+                                                                    updatedTime.setMinutes(
+                                                                        Math.min(updatedTime.getMinutes(), endMinute)
+                                                                    );
+                                                                }
+
+                                                                setTempTime(updatedTime); // Update the tempTime state
+                                                            }
+                                                        }}
+                                                        textColor="black"
+                                                        minimumDate={availability[selectedDay].startTime}
+                                                        maximumDate={
+                                                            new Date(
+                                                                availability[selectedDay].endTime.getTime() -
+                                                                ((Number(selectedEvent?.durationHours) || 3) * 60 * 60 * 1000)
+                                                            )
+                                                        }
+                                                    />
+                                                    <TouchableOpacity
+                                                        style={styles.okButton}
+                                                        onPress={() => {
+                                                            // add currently selected time to the selected times
+                                                            addSelectedTime();
+                                                            setShowTimePicker(false); // Close the time picker
+                                                        }}
+                                                    >
+                                                        <Text style={styles.okButtonText}>OK</Text>
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.closeSpinnerButton}
+                                                        onPress={() => {
+                                                            setShowTimePicker(false); // Close the time picker
+                                                        }}
+                                                    >
+                                                        <Text style={styles.okButtonText}>Close</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
+
+                                        </ScrollView>
+
+                                        {/* Voting Modal Actions */}
+                                        <View style={styles.votingModalActions}>
+                                            <Button
+                                                title="Cancel"
+                                                onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
+                                                color="#757575"
+                                            />
+                                            <Button
+                                                title="Submit"
+                                                onPress={handleSubmitVoting}
+                                                disabled={!isVotingComplete()}
+                                            />
+                                        </View>
+                                    </View>
+                                </TouchableWithoutFeedback>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
                 </ScrollView>
 
                 {/* FAB */}
@@ -791,9 +1542,10 @@ export default function HomeScreen() {
                                                     <TouchableOpacity
                                                         style={styles.stepperButton}
                                                         onPress={() => {
-                                                            const current = parseInt(createDurationHours) || 1;
-                                                            const newHours = current > 0 ? (current - 1).toString() : '0';
+                                                            const current = parseInt(createDurationHours || '1', 10); // Ensure createDurationHours is a string
+                                                            const newHours = current > 0 ? (current - 1).toString() : '0'; // Minimum hours should be 1
                                                             setCreateDurationHours(newHours);
+
                                                         }}
                                                         accessible={true}
                                                         accessibilityLabel="Decrease hours"
@@ -1005,7 +1757,7 @@ export default function HomeScreen() {
                                 )}
 
                             </ScrollView>
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button title={createStep === 1 ? 'Cancel' : 'Back'} onPress={handlePrevStepCreate} />
                                 <Button title={createStep < 4 ? 'Next' : 'Finish'} onPress={handleNextStepCreate} />
                             </View>
@@ -1068,7 +1820,7 @@ export default function HomeScreen() {
                                 </View>
 
                                 {/* Actions */}
-                                <View style={styles.modalActions}>
+                                <View style={styles.modalEventButtons}>
                                     <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalCreate}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
@@ -1104,7 +1856,7 @@ export default function HomeScreen() {
                                 onChange={(ev, sel) => onPickDateChange(ev, sel)}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button title="Cancel" onPress={closePickDate} />
                                 <Button title="Save" onPress={savePickDate} />
                             </View>
@@ -1126,13 +1878,13 @@ export default function HomeScreen() {
                                     const hhmm = sel.toLocaleTimeString([], {
                                         hour: '2-digit',
                                         minute: '2-digit',
-                                        hour12: true,
+                                        hour12: false, // Set to false for 24-hour format
                                     });
                                     setTempStart(hhmm);
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button
                                     title="Cancel"
                                     onPress={() => {
@@ -1166,13 +1918,13 @@ export default function HomeScreen() {
                                     const hhmm = sel.toLocaleTimeString([], {
                                         hour: '2-digit',
                                         minute: '2-digit',
-                                        hour12: true,
+                                        hour12: false, // Ensure 24-hour format
                                     });
                                     setTempEnd(hhmm);
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button
                                     title="Cancel"
                                     onPress={() => {
@@ -1204,7 +1956,7 @@ export default function HomeScreen() {
                                 onChange={onVotingDateChange}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button title="Cancel" onPress={cancelVotingDate} />
                                 <Button title="Save" onPress={saveVotingDate} />
                             </View>
@@ -1486,7 +2238,7 @@ export default function HomeScreen() {
                                         </>
                                     )}
                                 </ScrollView>
-                                <View style={styles.modalActions}>
+                                <View style={styles.modalEventButtons}>
                                     <Button title={editStep === 1 ? 'Cancel' : 'Back'} onPress={handlePrevStepEdit} />
                                     <Button title={editStep < 4 ? 'Next' : 'Save'} onPress={handleNextStepEdit} />
                                 </View>
@@ -1550,7 +2302,7 @@ export default function HomeScreen() {
                                 </View>
 
                                 {/* Actions */}
-                                <View style={styles.modalActions}>
+                                <View style={styles.modalEventButtons}>
                                     <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalEdit}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
@@ -1586,7 +2338,7 @@ export default function HomeScreen() {
                                 onChange={(ev, sel) => onPickDateChangeEdit(ev, sel)}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button
                                     title="Cancel"
                                     onPress={() => {
@@ -1617,13 +2369,13 @@ export default function HomeScreen() {
                                     const hhmm = sel.toLocaleTimeString([], {
                                         hour: '2-digit',
                                         minute: '2-digit',
-                                        hour12: true,
+                                        hour12: false, // Ensure 24-hour format
                                     });
                                     setTempStartEdit(hhmm);
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button
                                     title="Cancel"
                                     onPress={() => {
@@ -1657,13 +2409,13 @@ export default function HomeScreen() {
                                     const hhmm = sel.toLocaleTimeString([], {
                                         hour: '2-digit',
                                         minute: '2-digit',
-                                        hour12: true,
+                                        hour12: false, // Ensure 24-hour format
                                     });
                                     setTempEndEdit(hhmm);
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button
                                     title="Cancel"
                                     onPress={() => {
@@ -1695,51 +2447,12 @@ export default function HomeScreen() {
                                 onChange={(ev, sel) => onVotingDateChangeEdit(ev, sel)}
                                 textColor="black" // Set text color to ensure visibility
                             />
-                            <View style={styles.modalActions}>
+                            <View style={styles.modalEventButtons}>
                                 <Button title="Cancel" onPress={cancelVotingDateEdit} />
                                 <Button title="Save" onPress={saveVotingDateEdit} />
                             </View>
                         </View>
                     </View>
-                </Modal>
-
-                {/* VIEW / VOTE MODAL */}
-                <Modal visible={voteModalVisible} transparent onRequestClose={closeView}>
-                    {selectedEvent && (
-                        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                            <View style={styles.modalOverlay}>
-                                <View style={styles.modalContainer}>
-                                    <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
-                                    <Text style={{ marginBottom: 10 }}>{selectedEvent.description}</Text>
-
-                                    <Text style={styles.label}>
-                                        Status: {getEventStatus(selectedEvent).toUpperCase()}
-                                    </Text>
-                                    {getEventStatus(selectedEvent) === 'finished' && selectedEvent.eventDate && (
-                                        <Text style={{ marginBottom: 6 }}>
-                                            Final Event Date: {formatDate(selectedEvent.eventDate)}
-                                        </Text>
-                                    )}
-
-                                    <Text style={[styles.label, { marginTop: 10 }]}>Possible Days:</Text>
-                                    {selectedEvent.dayTimes.length === 0 ? (
-                                        <Text>No days set</Text>
-                                    ) : (
-                                        selectedEvent.dayTimes.map((d, i) => (
-                                            <Text key={i}>
-                                                {formatDay(d.date)}: {d.start} - {d.end}
-                                            </Text>
-                                        ))
-                                    )}
-
-                                    <View style={styles.modalActions}>
-                                        <Button title="Decline" color="red" onPress={handleDecline} />
-                                        <Button title="Accept" onPress={handleAccept} />
-                                    </View>
-                                </View>
-                            </View>
-                        </TouchableWithoutFeedback>
-                    )}
                 </Modal>
             </View>
         </TouchableWithoutFeedback>
@@ -1777,54 +2490,11 @@ const styles = StyleSheet.create({
     },
 
     /* ------------------- Card Styles ------------------- */
-    card: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-        elevation: 2,
-
-        // iOS shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-    },
     greeting: {
         fontSize: 18,
         fontWeight: '600',
         marginBottom: 6,
     },
-    message: {
-        fontSize: 14,
-        color: '#555',
-    },
-    eventsTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 6,
-    },
-    noEvents: {
-        fontSize: 14,
-        color: '#888',
-    },
-    eventItem: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 8,
-    },
-    eventTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    eventDescription: {
-        fontSize: 14,
-        color: '#555',
-    },
-
     /* ------------------- Floating Action Button (FAB) Styles ------------------- */
     fab: {
         position: 'absolute',
@@ -1872,6 +2542,14 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     modalActions: {
+        flexDirection: 'column', // Stack buttons vertically
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        width: '100%',
+        backgroundColor: '#f9f9f9', // Optional background for visibility
+    },
+    modalEventButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginTop: 12,
@@ -1907,6 +2585,20 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: '#fff',
         fontSize: 16,
+    },
+
+    modalSection: {
+        marginBottom: 15,
+    },
+    modalLabel: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#555',
+        marginBottom: 5,
+    },
+    modalText: {
+        fontSize: 14,
+        color: '#333',
     },
 
     /* ------------------- Input Styles ------------------- */
@@ -2135,13 +2827,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginLeft: 10,
     },
-    timeButton: {
-        alignItems: 'center',
-        padding: 10,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: '#ccc',
-    },
 
     /* ------------------- Value Styles ------------------- */
     valueButtonRow: {
@@ -2152,6 +2837,308 @@ const styles = StyleSheet.create({
     valueText: {
         fontSize: 16,
         color: '#333',
+        flex: 1,
+    },
+    /* ------------------- Card Styles ------------------- */
+    card: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 20,
+        elevation: 3, // Android shadow
+        shadowColor: '#000', // iOS shadow
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    eventsTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#333',
+        marginBottom: 15,
+    },
+    noEvents: {
+        fontSize: 16,
+        color: '#888',
+        textAlign: 'center',
+        marginTop: 10,
+    },
+    eventsList: {
+        // Optional: Add padding or margin if needed
+    },
+
+    /* ------------------- Event Card Styles ------------------- */
+    eventCard: {
+        backgroundColor: '#f9f9f9',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 15,
+        elevation: 2, // Android shadow
+        shadowColor: '#000', // iOS shadow
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    eventHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    eventTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#333',
+        flex: 1,
+        flexWrap: 'wrap',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#4CAF50', // Default color, will be overridden
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        marginLeft: 10,
+    },
+    statusText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+
+    /* ------------------- Status Styles ------------------- */
+
+    statusUpcoming: {
+        backgroundColor: '#4CAF50', // Green
+        color: '#fff',
+        padding: 5,
+        borderRadius: 4,
+    },
+    statusVoting: {
+        backgroundColor: '#FF9800', // Orange
+        color: '#fff',
+        padding: 5,
+        borderRadius: 4,
+    },
+    statusCompleted: {
+        backgroundColor: '#9E9E9E', // Gray
+        color: '#fff',
+        padding: 5,
+        borderRadius: 4,
+    },
+    statusInProgress: {
+        backgroundColor: '#2196F3', // Blue
+        color: '#fff',
+        padding: 5,
+        borderRadius: 4,
+    },
+    /* ------------------- Event Description ------------------- */
+    eventDescription: {
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 6,
+    },
+
+    /* ------------------- Event Dates ------------------- */
+    eventDates: {
+        marginTop: 5,
+    },
+    dateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    dateText: {
+        fontSize: 14,
+        color: '#555',
+        marginLeft: 6,
+    },
+
+    /* ------------------- Participants ------------------- */
+    participants: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    participantsText: {
+        fontSize: 14,
+        color: '#555',
+        marginLeft: 6,
+    },
+
+    /* ------------------- User Voting Status ------------------- */
+    userStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    userStatusText: {
+        fontSize: 14,
+        color: '#555',
+        marginLeft: 6,
+    },
+    /* ------------------- Button Styles ------------------- */
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    /* ------------------- Section Headers ------------------- */
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#4CAF50',
+        marginTop: 15,
+        marginBottom: 5,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 10,
+        marginVertical: 5,
+        minWidth: '45%',
+        justifyContent: 'center',
+    },
+    voteButton: {
+        backgroundColor: '#FF9800', // Orange for voting
+    },
+    confirmButton: {
+        backgroundColor: '#4CAF50', // Green for confirm
+    },
+    denyButton: {
+        backgroundColor: '#F44336', // Red for deny
+    },
+    closeButton: {
+        backgroundColor: '#757575', // Gray for close
+    },
+
+    /* ------------------- Section List Content ------------------- */
+    sectionListContent: {
+        paddingBottom: 20,
+    },
+
+    statusContainer: {
+        marginVertical: 10,
+        alignItems: 'center',
+    },
+    statusTextParticipation: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    confirmedText: {
+        color: '#4CAF50',
+    },
+    deniedText: {
+        color: '#F44336',
+    },
+    votingModalContainer: {
+        width: '100%',
+        maxHeight: '90%',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    votingModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    votingModalContent: {
+        paddingBottom: 20,
+    },
+    dayContainer: {
+        marginBottom: 20,
+        padding: 10,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 10,
+    },
+    dayTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#333',
+        marginBottom: 5,
+    },
+    selectTimeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#4CAF50',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        marginRight: 10,
+    },
+    votingModalActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    timePickerContainer: {
+        backgroundColor: '#fff',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    okButton: {
+        marginTop: 10,
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+    },
+    closeSpinnerButton: {
+        marginTop: 10,
+        backgroundColor: '#ccc',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 5,
+    },
+    okButtonText: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    selectedTimesList: {
+        marginVertical: 10,
+    },
+    selectedTimeItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 5,
+    },
+    selectedTimeText: {
+        fontSize: 16,
+        marginRight: 10,
+    },
+    dayHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    availableContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    availableText: {
+        marginLeft: 5,
+        fontSize: 14,
+        color: '#4CAF50',
+    },
+    selectTimeSection: {
+        marginTop: 10,
+    },
+    timeTextContainer: {
         flex: 1,
     },
 });
