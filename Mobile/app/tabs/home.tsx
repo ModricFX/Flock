@@ -21,7 +21,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 
 /* IMPORT STYLES */
 
-import styles from '../styles/HomePageStyles'; 
+import styles from '../styles/HomePageStyles';
 
 /* ----------------------------------------
    Mock user, friend list, and data models
@@ -96,6 +96,7 @@ const initialEvents: EventData[] = [
             },
         ],
         participants: [
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
             { username: 'Alice', email: 'alice@example.com', status: 'pending' },
             { username: 'Bob', email: 'bob@example.com', status: 'accepted' },
         ],
@@ -923,14 +924,6 @@ export default function HomeScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.headerText}>FLOCK</Text>
-                    <View style={styles.iconContainer}>
-                        <TouchableOpacity onPress={() => Alert.alert('Notifications pressed')}>
-                            <MaterialIcons name="notifications" size={30} color="white" />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => Alert.alert('Profile pressed')}>
-                            <MaterialIcons name="account-circle" size={30} color="white" />
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -952,7 +945,7 @@ export default function HomeScreen() {
                                     <TouchableOpacity
                                         key={evt.id}
                                         style={styles.eventCard}
-                                        onPress={() => openEdit(evt)}
+                                        onPress={() => openView(evt)}
                                         activeOpacity={0.8}
                                         accessible={true}
                                         accessibilityLabel={`Edit event ${evt.title}`}
@@ -1110,6 +1103,7 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Other Event Details Modal */}
+                    {/* Other Event Details Modal */}
                     <Modal
                         visible={isOtherEventsModalVisible}
                         animationType="slide"
@@ -1123,6 +1117,8 @@ export default function HomeScreen() {
                                         {selectedEvent ? (
                                             (() => {
                                                 const eventStatus = getEventStatus(selectedEvent);
+                                                // Check if current user created this event
+                                                const isCreator = selectedEvent.createdBy === currentUser?.id;
 
                                                 return (
                                                     <>
@@ -1197,12 +1193,12 @@ export default function HomeScreen() {
                                                                 </View>
                                                                 <TouchableOpacity
                                                                     style={styles.participantsButton}
-                                                                    onPress={() => {
-                                                                        setShowParticipantsModal(true);
-                                                                    }}
+                                                                    onPress={() => setShowParticipantsModal(true)}
                                                                 >
                                                                     <MaterialIcons name="list" size={20} color="#fff" />
-                                                                    <Text style={styles.participantsButtonText}>View Participants</Text>
+                                                                    <Text style={styles.participantsButtonText}>
+                                                                        View Participants
+                                                                    </Text>
                                                                 </TouchableOpacity>
                                                             </View>
                                                         </ScrollView>
@@ -1221,13 +1217,6 @@ export default function HomeScreen() {
                                                                         <MaterialIcons name="how-to-vote" size={20} color="#fff" />
                                                                         <Text style={styles.buttonText}>Vote</Text>
                                                                     </TouchableOpacity>
-                                                                    <TouchableOpacity
-                                                                        style={[styles.actionButton, styles.closeButton]}
-                                                                        onPress={closeView}
-                                                                    >
-                                                                        <MaterialIcons name="close" size={20} color="#fff" />
-                                                                        <Text style={styles.buttonText}>Close</Text>
-                                                                    </TouchableOpacity>
                                                                 </>
                                                             )}
 
@@ -1237,7 +1226,8 @@ export default function HomeScreen() {
                                                                     {participationStatus === 'confirmed' ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
-                                                                                Participation: <Text style={styles.confirmedText}>CONFIRMED</Text>
+                                                                                Participation:{' '}
+                                                                                <Text style={styles.confirmedText}>CONFIRMED</Text>
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
@@ -1250,7 +1240,8 @@ export default function HomeScreen() {
                                                                     ) : participationStatus === 'denied' ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
-                                                                                Participation: <Text style={styles.deniedText}>DENIED</Text>
+                                                                                Participation:{' '}
+                                                                                <Text style={styles.deniedText}>DENIED</Text>
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
@@ -1278,13 +1269,6 @@ export default function HomeScreen() {
                                                                             </TouchableOpacity>
                                                                         </>
                                                                     )}
-                                                                    <TouchableOpacity
-                                                                        style={[styles.actionButton, styles.closeButton]}
-                                                                        onPress={closeView}
-                                                                    >
-                                                                        <MaterialIcons name="close" size={20} color="#fff" />
-                                                                        <Text style={styles.buttonText}>Close</Text>
-                                                                    </TouchableOpacity>
                                                                 </>
                                                             )}
 
@@ -1294,7 +1278,8 @@ export default function HomeScreen() {
                                                                     {participationStatus === 'confirmed' ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
-                                                                                Participation: <Text style={styles.confirmedText}>CONFIRMED</Text>
+                                                                                Participation:{' '}
+                                                                                <Text style={styles.confirmedText}>CONFIRMED</Text>
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
@@ -1307,7 +1292,8 @@ export default function HomeScreen() {
                                                                     ) : participationStatus === 'denied' ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
-                                                                                Participation: <Text style={styles.deniedText}>DENIED</Text>
+                                                                                Participation:{' '}
+                                                                                <Text style={styles.deniedText}>DENIED</Text>
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
@@ -1335,27 +1321,32 @@ export default function HomeScreen() {
                                                                             </TouchableOpacity>
                                                                         </>
                                                                     )}
-                                                                    <TouchableOpacity
-                                                                        style={[styles.actionButton, styles.closeButton]}
-                                                                        onPress={closeView}
-                                                                    >
-                                                                        <MaterialIcons name="close" size={20} color="#fff" />
-                                                                        <Text style={styles.buttonText}>Close</Text>
-                                                                    </TouchableOpacity>
                                                                 </>
                                                             )}
 
-                                                            {eventStatus === 'completed' && (
+                                                            {/* If currentUser is the creator, show an "Edit" button. */}
+                                                            {isCreator && (
                                                                 <TouchableOpacity
-                                                                    style={[styles.actionButton, styles.closeButton]}
-                                                                    onPress={closeView}
+                                                                    style={[styles.actionButton, styles.editButton]}
+                                                                    onPress={() => {
+                                                                        // Close the details modal
+                                                                        setIsOtherEventsModalVisible(false);
+                                                                        // Now open your existing edit flow
+                                                                        openEdit(selectedEvent);
+                                                                    }}
                                                                 >
-                                                                    <MaterialIcons name="close" size={20} color="#fff" />
-                                                                    <Text style={styles.buttonText}>Close</Text>
+                                                                    <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                    <Text style={styles.buttonText}>Edit</Text>
                                                                 </TouchableOpacity>
                                                             )}
+                                                            <TouchableOpacity
+                                                                style={[styles.actionButton, styles.closeButton]}
+                                                                onPress={closeView}
+                                                            >
+                                                                <MaterialIcons name="close" size={20} color="#fff" />
+                                                                <Text style={styles.buttonText}>Close</Text>
+                                                            </TouchableOpacity>
                                                         </View>
-
 
                                                         {/* Participants Modal */}
                                                         <Modal
@@ -1383,19 +1374,12 @@ export default function HomeScreen() {
                                                                     {/* Summary: Accepted / Declined / Pending */}
                                                                     {(() => {
                                                                         const participants = selectedEvent?.participants ?? [];
-
-                                                                        // If you want them sorted in the summary as well,
-                                                                        // that doesn't matter as much since it's just a count,
-                                                                        // but we can show it unsorted here if we want.
-
                                                                         const acceptedCount = participants.filter(
                                                                             (p) => p.status.toLowerCase() === 'accepted'
                                                                         ).length;
-
                                                                         const declinedCount = participants.filter(
                                                                             (p) => p.status.toLowerCase() === 'declined'
                                                                         ).length;
-
                                                                         const pendingCount = participants.filter(
                                                                             (p) => p.status.toLowerCase() === 'pending'
                                                                         ).length;
@@ -1416,30 +1400,21 @@ export default function HomeScreen() {
                                                                         nestedScrollEnabled={true}
                                                                     >
                                                                         {(() => {
-                                                                            // 1. Get participants array (or empty)
                                                                             const participants = selectedEvent?.participants ?? [];
-
-                                                                            // 2. Define sorting order:
-                                                                            //    accepted -> 0, declined -> 1, pending -> 2
+                                                                            // accepted -> 0, declined -> 1, pending -> 2
                                                                             const order: Record<string, number> = {
                                                                                 accepted: 0,
                                                                                 declined: 1,
                                                                                 pending: 2,
                                                                             };
-
-                                                                            // 3. Create a new, sorted array without mutating the original
                                                                             const sortedParticipants = participants.slice().sort((a, b) => {
                                                                                 const statusA = a.status.toLowerCase();
                                                                                 const statusB = b.status.toLowerCase();
-
-                                                                                // If either status is unrecognized, default them to 999
                                                                                 const sortA = order[statusA] ?? 999;
                                                                                 const sortB = order[statusB] ?? 999;
-
                                                                                 return sortA - sortB;
                                                                             });
 
-                                                                            // 4. Map over sorted participants
                                                                             return sortedParticipants.map((p, index) => (
                                                                                 <View key={index} style={styles.participantRow}>
                                                                                     {/* Person Icon */}
@@ -1449,13 +1424,11 @@ export default function HomeScreen() {
                                                                                         color="#4CAF50"
                                                                                         style={{ marginRight: 8 }}
                                                                                     />
-
                                                                                     {/* Username & Email */}
                                                                                     <View style={{ flex: 1 }}>
                                                                                         <Text style={styles.participantName}>{p.username}</Text>
                                                                                         <Text style={styles.participantEmail}>{p.email}</Text>
                                                                                     </View>
-
                                                                                     {/* Status Icon & Text */}
                                                                                     <View style={styles.statusContainer}>
                                                                                         {p.status.toLowerCase() === 'accepted' ? (
@@ -1503,10 +1476,6 @@ export default function HomeScreen() {
                                                                 </View>
                                                             </View>
                                                         </Modal>
-
-
-
-
                                                     </>
                                                 );
                                             })()
@@ -1518,6 +1487,7 @@ export default function HomeScreen() {
                             </View>
                         </TouchableWithoutFeedback>
                     </Modal>
+
 
 
 

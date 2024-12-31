@@ -29,10 +29,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
     },
-    iconContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
 
     /* ============================================= */
     /* ===========  FLOATING ACTION BUTTON  ========= */
@@ -268,6 +264,9 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: '#fff',
         fontSize: 16,
+    },
+    editButton: {
+        backgroundColor: '#FF9800', // Orange or any color you like
     },
     modalLabel: {
         fontSize: 16,
