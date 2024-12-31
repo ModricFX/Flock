@@ -1071,7 +1071,6 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Other Event Details Modal */}
-                    {/* Other Event Details Modal */}
                     <Modal
                         visible={isOtherEventsModalVisible}
                         animationType="slide"
