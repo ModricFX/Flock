@@ -14,7 +14,6 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
-    SectionList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -214,16 +213,6 @@ const initialEvents: EventData[] = [
     },
 ];
 
-// Function to format time as HH:MM AM/PM
-const formatTime = (date: Date) => {
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
-    return `${hours}:${minutesStr}`;
-};
-
-
-
 /* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet, 
    and 'done' if the picked date is in the past. */
 function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
@@ -338,8 +327,6 @@ export default function HomeScreen() {
     }, [selectedEvent]);
 
 
-
-
     const [participationStatus, setParticipationStatus] = useState<string | null>(null);
 
     /* =============== CREATE EVENT =============== */
@@ -452,13 +439,6 @@ export default function HomeScreen() {
             setCreateStep(prev => prev - 1);
         }
     }
-
-    const openTimePicker = (dayKey: string) => {
-        setSelectedDay(dayKey); // Set the selected day
-        setShowTimePicker(true); // Show the DateTimePicker
-    };
-
-
 
     // Get corresponding icon for status
     function getStatusIcon(status: string): "schedule" | "play-arrow" | "done" | "autorenew" {
@@ -605,11 +585,6 @@ export default function HomeScreen() {
         );
     };
 
-
-
-
-
-
     function handleSaveDayCreate() {
         if (tempDayIndex !== null) {
             // edit
@@ -725,7 +700,6 @@ export default function HomeScreen() {
     const [isOtherEventsModalVisible, setIsOtherEventsModalVisible] = useState<boolean>(false);
 
     const [isVotingModalVisible, setIsVotingModalVisible] = useState(false);
-    const [selectedDuration, setSelectedDuration] = useState<number>(3); // default duration in hours
     const [availability, setAvailability] = useState<{
         [key: string]: {
             startTime: Date;
@@ -734,12 +708,6 @@ export default function HomeScreen() {
             isAvailable?: boolean; // Add this optional property
         };
     }>({});
-
-    const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
-    const [tempTime, setTempTime] = useState<Date | null>(null);
-    const [selectedDay, setSelectedDay] = useState<string | null>(null);
-
-
 
     /* -----------------------------------------------
        EDIT EVENT
