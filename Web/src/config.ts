@@ -1,6 +1,6 @@
 ﻿// src/config.ts
 const config = {
-    apiBaseUrl: 'http://localhost:5044/api',
+    apiBaseUrl: 'https://flock.robavs.space/api',
 };
 
 export default config;
