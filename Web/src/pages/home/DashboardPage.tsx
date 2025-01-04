@@ -54,6 +54,9 @@ const DashboardPage: React.FC = () => {
   });
 
   useEffect(() => {
+          const homeTypo = document.getElementById("home-typo");
+          if(homeTypo != null)
+            homeTypo.style.opacity = "1";
           const checkUserData = async () => {
               const result = await authService.getUserData();
               if (!result.success) {
