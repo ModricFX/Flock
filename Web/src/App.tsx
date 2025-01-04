@@ -210,7 +210,8 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         [`& .MuiDrawer-paper`]: {
                             width: drawerWidth,
                             boxSizing: "border-box",
-                            bgcolor: "#f9f9f9",
+                            bgcolor: darkMode? "#" : "f9f9f9",
+                            mt: 2,
                         },
                     }}
                 >
