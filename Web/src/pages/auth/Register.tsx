@@ -79,7 +79,8 @@ const Register: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ textAlign: "center" }}>
+    <Container maxWidth="sm">
+      <Container sx={{ textAlign: "center"}}>
       <Typography
         variant="h3"
         sx={{
@@ -106,6 +107,8 @@ const Register: React.FC = () => {
       >
         A new way to make plans
       </Typography>
+      </Container>
+      
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
         <Typography component="h1" variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Create an Account

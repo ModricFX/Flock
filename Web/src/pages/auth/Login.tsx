@@ -51,33 +51,35 @@ const Login: React.FC = () => {
     };
 
   return (
-    <Container maxWidth="sm" sx={{ textAlign: "center" }}>
-      <Typography
-        variant="h3"
-        sx={{
-          ml: "auto",
-          mr: "auto",
-          mt: 5,
-          fontWeight: "bold",
-          color: "#4CAF50",
-          cursor: "pointer"
-        }}
-
-        component={RouterLink}
-        to="/homepage"
-      >
-        FLOCK
-      </Typography>
-      <Typography
-        variant="h5"
-        sx={{
-          textAlign: "center",
-          color: "black",
-          fontWeight: "bold",
-        }}
-      >
-        A new way to make plans
-      </Typography>
+    <Container maxWidth="sm">
+      <Container sx={{ textAlign: "center"}}>
+            <Typography
+              variant="h3"
+              sx={{
+                ml: "auto",
+                mr: "auto",
+                mt: 5,
+                fontWeight: "bold",
+                color: "#4CAF50",
+                cursor: "pointer"
+              }}
+      
+              component={RouterLink}
+              to="/homepage"
+            >
+              FLOCK
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                textAlign: "center",
+                fontWeight: "bold",
+                color: "black",
+              }}
+            >
+              A new way to make plans
+            </Typography>
+            </Container>
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
         <Typography
           component="h1"
