@@ -1,6 +1,7 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import {
   Container,
+  Drawer,
   Paper,
   Typography,
   Box,
@@ -13,9 +14,17 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemButton,
+  ListItemIcon,
+  Toolbar,
+
 } from "@mui/material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import InboxIcon from "@mui/icons-material/MoveToInbox";
+import EventIcon from "@mui/icons-material/Event";
+import { Link as RouterLink, useNavigate, Link } from "react-router-dom";
 import { authService } from '../../services/authservice';
+
+const drawerWidth = 240;
 
 interface Event {
   title: string;
@@ -118,6 +127,40 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
+      <Drawer
+          variant="permanent"
+          sx={{
+              width: drawerWidth,
+              flexShrink: 0,
+              [`& .MuiDrawer-paper`]: {
+                  width: drawerWidth,
+                  boxSizing: "border-box",
+                  bgcolor: "#f9f9f9",
+              },
+          }}
+      >
+          <Toolbar />
+          <Box sx={{ overflow: "auto" }}>
+              <List>
+                  <ListItem disablePadding>
+                      <ListItemButton component={Link} to="/home/allevents">
+                          <ListItemIcon>
+                              <InboxIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="All Events" />
+                      </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                      <ListItemButton component={Link} to="/home/yourevents">
+                          <ListItemIcon>
+                              <EventIcon />
+                          </ListItemIcon>
+                          <ListItemText primary="Your Events" />
+                      </ListItemButton>
+                  </ListItem>
+              </List>
+          </Box>
+      </Drawer>
       <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
         <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Hi User!

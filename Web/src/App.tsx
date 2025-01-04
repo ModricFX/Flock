@@ -1,4 +1,4 @@
-import React, { useState, MouseEvent } from "react";
+import React, { useState, useEffect, MouseEvent } from "react";
 
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
@@ -21,8 +21,6 @@ import {
     Divider,
     Badge,
 } from "@mui/material";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import EventIcon from "@mui/icons-material/Event";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAdd from "@mui/icons-material/PersonAdd";
 import Settings from "@mui/icons-material/Settings";
@@ -58,11 +56,28 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [userData, setUserData] = useState(null);
+
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [otherEvents] = useState<Event[]>([
         { title: "Community Meetup", startDate: "2024-12-15", location: "City Park" },
         { title: "Tech Talk: Future of AI", startDate: "2024-12-20", location: "Tech Hub" },
     ]);
+
+    useEffect(() => {
+        const checkUserData = async () => {
+            try {
+                const result = await authService.getUserData();
+                if (result.success) {
+                    setUserData(result.data);
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        };
+
+        checkUserData();
+    }, [navigate]);
 
     const [notifications, setNotifications] = useState<Notification[]>([
         { sender: "Admin", message: "Your event was approved!", time: "2 hours ago" },
@@ -125,65 +140,48 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                             >
                                 FLOCK
                             </Typography>
-                            <IconButton
-                                color="inherit"
-                                sx={{ marginRight: 2 }}
-                                component={Link}
-                                to="/home/notifications"
-                                onClick={handleNotificationClick}
-                            >
-                                <Badge badgeContent={unreadNotificationsCount} color="error">
-                                    <NotificationsIcon />
-                                </Badge>
-                            </IconButton>
-                            <Tooltip title="Account settings">
-                                <IconButton onClick={handleClick} size="small" sx={{ ml: 2 }}>
-                                    <Avatar sx={{ width: 40, height: 40 }} />
-                                </IconButton>
-                            </Tooltip>
+                            {userData ? (
+                                <>
+                                    <IconButton
+                                        color="inherit"
+                                        sx={{ marginRight: 2 }}
+                                        component={Link}
+                                        to="/home/notifications"
+                                        onClick={handleNotificationClick}
+                                    >
+                                        <Badge badgeContent={unreadNotificationsCount} color="error">
+                                            <NotificationsIcon />
+                                        </Badge>
+                                    </IconButton>
+                                    <Tooltip title="Account settings">
+                                        <IconButton onClick={handleClick} size="small" sx={{ ml: 2 }}>
+                                            <Avatar sx={{ width: 40, height: 40 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                </>
+                            ) : (
+                                <Link
+                                    to="/auth/login"
+                                    style={{
+                                        textDecoration: "none",
+                                        color: "inherit",
+                                        fontSize: "16px",
+                                        fontWeight: "bold",
+                                    }}
+                                >
+                                    Login
+                                </Link>
+                            )}
                         </Toolbar>
                     </AppBar>
-
-                    <Drawer
-                        variant="permanent"
-                        sx={{
-                            width: drawerWidth,
-                            flexShrink: 0,
-                            [`& .MuiDrawer-paper`]: {
-                                width: drawerWidth,
-                                boxSizing: "border-box",
-                                bgcolor: "#f9f9f9",
-                            },
-                        }}
-                    >
-                        <Toolbar />
-                        <Box sx={{ overflow: "auto" }}>
-                            <List>
-                                <ListItem disablePadding>
-                                    <ListItemButton component={Link} to="/home/allevents">
-                                        <ListItemIcon>
-                                            <InboxIcon />
-                                        </ListItemIcon>
-                                        <ListItemText primary="All Events" />
-                                    </ListItemButton>
-                                </ListItem>
-                                <ListItem disablePadding>
-                                    <ListItemButton component={Link} to="/home/yourevents">
-                                        <ListItemIcon>
-                                            <EventIcon />
-                                        </ListItemIcon>
-                                        <ListItemText primary="Your Events" />
-                                    </ListItemButton>
-                                </ListItem>
-                            </List>
-                        </Box>
-                    </Drawer>
                 </>
             )}
 
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
                 <Toolbar />
                 <Routes>
+                    <Route path="/" element={<Navigate to="/homepage" />} />
+                    
                     <Route path="/homepage" element={<HomePage />} />
                     <Route path="/auth/login" element={<Login />} />
                     <Route path="/auth/register" element={<Register />} />
@@ -216,11 +214,8 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 onClose={handleClose}
                 onClick={handleClose}
             >
-                <MenuItem>
+                <MenuItem onClick={() => navigate("/dashboard")}>
                     <Avatar /> Profile
-                </MenuItem>
-                <MenuItem>
-                    <Avatar /> My account
                 </MenuItem>
                 <Divider />
                 <MenuItem>
