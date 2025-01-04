@@ -212,7 +212,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                             boxSizing: "border-box",
                             bgcolor: darkMode? "#" : "f9f9f9",
                             color: darkMode? "white" : "black",
-                            mt: 2,
+                            mt: "60px",
                         },
                     }}
                 >
@@ -220,7 +220,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         <List>
                             <ListItem disablePadding>
                                 <ListItemButton component={Link} to="/home/allevents">
-                                    <ListItemIcon>
+                                    <ListItemIcon sx={{ color: darkMode? "white" : "black", }}>
                                         <InboxIcon />
                                     </ListItemIcon>
                                     <ListItemText primary="All Events" />
@@ -228,7 +228,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                             </ListItem>
                             <ListItem disablePadding>
                                 <ListItemButton component={Link} to="/home/yourevents">
-                                    <ListItemIcon>
+                                    <ListItemIcon sx={{ color: darkMode? "white" : "black", }}>
                                         <EventIcon />
                                     </ListItemIcon>
                                     <ListItemText primary="Your Events" />
