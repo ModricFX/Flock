@@ -117,17 +117,20 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
 
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
-    const routesWithoutSidebar = ["/auth/login", "/auth/register"];
+    const routesWithoutHeader = ["/auth/login", "/auth/register"];
+    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage"];
+
+    const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
 
     return (
         <Box sx={{ display: "flex" }}>
             <CssBaseline />
-            {!hideSidebar && (
+            {!hideHeader && (
                 <>
                     <AppBar
                         position="fixed"
-                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)" }}
+                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)", backgroundImage:"none" }}
                     >
                         <Toolbar>
                         <Typography
@@ -198,7 +201,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     </AppBar>
                 </>
             )}
-            {location.pathname === '/dashboard' ? (
+            {!hideSidebar && (
             <Drawer
                     variant="permanent"
                     sx={{
@@ -232,7 +235,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         </List>
                     </Box>
                 </Drawer>
-            ) : <></>}
+            )}
 
             <Box component="main" sx={{ flexGrow: 1, pt: 3, mt: 4 }}>
                 <Routes>

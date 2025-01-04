@@ -63,12 +63,11 @@ const HomePage: React.FC = () => {
               bgcolor: "#4CAF50",
               width: "100vw",
               py: 2,
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Add box shadow
-              display: "flex", // Use flexbox to center content
-              flexDirection: "column", // Stack the items vertically
-              alignItems: "center", // Vertically center
-              justifyContent: "center", // Horizontally center
-              backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.092), rgba(255, 255, 255, 0.092))",
+              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
           }}
       >
           <Typography
