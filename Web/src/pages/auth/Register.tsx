@@ -79,15 +79,20 @@ const Register: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ textAlign: "center" }}>
       <Typography
         variant="h3"
         sx={{
-          textAlign: "center",
+          ml: "auto",
+          mr: "auto",
           mt: 5,
           fontWeight: "bold",
           color: "#4CAF50",
+          cursor: "pointer"
         }}
+
+        component={RouterLink}
+        to="/homepage"
       >
         FLOCK
       </Typography>

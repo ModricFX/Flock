@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
-import { Link as RouterLink, useNavigate, Link } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { authService } from '../../services/authservice';
 
 const drawerWidth = 240;
@@ -143,7 +143,7 @@ const DashboardPage: React.FC = () => {
           <Box sx={{ overflow: "auto" }}>
               <List>
                   <ListItem disablePadding>
-                      <ListItemButton component={Link} to="/home/allevents">
+                      <ListItemButton component={RouterLink} to="/home/allevents">
                           <ListItemIcon>
                               <InboxIcon />
                           </ListItemIcon>
@@ -151,7 +151,7 @@ const DashboardPage: React.FC = () => {
                       </ListItemButton>
                   </ListItem>
                   <ListItem disablePadding>
-                      <ListItemButton component={Link} to="/home/yourevents">
+                      <ListItemButton component={RouterLink} to="/home/yourevents">
                           <ListItemIcon>
                               <EventIcon />
                           </ListItemIcon>

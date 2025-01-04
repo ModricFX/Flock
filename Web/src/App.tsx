@@ -127,19 +127,24 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)" }}
                     >
                         <Toolbar>
-                            <Typography
-                                variant="h4"
-                                noWrap
-                                sx={{ flexGrow: 1, cursor: "pointer" }}
-                                component={Link}
-                                to="/homepage"
-                                style={{
-                                    textDecoration: "none",
-                                    color: "inherit",
-                                }}
-                            >
-                                {location.pathname !== "/homepage" && "FLOCK"}
-                            </Typography>
+                        <Typography
+                            id={ "home-typo" }
+                            variant="h4"
+                            noWrap
+                            sx={{
+                                flexGrow: 1,
+                                cursor: "pointer",
+                                opacity: location.pathname === "/homepage" ? "0" : "1",
+                            }}
+                            component={Link}
+                            to="/homepage"
+                            style={{
+                                textDecoration: "none",
+                                color: "inherit",
+                            }}
+                        >
+                            {location.pathname === "/homepage" ? "" : "FLOCK"}
+                        </Typography>
                             {userData ? (
                                 <>
                                     <IconButton

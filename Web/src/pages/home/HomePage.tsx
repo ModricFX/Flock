@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
   Container,
@@ -28,9 +28,37 @@ interface Event {
 }
 
 const HomePage: React.FC = () => {
+  const [text, setText] = useState<string>("");
+
+    useEffect(() => {
+        const homeTypo = document.getElementById("home-typo");
+        const handleScroll = () => {
+            const boxHeight = document.getElementById("home-box")?.offsetHeight || 0;
+            if (window.scrollY > boxHeight) {
+              if(homeTypo != null){
+                homeTypo.style.transition = "opacity 0.3s ease-in";
+                homeTypo.style.opacity = "1";
+                homeTypo.innerHTML = "FLOCK";
+              }
+                
+            } else {
+                if(homeTypo != null){
+                  homeTypo.style.transition = "opacity 0.3s ease-out";
+                  homeTypo.style.opacity = "0";
+                  homeTypo.innerHTML = "";
+                }
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
   return (
     <>
       <Box
+          id="home-box"
           sx={{
               bgcolor: "#4CAF50",
               width: "100vw",
@@ -68,7 +96,7 @@ const HomePage: React.FC = () => {
       </Box>
 
 
-      <Container>
+      <Container sx={{ mb: 1000}}>
         <Typography variant="body1">Hello</Typography>
       </Container>
     </>
