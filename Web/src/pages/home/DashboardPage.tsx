@@ -130,40 +130,6 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
-      <Drawer
-          variant="permanent"
-          sx={{
-              width: drawerWidth,
-              flexShrink: 0,
-              [`& .MuiDrawer-paper`]: {
-                  width: drawerWidth,
-                  boxSizing: "border-box",
-                  bgcolor: "#f9f9f9",
-              },
-          }}
-      >
-          <Box sx={{ overflow: "auto" }}>
-              <List>
-                  <ListItem disablePadding>
-                      <ListItemButton component={RouterLink} to="/home/allevents">
-                          <ListItemIcon>
-                              <InboxIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="All Events" />
-                      </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                      <ListItemButton component={RouterLink} to="/home/yourevents">
-                          <ListItemIcon>
-                              <EventIcon />
-                          </ListItemIcon>
-                          <ListItemText primary="Your Events" />
-                      </ListItemButton>
-                  </ListItem>
-              </List>
-          </Box>
-      </Drawer>
-      <Box sx={{ p: 3, mt: 4 }}>
       <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
         <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Hi User!
@@ -321,7 +287,6 @@ const DashboardPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      </Box>
     </Container>
   );
 };

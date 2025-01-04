@@ -34,6 +34,9 @@ import DashboardPage from "./pages/home/DashboardPage.tsx";
 import {authService} from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 
+import InboxIcon from "@mui/icons-material/MoveToInbox";
+import EventIcon from "@mui/icons-material/Event";
+
 const drawerWidth = 240;
 
 interface Notification {
@@ -181,6 +184,41 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     </AppBar>
                 </>
             )}
+            {location.pathname === '/dashboard' ? (
+            <Drawer
+                    variant="permanent"
+                    sx={{
+                        width: drawerWidth,
+                        flexShrink: 0,
+                        [`& .MuiDrawer-paper`]: {
+                            width: drawerWidth,
+                            boxSizing: "border-box",
+                            bgcolor: "#f9f9f9",
+                        },
+                    }}
+                >
+                    <Box sx={{ overflow: "auto" }}>
+                        <List>
+                            <ListItem disablePadding>
+                                <ListItemButton component={Link} to="/home/allevents">
+                                    <ListItemIcon>
+                                        <InboxIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="All Events" />
+                                </ListItemButton>
+                            </ListItem>
+                            <ListItem disablePadding>
+                                <ListItemButton component={Link} to="/home/yourevents">
+                                    <ListItemIcon>
+                                        <EventIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Your Events" />
+                                </ListItemButton>
+                            </ListItem>
+                        </List>
+                    </Box>
+                </Drawer>
+            ) : <></>}
 
             <Box component="main" sx={{ flexGrow: 1, pt: 3, mt: 4 }}>
                 <Routes>
