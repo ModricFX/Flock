@@ -124,7 +124,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 <>
                     <AppBar
                         position="fixed"
-                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50" }}
+                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)" }}
                     >
                         <Toolbar>
                             <Typography
@@ -138,7 +138,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                     color: "inherit",
                                 }}
                             >
-                                FLOCK
+                                {location.pathname !== "/homepage" && "FLOCK"}
                             </Typography>
                             {userData ? (
                                 <>
@@ -177,8 +177,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 </>
             )}
 
-            <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-                <Toolbar />
+            <Box component="main" sx={{ flexGrow: 1, pt: 3, mt: 4 }}>
                 <Routes>
                     <Route path="/" element={<Navigate to="/homepage" />} />
                     
