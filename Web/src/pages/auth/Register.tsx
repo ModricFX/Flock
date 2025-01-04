@@ -13,7 +13,11 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import "/node_modules/@fontsource/roboto/index.css";
 import { authService } from '../../services/authservice';
 
-const Register: React.FC = () => {
+interface DarkModeProp {
+  darkMode: boolean;
+}
+
+const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -102,7 +106,7 @@ const Register: React.FC = () => {
         sx={{
           textAlign: "center",
           fontWeight: "bold",
-          color: "black",
+          color: darkMode? "white" : "black",
         }}
       >
         A new way to make plans

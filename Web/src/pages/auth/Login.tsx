@@ -16,7 +16,11 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import ForgotPassword from "./ForgotPassword";
 import { authService } from '../../services/authservice';
 
-const Login: React.FC = () => {
+interface DarkModeProp {
+  darkMode: boolean;
+}
+
+const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -74,7 +78,7 @@ const Login: React.FC = () => {
               sx={{
                 textAlign: "center",
                 fontWeight: "bold",
-                color: "black",
+                color: darkMode? "white" : "black",
               }}
             >
               A new way to make plans
