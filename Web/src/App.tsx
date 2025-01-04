@@ -150,6 +150,20 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         </Typography>
                             {userData ? (
                                 <>
+                                    <Box sx={{ mr: 2 }}>
+                                    <Link
+                                        to="/dashboard"
+                                        style={{
+                                            textDecoration: "none",
+                                            color: "inherit",
+                                            fontSize: "16px",
+                                            fontWeight: "bold",
+                                        }}
+                                    >
+                                        Dashboard
+                                    </Link>
+                                    </Box>
+                                    
                                     <IconButton
                                         color="inherit"
                                         sx={{ marginRight: 2 }}
