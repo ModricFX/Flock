@@ -211,6 +211,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                             width: drawerWidth,
                             boxSizing: "border-box",
                             bgcolor: darkMode? "#" : "f9f9f9",
+                            color: darkMode? "white" : "black",
                             mt: 2,
                         },
                     }}
