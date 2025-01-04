@@ -9,7 +9,6 @@ namespace flock.Controllers
 {
     [Route("api/user")]
     [ApiController]
-    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
@@ -45,7 +44,7 @@ namespace flock.Controllers
                 Date_created = DateTime.UtcNow,
                 Date_updated = DateTime.UtcNow,
                 SysRowState = 1,
-                Id_role = 2 // Default role for new users (User)
+                Id_role = 1 // Default role for new users (User)
             };
 
             var userId = await _userRepository.CreateUserAsync(user);
@@ -58,6 +57,7 @@ namespace flock.Controllers
             Description = "Returns the user resource for the currently authenticated user."
         )]
         [HttpGet("me")]
+        [Authorize]
         public async Task<IActionResult> GetAuthenticatedUser()
         {
             // Check if the user is authenticated

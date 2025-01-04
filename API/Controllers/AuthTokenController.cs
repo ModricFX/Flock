@@ -33,7 +33,11 @@ namespace flock.Controllers
         public async Task<IActionResult> Login(CreateUserTokenDto request)
         {
             var user = await _userRepository.GetUserByEmailAsync(request.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            if (user == null)
+                return Unauthorized("No user with this email");
+
+            var isValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
+            if (!isValid)
                 return Unauthorized("Invalid credentials.");
 
             // Generate JWT token
