@@ -16,7 +16,11 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import ForgotPassword from "./ForgotPassword";
 import { authService } from '../../services/authservice';
 
-const Login: React.FC = () => {
+interface DarkModeProp {
+  darkMode: boolean;
+}
+
+const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -26,7 +30,7 @@ const Login: React.FC = () => {
         const checkUserData = async () => {
             const result = await authService.getUserData();
             if (result.success) {
-                navigate("/homepage");
+                navigate("/dashboard");
             }
         };
         checkUserData();
@@ -40,7 +44,7 @@ const Login: React.FC = () => {
             const session = await authService.login(username, password);
             console.log('Login successful:', session);
             
-            navigate("/homepage");
+            navigate("/dashboard");
             console.log('Redirecting to /homepage');
 
         } catch (error) {
@@ -52,27 +56,34 @@ const Login: React.FC = () => {
 
   return (
     <Container maxWidth="sm">
-      <Typography
-        variant="h3"
-        sx={{
-          textAlign: "center",
-          mt: 5,
-          fontWeight: "bold",
-          color: "#4CAF50",
-        }}
-      >
-        FLOCK
-      </Typography>
-      <Typography
-        variant="h5"
-        sx={{
-          textAlign: "center",
-          color: "black",
-          fontWeight: "bold",
-        }}
-      >
-        A new way to make plans
-      </Typography>
+      <Container sx={{ textAlign: "center"}}>
+            <Typography
+              variant="h3"
+              sx={{
+                ml: "auto",
+                mr: "auto",
+                mt: 5,
+                fontWeight: "bold",
+                color: "#4CAF50",
+                cursor: "pointer"
+              }}
+      
+              component={RouterLink}
+              to="/homepage"
+            >
+              FLOCK
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                textAlign: "center",
+                fontWeight: "bold",
+                color: darkMode? "white" : "black",
+              }}
+            >
+              A new way to make plans
+            </Typography>
+            </Container>
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
         <Typography
           component="h1"
