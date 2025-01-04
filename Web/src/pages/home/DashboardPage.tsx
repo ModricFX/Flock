@@ -142,7 +142,6 @@ const DashboardPage: React.FC = () => {
               },
           }}
       >
-          <Toolbar />
           <Box sx={{ overflow: "auto" }}>
               <List>
                   <ListItem disablePadding>
@@ -164,6 +163,7 @@ const DashboardPage: React.FC = () => {
               </List>
           </Box>
       </Drawer>
+      <Box sx={{ p: 3, mt: 4 }}>
       <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
         <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Hi User!
@@ -321,6 +321,7 @@ const DashboardPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      </Box>
     </Container>
   );
 };
