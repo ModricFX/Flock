@@ -26,7 +26,7 @@ const Login: React.FC = () => {
         const checkUserData = async () => {
             const result = await authService.getUserData();
             if (result.success) {
-                navigate("/homepage");
+                navigate("/dashboard");
             }
         };
         checkUserData();
@@ -40,7 +40,7 @@ const Login: React.FC = () => {
             const session = await authService.login(username, password);
             console.log('Login successful:', session);
             
-            navigate("/homepage");
+            navigate("/dashboard");
             console.log('Redirecting to /homepage');
 
         } catch (error) {

@@ -32,8 +32,9 @@ import AllEvents from "./pages/home/AllEvents";
 import Notifications from "./pages/home/Notifications";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-import HomePage from "./pages/home/HomePage";
+import DashboardPage from "./pages/home/DashboardPage.tsx";
 import {authService} from "./services/authservice.ts";
+import HomePage from "./pages/home/HomePage.tsx";
 
 const drawerWidth = 240;
 
@@ -183,9 +184,10 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
                 <Toolbar />
                 <Routes>
+                    <Route path="/homepage" element={<HomePage />} />
                     <Route path="/auth/login" element={<Login />} />
                     <Route path="/auth/register" element={<Register />} />
-                    <Route path="/homepage" element={<HomePage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
                     <Route
                         path="/home/allevents"
                         element={
