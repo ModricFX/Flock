@@ -26,7 +26,7 @@ namespace flock.Controllers
         public async Task<IActionResult> Register(CreateUserDto request)
         {
             // Check if user already exists
-            var existingUser = await _userRepository.GetUserByEmailAsync(request.Email);
+            var existingUser = await _userRepository.GetUserByEmailOrUsernameAsync(request.Email);
             if (existingUser != null)
                 return BadRequest("User already exists.");
 
@@ -38,6 +38,7 @@ namespace flock.Controllers
             {
                 First_name = request.First_name,
                 Last_name = request.Last_name,
+                Username = request.Username,
                 Email = request.Email,
                 Password = passwordHash,
                 Email_verified = false,
@@ -68,7 +69,7 @@ namespace flock.Controllers
             if (string.IsNullOrEmpty(userEmail))
                 return Unauthorized("Invalid token.");
 
-            var user = await _userRepository.GetUserByEmailAsync(userEmail);
+            var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
             if (user == null)
                 return NotFound("User not found.");
 
@@ -77,6 +78,7 @@ namespace flock.Controllers
                 Id_user = user.Id_user,
                 First_name = user.First_name,
                 Last_name = user.Last_name,
+                Username = user.Username,
                 Email = user.Email,
                 Email_verified = user.Email_verified,
                 Date_created = user.Date_created,

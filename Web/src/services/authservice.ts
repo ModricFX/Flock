@@ -13,6 +13,7 @@ class AuthService {
     async register(data: {
         first_name: string;
         last_name: string;
+        username: string;
         email: string;
         password: string;
     }) {
@@ -25,8 +26,8 @@ class AuthService {
         return response.data;
     }
 
-    async login(email: string, password: string) {
-        const response = await apiService.getApi().post('/auth/token', { Email: email, Password: password });
+    async login(text: string, password: string) {
+        const response = await apiService.getApi().post('/auth/token', { Email: text, Password: password });
         const token = response.data.token;
         await tokenStorage.setToken(token);
         return response.data;

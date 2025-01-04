@@ -32,9 +32,9 @@ namespace flock.Controllers
         [HttpPost()]
         public async Task<IActionResult> Login(CreateUserTokenDto request)
         {
-            var user = await _userRepository.GetUserByEmailAsync(request.Email);
+            var user = await _userRepository.GetUserByEmailOrUsernameAsync(request.Email);
             if (user == null)
-                return Unauthorized("No user with this email");
+                return Unauthorized("No user with this email or username");
 
             var isValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
             if (!isValid)
@@ -81,7 +81,7 @@ namespace flock.Controllers
                 return Unauthorized("Invalid token.");
 
             var userEmail = User.Identity.Name;
-            var user = await _userRepository.GetUserByEmailAsync(userEmail);
+            var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
             if (user == null)
                 return Unauthorized("User not found.");
 

@@ -15,21 +15,21 @@ namespace flock.Data.Repositories
             _context = context;
         }
 
-        public async Task<User> GetUserByEmailAsync(string email)
+        public async Task<User> GetUserByEmailOrUsernameAsync(string text)
         {
-            var query = "SELECT * FROM `user` WHERE `email` = @Email AND `sysrowstate` = 1";
+            var query = "SELECT * FROM `user` WHERE `email` = @Text OR `username` = @Text AND `sysrowstate` = 1";
 
             using (var connection = _context.CreateConnection())
             {
-                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Email = email });
+                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Text = text });
             }
         }
 
         public async Task<int> CreateUserAsync(User user)
         {
             var query = @"
-                INSERT INTO `user` (`id_role`, `first_name`, `last_name`, `email`, `password`, `email_verified`, `date_created`, `date_updated`, `sysrowstate`)
-                VALUES (@Id_role, @First_name, @Last_name, @Email, @Password, @Email_verified, @Date_created, @Date_updated, @SysRowState);
+                INSERT INTO `user` (`id_role`, `first_name`, `last_name`, `username`, `email`, `password`, `email_verified`, `date_created`, `date_updated`, `sysrowstate`)
+                VALUES (@Id_role, @First_name, @Last_name, @Username, @Email, @Password, @Email_verified, @Date_created, @Date_updated, @SysRowState);
                 SELECT LAST_INSERT_ID();
             ";
 
@@ -48,6 +48,7 @@ namespace flock.Data.Repositories
                     `id_role` = @Id_role,
                     `first_name` = @First_name,
                     `last_name` = @Last_name,
+                    `username` = @Username,
                     `email` = @Email,
                     `password` = @Password,
                     `email_verified` = @Email_verified,

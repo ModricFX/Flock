@@ -11,10 +11,13 @@ import {
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import "/node_modules/@fontsource/roboto/index.css";
+import { authService } from '../../services/authservice';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [surname, setSurname] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -30,7 +33,7 @@ const Register: React.FC = () => {
     return passwordRegex.test(password);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     let validationErrors: Record<string, string> = {};
 
@@ -48,6 +51,25 @@ const Register: React.FC = () => {
     }
 
     setErrors(validationErrors);
+
+    try {
+        let data = {
+          first_name : name,
+          last_name : surname,
+          username : username,
+          email : email,
+          password : password
+        }
+        const session = await authService.register(data);
+        console.log('Register successful:', session);
+        
+        navigate("/login");
+
+    } catch (error) {
+        console.error('Register failed:', error);
+        // @ts-ignore
+        Alert.alert('Register Failed', error.message || '');
+    }
 
     if (Object.keys(validationErrors).length === 0) {
       console.log("Registering...");
@@ -86,10 +108,10 @@ const Register: React.FC = () => {
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <Grid container spacing={2}>
             <Grid item xs={6}>
-              <TextField label="Name" fullWidth required sx={{ mb: 2 }} />
+              <TextField label="Name" fullWidth required onChange={(e) => setName(e.target.value)} sx={{ mb: 2 }} />
             </Grid>
             <Grid item xs={6}>
-              <TextField label="Surname" fullWidth required sx={{ mb: 2 }} />
+              <TextField label="Surname" fullWidth required onChange={(e) => setSurname(e.target.value)} sx={{ mb: 2 }} />
             </Grid>
           </Grid>
 
