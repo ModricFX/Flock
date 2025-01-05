@@ -33,6 +33,8 @@ import Register from "./pages/auth/Register";
 import DashboardPage from "./pages/home/DashboardPage.tsx";
 import {authService} from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
+import AboutPage from "./pages/home/AboutPage.tsx";
+
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
@@ -118,7 +120,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
-    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage"];
+    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage", "/about"];
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
@@ -246,6 +248,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Route path="/homepage" element={<HomePage />} />
                     <Route path="/auth/login" element={<Login darkMode={darkMode} />} />
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
+                    <Route path="/about" element={<AboutPage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route
                         path="/home/allevents"

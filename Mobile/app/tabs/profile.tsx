@@ -158,7 +158,7 @@ export default function Profile() {
               source={
                 profileImage
                   ? { uri: profileImage }
-                  : require('..\\assets\\images\\default_profile.png')
+                  : require('../../assets/images/default_profile.png')
               }
               style={styles.profileImage}
             />
