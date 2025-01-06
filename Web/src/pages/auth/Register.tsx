@@ -72,7 +72,7 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
     } catch (error) {
         console.error('Register failed:', error);
         // @ts-ignore
-        Alert.alert('Register Failed', error.message || '');
+        alert('Register Failed', error.message || '');
     }
 
     if (Object.keys(validationErrors).length === 0) {

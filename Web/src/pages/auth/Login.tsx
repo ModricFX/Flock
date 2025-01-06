@@ -50,7 +50,7 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
         } catch (error) {
             console.error('Login failed:', error);
             // @ts-ignore
-            Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
+            alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
         }
     };
 
