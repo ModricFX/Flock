@@ -174,6 +174,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     backgroundImage: "linear-gradient(135deg, #4CAF50 0%, #81C784 100%)",
     textAlign: "center",
+    paddingTop: "90px"
   },
   title: {
     marginBottom: "0.5rem",

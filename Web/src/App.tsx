@@ -243,7 +243,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 </Drawer>
             )}
 
-            <Box component="main" sx={{ flexGrow: 1, pt: 3, mt: 4 }}>
+            <Box component="main" sx={{ flexGrow: 1, pt: location.pathname=="/homepage"?0:3, mt: location.pathname=="/homepage"?0:4 }}>
                 <Routes>
                     <Route path="/" element={<Navigate to="/homepage" />} />
                     
