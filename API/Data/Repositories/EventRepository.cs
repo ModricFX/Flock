@@ -15,7 +15,7 @@ namespace flock.Data.Repositories
 
         public async Task<Event> GetEventById(string id)
         {
-            var query = "SELECT * FROM `event` WHERE `id` = @Id";
+            var query = "SELECT * FROM `event` WHERE `id_event` = @Id";
 
             using (var connection = _context.CreateConnection())
             {
@@ -23,20 +23,44 @@ namespace flock.Data.Repositories
             }
         }
 
+        public async Task<User> GetUserById(string id)
+        {
+            var query = "SELECT * FROM `user` WHERE `id_user` = @Id";
+
+            using (var connection = _context.CreateConnection())
+            {
+                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Id = id });
+            }
+        }
+
         public async Task<int> CreateEvent(Event @event)
         {
             var query = @"
-                UPDATE `event` (`id_event`, `icon_url`, `name`, `description`, `location`, `date_created`, `date_updated`)
-                VALUES (@Id_event, @Icon_url, @Name, @Description, @Location, @Date_created, @Date_updated);
-                WHERE `id_event` = @Id_event;
+                INSERT INTO `event` (`id_event`, `name`, `description`, `location`, `date_created`, `date_updated`, `end_voting_date`, `id_user`, `sysrowstate`)
+                VALUES (@Id_event, @Name, @Description, @Location, @Date_created, @Date_updated, @End_voting_date, @Id_user, @SysRowState);
+                SELECT LAST_INSERT_ID();
             ";
 
             using (var connection = _context.CreateConnection())
             {
-                var id = await connection.QuerySingleAsync<int>(query, @event);
-                return id;
+                var parameters = new
+                {
+                    @event.Id_event,
+                    @event.Name,
+                    @event.Description,
+                    @event.Location,
+                    @event.Date_created,
+                    @event.Date_updated,
+                    @event.End_voting_date,
+                    Id_user = @event.Owner.Id_user,
+                    @event.SysRowState,
+                };
+
+                var ret_id = await connection.QuerySingleAsync<int>(query, parameters);
+                return ret_id;
             }
         }
+
 
         public async Task<int> UpdateEvent(Event @event)
         {
