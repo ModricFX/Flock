@@ -1,4 +1,5 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
+import InfoIcon from '@mui/icons-material/Info';
 import {
   Container,
   Drawer,
@@ -17,13 +18,23 @@ import {
   ListItemButton,
   ListItemIcon,
   Toolbar,
+  InputAdornment,
 
 } from "@mui/material";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import EventIcon from "@mui/icons-material/Event";
+
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { authService } from '../../services/authservice';
+import InboxIcon from "@mui/icons-material/MoveToInbox";
+import EventIcon from "@mui/icons-material/Event";//ikona za evente
+import DescriptionIcon from "@mui/icons-material/Description"; //ikona za description
+import LocationOnIcon from "@mui/icons-material/LocationOn"; //ikona za lokation
+import TimerIcon from "@mui/icons-material/Timer"; // Ikona za timer (ura)
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";// Ikona za datum (ura)
+import AccessTimeIcon from "@mui/icons-material/AccessTime";// Ikona za uro
 
+import { DesktopDateTimePicker } from "@mui/x-date-pickers/DesktopDateTimePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 const drawerWidth = 240;
 
 interface Event {
@@ -35,12 +46,21 @@ interface Event {
   description: string;
   location: string;
   participants: number;
+  StartHour: number,
+  StartMinute: number,
+  DeadlineDate: string,
+  DeadlineTime: string,
+  days?: { date: string; startTime: string; endTime: string }[]; 
 }
 
 const DashboardPage: React.FC = () => {
+
+  const [openDialog, setOpenDialog] = useState(false); // State to manage dialog visibility
   const navigate = useNavigate();
+  const [step, setStep] = useState<number>(4);
   const [events, setEvents] = useState<Event[]>([]);
   const [open, setOpen] = useState<boolean>(false);
+  const [votingDate, setVotingDate] = useState<Date | null>(null); 
   const [editEventIndex, setEditEventIndex] = useState<number | null>(null);
   const [newEvent, setNewEvent] = useState<Event>({
     title: "",
@@ -51,7 +71,28 @@ const DashboardPage: React.FC = () => {
     description: "",
     location: "",
     participants: 0,
+    StartHour: 0,
+    StartMinute: 0,
+    DeadlineDate: "",
+    DeadlineTime: "",
+
+    
   });
+
+ // Handle opening the dialog
+  const handleOpenDialog = () => {
+    setOpenDialog(true);
+  };
+
+  // Handle closing the dialog
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
+   // Handle change in DateTimePicker
+   const handleDateTimeChange = (newDate: Date | null) => {
+    setVotingDate(newDate);
+  };
 
   useEffect(() => {
           const homeTypo = document.getElementById("home-typo");
@@ -59,9 +100,9 @@ const DashboardPage: React.FC = () => {
             homeTypo.style.opacity = "1";
           const checkUserData = async () => {
               const result = await authService.getUserData();
-              if (!result.success) {
+              /*if (!result.success) {
                   navigate("/login");
-              }
+              }*/
           };
           checkUserData();
       }, [navigate]);
@@ -80,9 +121,24 @@ const DashboardPage: React.FC = () => {
         description: "",
         location: "",
         participants: 0,
+        StartHour: 0,
+        StartMinute: 0,
+        DeadlineDate: "",
+        DeadlineTime: "",
+        days: [],
       });
     }
     setOpen(true);
+    setStep(1);
+  };
+
+  //KORAKI
+  const handleNext = (): void => {
+    setStep((prev) => Math.min(prev + 1, 4));
+  };
+
+  const handleBack = (): void => {
+    setStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleClose = (): void => {
@@ -106,16 +162,19 @@ const DashboardPage: React.FC = () => {
     setNewEvent({ ...newEvent, participants: parseInt(e.target.value, 10) || 0 });
   };
 
+  const [addDayDialogOpen, setAddDayDialogOpen] = useState(false); // Manage dialog visibility
+  const [selectedDate, setSelectedDate] = useState(""); // Track selected date
+  /*const handleAddDay = (date: string): void => {
+    if (date) {
+      console.log("Day added:", date); // Replace with your logic to store the date
+    }
+  };*/
+
   const handleSave = (): void => {
     if (
       newEvent.title &&
-      newEvent.startDate &&
-      newEvent.startTime &&
-      newEvent.endDate &&
-      newEvent.endTime &&
       newEvent.description &&
-      newEvent.location &&
-      newEvent.participants >= 0
+      newEvent.location
     ) {
       if (editEventIndex !== null) {
         const updatedEvents = [...events];
@@ -127,6 +186,17 @@ const DashboardPage: React.FC = () => {
       handleClose();
     }
   };
+
+  const [startTime, setStartTime] = useState<string>(""); // Shranjuje začetni čas
+  const [endTime, setEndTime] = useState<string>(""); // Shranjuje končni čas
+ const handleAddDay = (data: { date: string; startTime: string; endTime: string }) => {
+  if (data.date && data.startTime && data.endTime) {
+    setNewEvent((prevEvent) => ({
+      ...prevEvent,
+      days: [...(prevEvent.days || []), data], // Dodaj dan
+    }));
+  }
+};
 
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
@@ -191,100 +261,375 @@ const DashboardPage: React.FC = () => {
       </Box>
 
       <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{editEventIndex !== null ? "Edit Event" : "Create New Event"}</DialogTitle>
+        <DialogTitle>{editEventIndex !== null ? `Edit Event (Step ${step}/4)` : `Create Event (Step ${step}/4)`}</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Event Title"
-            fullWidth
-            variant="outlined"
-            value={newEvent.title}
-            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-          />
+        {step === 1 && (
+            <Box>
+                {/* basic info */}
+                <Box display="flex" alignItems="center" marginBottom={2}>
+                  <InfoIcon sx={{ color: "#4CAF50", marginRight: 1 }} />
+                  <Typography variant="h6">Basic Info</Typography>
+                </Box>
 
-          <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-            <TextField
-              margin="dense"
-              label="Start Date"
-              type="date"
+                {/* title */}
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Event Title"
+                  fullWidth
+                  variant="outlined"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EventIcon sx={{ color: "#4CAF50" }}/>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                {/* description */}
+                <TextField
+                  margin="dense"
+                  label="Description"
+                  multiline
+                  rows={3}
+                  fullWidth
+                  variant="outlined"
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <DescriptionIcon sx={{ color: "#4CAF50" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+
+                {/* location */}
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Event Location"
+                  fullWidth
+                  variant="outlined"
+                  value={newEvent.location}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocationOnIcon sx={{ color: "#4CAF50" }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+            </Box>
+            
+        )}
+
+        {step === 2 && (
+          <Box>
+            {/* Section Title */}
+            <Box display="flex" alignItems="center" marginBottom={2}>
+              <DescriptionIcon sx={{ color: "#4CAF50", marginRight: 1 }} />
+              <Typography variant="h6">Days</Typography>
+            </Box>
+
+            {/* Display Existing Days */}
+            {newEvent.days && newEvent.days.length > 0 ? (
+              <List>
+                {newEvent.days.map((day, index) => (
+                  <ListItem key={index} sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
+                    <ListItemText
+                      primary={`Date: ${day.date}`}
+                      secondary={`Start: ${day.startTime} | End: ${day.endTime}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" sx={{ color: "#9E9E9E", marginBottom: 2 }}>
+                No days added yet.
+              </Typography>
+            )}
+
+            {/* Add Day Button */}
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                marginTop: "16px",
+              }}
+            >
+              <Button
+                variant="contained"
+                onClick={() => setAddDayDialogOpen(true)} // Open dialog for adding a day
+                sx={{
+                  backgroundColor: "#4CAF50",
+                  color: "#fff",
+                  textTransform: "none",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  "&:hover": {
+                    backgroundColor: "#388E3C",
+                  },
+                }}
+              >
+                + Add Day
+              </Button>
+            </Box>
+
+            {/* Dialog for Adding Day */}
+            <Dialog
+              open={addDayDialogOpen}
+              onClose={() => setAddDayDialogOpen(false)}
+              maxWidth="sm"
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              value={newEvent.startDate}
-              onChange={(e) => handleDateChange(e, "startDate")}
-            />
-            <TextField
-              margin="dense"
-              label="Start Time"
-              type="time"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              value={newEvent.startTime}
-              onChange={(e) => handleTimeChange(e, "startTime")}
-            />
+            >
+              <DialogTitle sx={{ textAlign: "center", fontWeight: "bold" }}>Add Day</DialogTitle>
+              <DialogContent sx={{ padding: "24px" }}>
+                {/* Date Picker */}
+                <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+                  <Box>
+                    <Typography>Date</Typography>
+                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
+                      {selectedDate ? selectedDate : "Pick a Date"}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<CalendarMonthIcon />}
+                    sx={{
+                      backgroundColor: "#4CAF50",
+                      color: "#fff",
+                      textTransform: "none",
+                      "&:hover": { backgroundColor: "#388E3C" },
+                    }}
+                    onClick={() => {
+                      const datePicker = document.querySelector("#datePicker");
+                      if (datePicker) {
+                        (datePicker as HTMLElement).click(); // Open hidden date picker
+                      }
+                    }}
+                  >
+                    Pick Date
+                  </Button>
+                </Box>
+
+                {/* Hidden Native Date Picker */}
+                <input
+                  id="datePicker"
+                  type="date"
+                  style={{ display: "none" }}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+
+                {/* Start Time Picker */}
+                <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+                  <Box>
+                    <Typography>Start Time</Typography>
+                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
+                      {startTime ? startTime : "Pick Start"}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AccessTimeIcon />}
+                    sx={{
+                      backgroundColor: "#4CAF50",
+                      color: "#fff",
+                      textTransform: "none",
+                      "&:hover": { backgroundColor: "#388E3C" },
+                    }}
+                    onClick={() => {
+                      const startTimePicker = document.querySelector("#startTimePicker");
+                      if (startTimePicker) {
+                        (startTimePicker as HTMLElement).click(); // Open hidden start time picker
+                      }
+                    }}
+                  >
+                    Pick Start
+                  </Button>
+                </Box>
+
+                {/* Hidden Native Start Time Picker */}
+                <input
+                  id="startTimePicker"
+                  type="time"
+                  style={{ display: "none" }}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+
+                {/* End Time Picker */}
+                <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+                  <Box>
+                    <Typography>End Time</Typography>
+                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
+                      {endTime ? endTime : "Pick End"}
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="contained"
+                    startIcon={<AccessTimeIcon />}
+                    sx={{
+                      backgroundColor: "#4CAF50",
+                      color: "#fff",
+                      textTransform: "none",
+                      "&:hover": { backgroundColor: "#388E3C" },
+                    }}
+                    onClick={() => {
+                      const endTimePicker = document.querySelector("#endTimePicker");
+                      if (endTimePicker) {
+                        (endTimePicker as HTMLElement).click();
+                      }
+                    }}
+                  >
+                    Pick End
+                  </Button>
+                </Box>
+
+                {/* Hidden Native End Time Picker */}
+                <input
+                  id="endTimePicker"
+                  type="time"
+                  style={{ display: "none" }}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </DialogContent>
+              <DialogActions sx={{ justifyContent: "space-between", paddingBottom: "16px", paddingLeft: "20px", padding: "20px" }}>
+                <Button
+                  onClick={() => setAddDayDialogOpen(false)}
+                  sx={{
+                    backgroundColor: "#E0E0E0", // Gray button
+                    color: "#000",
+                    textTransform: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#BDBDBD",
+                    },
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const newDay = { date: selectedDate, startTime, endTime };
+                    const updatedDays = [...(newEvent.days || []), newDay];
+                    setNewEvent({ ...newEvent, days: updatedDays }); // Add new day to the event
+                    setAddDayDialogOpen(false); // Close dialog
+                  }}
+                  sx={{
+                    backgroundColor: "#4CAF50",
+                    color: "#fff",
+                    textTransform: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: "#388E3C",
+                    },
+                    marginLeft: "16px",
+                  }}
+                >
+                  Save
+                </Button>
+              </DialogActions>
+            </Dialog>
+          </Box>
+        )}
+
+
+        {step === 3 && (
+          <Box>
+
+          </Box>
+        )}
+
+        {step === 4 && (
+          <div>
+          <Box display="flex" alignItems="center" marginY={2}>
+            <CalendarMonthIcon style={{ marginRight: 8, color: "#4caf50" }} />
+            <Typography variant="subtitle1">Voting Deadline</Typography>
           </Box>
 
-          <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-            <TextField
-              margin="dense"
-              label="End Date"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              value={newEvent.endDate}
-              onChange={(e) => handleDateChange(e, "endDate")}
-            />
-            <TextField
-              margin="dense"
-              label="End Time"
-              type="time"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              variant="outlined"
-              value={newEvent.endTime}
-              onChange={(e) => handleTimeChange(e, "endTime")}
-            />
+          <Box display="flex" alignItems="center">
+            <EventIcon style={{ marginRight: 8, color: "#4caf50" }} />
+            <Typography variant="body1" onClick={handleOpenDialog} style={{ cursor: "pointer" }}>
+              Pick deadline
+            </Typography>
           </Box>
 
-          <TextField
-            margin="dense"
-            label="Location"
-            fullWidth
-            variant="outlined"
-            value={newEvent.location}
-            onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            multiline
-            rows={3}
-            fullWidth
-            variant="outlined"
-            value={newEvent.description}
-            onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-          />
-          <TextField
-            margin="dense"
-            label="Participants"
-            type="number"
-            fullWidth
-            variant="outlined"
-            value={newEvent.participants}
-            onChange={handleParticipantsChange}
-            inputProps={{ min: 0 }}
-          />
+          {/* Dialog Popup */}
+          <Dialog open={openDialog} onClose={handleCloseDialog}>
+            <DialogTitle>Set Voting Deadline</DialogTitle>
+            <DialogContent>
+              <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+                <TextField
+                  margin="dense"
+                  label="DeadlineDate"
+                  type="date"
+                  fullWidth
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  variant="outlined"
+                  value={newEvent.DeadlineDate}
+                  onChange={(e) => handleDateChange(e, "DeadlineDate")}
+                />
+                <TextField
+                  margin="dense"
+                  label="DeadlineTime"
+                  type="time"
+                  fullWidth
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  variant="outlined"
+                  value={newEvent.DeadlineTime}
+                  onChange={(e) => handleDateChange(e, "DeadlineTime")}
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog} color="primary">
+                Cancel
+              </Button>
+              <Button onClick={handleCloseDialog} color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </div>
+        )}
+
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="error">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} color="primary">
-            Save
-          </Button>
+          {step == 1 && (
+            <Button onClick={handleClose} color="primary" sx={{ textTransform: 'none', marginRight: 'auto' }} >
+              Cancel
+            </Button>
+          )}
+
+          {step > 1 && (
+            <Button onClick={handleBack} color="primary" sx={{ textTransform: 'none',  marginRight: 'auto' }}>
+              Back
+            </Button>
+          )}
+          {step < 4 ? (
+            <Button onClick={handleNext} color="primary" sx={{ textTransform: 'none' }}>
+              Next
+            </Button>
+          ) : (
+            <Button onClick={handleSave} color="primary" sx={{ textTransform: 'none' }}>
+              Finish
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Container>
