@@ -1463,7 +1463,7 @@ export default function HomeScreen() {
                                         </View>
 
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
-                                            
+
 
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
@@ -1883,7 +1883,7 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Start Time</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -1893,7 +1893,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Set to false for 24-hour format
                                     });
-                                    setTempStart(hhmm);
+                                    setTempStart(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -1908,6 +1908,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempStart(tempStart); // Save selected time to main state
                                         setPickStartModalVisible(false);
                                         setAddDayModalVisible(true);
                                     }}
@@ -1917,13 +1918,14 @@ export default function HomeScreen() {
                     </View>
                 </Modal>
 
+
                 {/* PICK END TIME (CREATE) */}
                 <Modal visible={pickEndModalVisible} transparent animationType="fade">
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick End Time</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -1933,7 +1935,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempEnd(hhmm);
+                                    setTempEnd(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -1948,6 +1950,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempEnd(tempEnd); // Save selected time to main state
                                         setPickEndModalVisible(false);
                                         setAddDayModalVisible(true);
                                     }}
@@ -1956,6 +1959,7 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 </Modal>
+
 
                 {/* VOTING PICKER CREATE */}
                 <Modal visible={votingPickerVisible} transparent animationType="fade">
@@ -2293,7 +2297,7 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Start Time (Edit)</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()} // Use tempStartEdit or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -2303,7 +2307,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempStartEdit(hhmm);
+                                    setTempStartEdit(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2318,6 +2322,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempStartEdit(tempStartEdit); // Save selected time to main state
                                         setPickStartModalEditVisible(false);
                                         setAddDayModalVisibleEdit(true);
                                     }}
@@ -2327,13 +2332,14 @@ export default function HomeScreen() {
                     </View>
                 </Modal>
 
+
                 {/* PICK END TIME (EDIT) */}
                 <Modal visible={pickEndModalEditVisible} transparent animationType="fade">
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick End Time (Edit)</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()} // Use tempEndEdit or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -2343,7 +2349,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempEndEdit(hhmm);
+                                    setTempEndEdit(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2358,6 +2364,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempEndEdit(tempEndEdit); // Save selected time to main state
                                         setPickEndModalEditVisible(false);
                                         setAddDayModalVisibleEdit(true);
                                     }}
@@ -2366,6 +2373,7 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 </Modal>
+
 
                 {/* VOTING date/time PICKER EDIT */}
                 <Modal visible={votingPickerEditVisible} transparent animationType="fade">
