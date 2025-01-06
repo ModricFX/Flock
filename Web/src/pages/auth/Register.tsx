@@ -74,12 +74,6 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
         // @ts-ignore
         alert('Register Failed', error.message || '');
     }
-
-    if (Object.keys(validationErrors).length === 0) {
-      console.log("Registering...");
-      localStorage.setItem("username", username);
-      navigate("/Hello");
-    }
   };
 
   return (
