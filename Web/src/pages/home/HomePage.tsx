@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
+import { authService } from '../../services/authservice';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const homeTypo = document.getElementById("home-typo");
@@ -25,6 +27,17 @@ const HomePage: React.FC = () => {
     };
 
     window.addEventListener("scroll", handleScroll);
+
+    const checkUserData = async () => {
+      const result = await authService.getUserData(); // Replace with your actual auth check logic
+      if (result.success) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkUserData();
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
@@ -38,6 +51,10 @@ const HomePage: React.FC = () => {
     navigate("/about");
   };
 
+  const handleDashboard = () => {
+    navigate("/dashboard");
+  };
+
   return (
     <>
       {/* Hero Section */}
@@ -49,10 +66,28 @@ const HomePage: React.FC = () => {
           A new way to make plans
         </Typography>
         <Box style={styles.buttonGroup}>
-          <Button variant="contained" style={styles.signUpButton} onClick={handleSignUp}>
-            Sign Up
-          </Button>
-          <Button variant="outlined" style={styles.learnMoreButton} onClick={handleLearnMore}>
+          {isLoggedIn ? (
+            <Button
+              variant="contained"
+              style={styles.signUpButton}
+              onClick={handleDashboard}
+            >
+              Dashboard
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              style={styles.signUpButton}
+              onClick={handleSignUp}
+            >
+              Sign Up
+            </Button>
+          )}
+          <Button
+            variant="outlined"
+            style={styles.learnMoreButton}
+            onClick={handleLearnMore}
+          >
             Learn More
           </Button>
         </Box>
@@ -65,9 +100,11 @@ const HomePage: React.FC = () => {
             Welcome to FLOCK
           </Typography>
           <Typography variant="body1" paragraph>
-            FLOCK is a platform that makes coordinating group events and meetups as easy as possible.
-            Whether you’re planning a birthday, an office lunch, or a spontaneous get-together with friends,
-            we give you the tools to make it all happen — without the usual frustration of back-and-forth messaging.
+            FLOCK is a platform that makes coordinating group events and meetups
+            as easy as possible. Whether you’re planning a birthday, an office
+            lunch, or a spontaneous get-together with friends, we give you the
+            tools to make it all happen — without the usual frustration of
+            back-and-forth messaging.
           </Typography>
 
           <Box style={styles.infoImagesContainer}>
@@ -95,8 +132,9 @@ const HomePage: React.FC = () => {
           </Box>
 
           <Typography variant="body1" paragraph>
-            Ready to see how it works? Scroll down or click "Learn More" to dive deeper
-            into what FLOCK has in store. You can sign up immediately to start planning your next event!
+            Ready to see how it works? Scroll down or click "Learn More" to dive
+            deeper into what FLOCK has in store. You can sign up immediately to
+            start planning your next event!
           </Typography>
 
           <Box style={styles.spacer} />
@@ -106,9 +144,12 @@ const HomePage: React.FC = () => {
             Why FLOCK?
           </Typography>
           <Typography variant="body1" paragraph>
-            - Easy scheduling with a visual overview of everyone’s availability<br />
-            - Simple sign-up: create an account and begin scheduling right away<br />
-            - Automatically handle confirmations and reminders<br />
+            - Easy scheduling with a visual overview of everyone’s availability
+            <br />
+            - Simple sign-up: create an account and begin scheduling right away
+            <br />
+            - Automatically handle confirmations and reminders
+            <br />
             - ...and much more!
           </Typography>
         </Container>
@@ -160,7 +201,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderColor: "#ffffff",
   },
   contentContainer: {
-    backgroundColor: "#FAFDF9", // a lighter greenish-white background
+    backgroundColor: "#FAFDF9",
     padding: "2rem 0",
   },
   contentInner: {
@@ -168,7 +209,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "2rem",
     borderRadius: "8px",
     boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-    color: "#333", // Ensure text is visible on white background
+    color: "#333",
   },
   spacer: {
     height: "50px",

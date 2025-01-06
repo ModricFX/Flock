@@ -34,6 +34,8 @@ import DashboardPage from "./pages/home/DashboardPage.tsx";
 import {authService} from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 import AboutPage from "./pages/home/AboutPage.tsx";
+import SettingsPage from "./pages/home/SettingsPage.tsx";
+
 
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
@@ -120,7 +122,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
-    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage", "/about"];
+    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage", "/about", "/settings"];
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
@@ -250,6 +252,8 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+
                     <Route
                         path="/home/allevents"
                         element={

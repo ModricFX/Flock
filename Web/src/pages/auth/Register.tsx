@@ -57,22 +57,22 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
     setErrors(validationErrors);
 
     try {
-        let data = {
-          first_name : name,
-          last_name : surname,
-          username : username,
-          email : email,
-          password : password
-        }
-        const session = await authService.register(data);
-        console.log('Register successful:', session);
-        
-        navigate("/login");
+      let data = {
+        first_name: name,
+        last_name: surname,
+        username: username,
+        email: email,
+        password: password
+      }
+      const session = await authService.register(data);
+      console.log('Register successful:', session);
+
+      navigate("/login");
 
     } catch (error) {
-        console.error('Register failed:', error);
-        // @ts-ignore
-        Alert.alert('Register Failed', error.message || '');
+      console.error('Register failed:', error);
+      // @ts-ignore
+      Alert.alert('Register Failed', error.message || '');
     }
 
     if (Object.keys(validationErrors).length === 0) {
@@ -84,35 +84,35 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
 
   return (
     <Container maxWidth="sm">
-      <Container sx={{ textAlign: "center"}}>
-      <Typography
-        variant="h3"
-        sx={{
-          ml: "auto",
-          mr: "auto",
-          mt: 5,
-          fontWeight: "bold",
-          color: "#4CAF50",
-          cursor: "pointer"
-        }}
+      <Container sx={{ textAlign: "center" }}>
+        <Typography
+          variant="h3"
+          sx={{
+            ml: "auto",
+            mr: "auto",
+            mt: 5,
+            fontWeight: "bold",
+            color: "#4CAF50",
+            cursor: "pointer"
+          }}
 
-        component={RouterLink}
-        to="/homepage"
-      >
-        FLOCK
-      </Typography>
-      <Typography
-        variant="h5"
-        sx={{
-          textAlign: "center",
-          fontWeight: "bold",
-          color: darkMode? "white" : "black",
-        }}
-      >
-        A new way to make plans
-      </Typography>
+          component={RouterLink}
+          to="/homepage"
+        >
+          FLOCK
+        </Typography>
+        <Typography
+          variant="h5"
+          sx={{
+            textAlign: "center",
+            fontWeight: "bold",
+            color: darkMode ? "white" : "black",
+          }}
+        >
+          A new way to make plans
+        </Typography>
       </Container>
-      
+
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
         <Typography component="h1" variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Create an Account

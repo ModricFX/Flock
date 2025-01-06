@@ -233,7 +233,7 @@ export default function Profile() {
       <View style={[styles.card, { zIndex: 9999, position: 'relative' }]}>
         <Text style={styles.cardTitle}>Appearance</Text>
 
-        {/* LANGUAGE DROPDOWN */}
+        {/* LANGUAGE DROPDOWN
         <View style={[styles.fieldGroup, { zIndex: 9999 }]}>
           <Text style={styles.label}>Language</Text>
           <DropDownPicker
@@ -250,7 +250,7 @@ export default function Profile() {
             zIndex={9999}
             zIndexInverse={4000}
           />
-        </View>
+        </View> */}
 
         {/* THEME DROPDOWN */}
         <View style={[styles.fieldGroup, { zIndex: 9998 }]}>
