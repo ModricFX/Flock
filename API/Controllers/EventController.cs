@@ -57,7 +57,7 @@ namespace flock.Controllers
 
                 foreach (var tagId in request.Tag_ids)
                 {
-                    _eventRepository.AddTag(event_id.ToString(), tagId.ToString());
+                    _eventRepository.AddTag(event_id, tagId);
                 }
 
                 return Ok("Success, event id:" + event_id);
@@ -77,7 +77,7 @@ namespace flock.Controllers
         {
             try
             {
-                Event current_event = await _eventRepository.GetEventById(request.Id_event.ToString());
+                Event current_event = await _eventRepository.GetEventById(request.Id_event);
 
                 if (current_event.Id_user != request.Id_user)
                 {
@@ -100,7 +100,7 @@ namespace flock.Controllers
 
                 foreach (var opt in current_event.Date_options)
                 {
-                    _eventRepository.DeleteDateOption(opt.Id_date_option.ToString());
+                    _eventRepository.DeleteDateOption(opt.Id_date_option);
                 }
 
                 foreach (var dateOption in request.Date_options)
@@ -136,7 +136,7 @@ namespace flock.Controllers
             Description = "Returns selected event"
         )]
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetEventById(string id)
+        public async Task<IActionResult> GetEventById(int id)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace flock.Controllers
             Description = "Deletes the event resource."
         )]
         [HttpDelete()]
-        public async Task<IActionResult> Delete(DeleteEventDto eventDeletion, string user_id)
+        public async Task<IActionResult> Delete(DeleteEventDto eventDeletion, int user_id)
         {
             try
             {

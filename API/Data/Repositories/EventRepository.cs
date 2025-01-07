@@ -13,7 +13,7 @@ public class EventRepository : IEventRepository
         _context = context;
     }
 
-    public async Task<Event> GetEventById(string id)
+    public async Task<Event> GetEventById(int id)
     {
         var query = @"
         SELECT e.*, d.*
@@ -89,7 +89,7 @@ public class EventRepository : IEventRepository
     }
 
 
-    public async Task<User> GetUserById(string id)
+    public async Task<User> GetUserById(int id)
     {
         var query = "SELECT * FROM `user` WHERE `id_user` = @Id";
 
@@ -181,7 +181,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async void AddTag(string event_id, string tag_id)
+    public async void AddTag(int event_id, int tag_id)
     {
         var query = "INSERT INTO `categorizes_as` (`id_event`, `id_tag`) VALUES(@Id_event, @Id_tag);";
 
@@ -191,7 +191,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async void DeleteEvent(string id)
+    public async void DeleteEvent(int id)
     {
         var query = "DELETE FROM `event` WHERE `id_event` = @Id";
 
@@ -201,7 +201,7 @@ public class EventRepository : IEventRepository
         }
     }
     
-    public async void DeleteDateOption(string id)
+    public async void DeleteDateOption(int id)
     {
         var query = "DELETE FROM `date_option` WHERE `id_date_option` = @Id";
 
