@@ -16,8 +16,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-
-/* IMPORT STYLES */
+import DateTimePickerComponent from '../../components/DateTimePicker';
 
 import styles from '../styles/HomePageStyles';
 
@@ -240,7 +239,7 @@ function formatDate(date: Date) {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hourCycle: 'h23', // Use 24-hour format
+        hourCycle: 'h23',
     });
 }
 
@@ -252,7 +251,6 @@ function formatDay(date: Date) {
         'Thursday', 'Friday', 'Saturday'
     ];
     const dayName = weekdayNames[date.getDay()]; // 0=Sunday
-    // Format date as DD.MM.YYYY
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
@@ -370,7 +368,7 @@ export default function HomeScreen() {
     const [editDays, setEditDays] = useState<SingleDay[]>([]);
     const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
-    const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
+    const [editEndVotingDate, setEditEndVotingDate] = useState<Date>(new Date());
     const [editEvent, setEditEvent] = useState<EventData | null>(null);
 
     const [addDayModalVisibleEdit, setAddDayModalVisibleEdit] = useState(false);
@@ -388,7 +386,6 @@ export default function HomeScreen() {
     const [votingPickerEditVisible, setVotingPickerEditVisible] = useState(false);
 
     // =============== VIEW / VOTE ===============
-    const [voteModalVisible, setVoteModalVisible] = useState(false);
     const [showVotingPicker, setShowVotingPicker] = useState(false);
 
     const [showParticipantsModal, setShowParticipantsModal] = useState(false);
@@ -489,24 +486,23 @@ export default function HomeScreen() {
             const existing = createDays[index];
             setTempDayIndex(index);
             setTempDate(existing.date);
-            setTempStart(existing.start); // Assuming `start` is already in the desired format
-            setTempEnd(existing.end);     // Assuming `end` is already in the desired format
+            setTempStart(existing.start);
+            setTempEnd(existing.end);
         } else {
             // Adding a new day
             setTempDayIndex(null);
             setTempDate(new Date());
-            setTempStart('08:00'); // Default start time in 24-hour format
-            setTempEnd('10:00');   // Default end time in 24-hour format
+            setTempStart('08:00');
+            setTempEnd('10:00');
         }
 
-        // Show the Add Day modal and hide the Create Event modal
         setAddDayModalVisible(true);
-        setCreateModalVisible(false);
+        // setCreateModalVisible(false);
     }
 
     function closeAddDayModalCreate() {
         setAddDayModalVisible(false);
-        setCreateModalVisible(true);
+        // setCreateModalVisible(true);
     }
 
     const handleAvailabilityResponse = (dayKey: string, isAvailable: boolean) => {
@@ -599,30 +595,8 @@ export default function HomeScreen() {
     }
 
     /* Step2: picking date/time => each is a separate modal */
-    function openPickDate() {
-        // close Day modal, open date modal
-        setAddDayModalVisible(false);
-        setPickDateModalVisible(true);
-    }
-    function closePickDate() {
-        setPickDateModalVisible(false);
-        setAddDayModalVisible(true);
-    }
-    function onPickDateChange(_ev: DateTimePickerEvent, sel?: Date) {
+    function onPickDateChange(sel?: Date) {
         if (sel) setTempDate(sel);
-    }
-    function savePickDate() {
-        setPickDateModalVisible(false);
-        setAddDayModalVisible(true);
-    }
-
-    function openPickStartTime() {
-        setAddDayModalVisible(false);
-        setPickStartModalVisible(true);
-    }
-    function openPickEndTime() {
-        setAddDayModalVisible(false);
-        setPickEndModalVisible(true);
     }
 
     /* Step3 create -> invites */
@@ -643,7 +617,6 @@ export default function HomeScreen() {
         }
         setTypedInvite('');
     }
-    // Function to remove an invitee
     function removeInvite(email: string) {
         setInvitees(prev => prev.filter(i => i.email !== email));
     }
@@ -651,34 +624,13 @@ export default function HomeScreen() {
     /* Step4 create -> Voting */
     function openVotingDatePickerCreate() {
         setVotingPickerVisible(true);
-        setCreateModalVisible(false);
+        // setCreateModalVisible(false);
     }
-    function cancelVotingDate() {
-        setVotingPickerVisible(false);
-        setCreateModalVisible(true);
-    }
-    function saveVotingDate() {
-        setVotingPickerVisible(false);
-        setCreateModalVisible(true);
-    }
-    function onVotingDateChange(_ev: DateTimePickerEvent, sel?: Date) {
+    function onVotingDateChange(sel?: Date) {
         if (sel) setEndVotingDate(sel);
     }
 
-    const formatVotingDate = (date: Date) => {
-        return date.toLocaleString([], {
-            month: 'short',        // e.g., "Jan"
-            day: 'numeric',        // e.g., "25"
-            year: 'numeric',       // e.g., "2024"
-            hour: '2-digit',       // e.g., "14"
-            minute: '2-digit',     // e.g., "30"
-            hour12: false,         // Ensures 24-hour time format
-        });
-    };
-
-
-    // Function to handle date changes from the picker
-    const handleVotingDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    const handleVotingDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
         setShowVotingPicker(false);
         if (selectedDate) {
             setEndVotingDate(selectedDate);
@@ -708,7 +660,7 @@ export default function HomeScreen() {
         setEditLoc(e.location || '');
         setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
-        setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
+        setEditEndVotingDate(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
     }
 
@@ -744,7 +696,7 @@ export default function HomeScreen() {
             location: editLoc,
             dayTimes: editDays,
             participants: editInvitees,
-            endVoting: editEndVoting,
+            endVoting: editEndVotingDate,
             updatedAt: new Date(),
         };
         setEvents(prev => prev.map(evt => evt.id === updated.id ? updated : evt));
@@ -764,16 +716,15 @@ export default function HomeScreen() {
             // Adding a new day
             setTempDayIndexEdit(null);
             setTempDateEdit(new Date());
-            setTempStartEdit('08:00'); // Default start time in 24-hour format
-            setTempEndEdit('10:00'); // Default end time in 24-hour format
+            setTempStartEdit('08:00');
+            setTempEndEdit('10:00');
         }
         setAddDayModalVisibleEdit(true);
-        setEditModalVisible(false);
     }
 
     function closeAddDayModalEdit() {
         setAddDayModalVisibleEdit(false);
-        setEditModalVisible(true);
+        // setEditModalVisible(true);
     }
     function handleSaveDayEdit() {
         if (tempDayIndexEdit !== null) {
@@ -803,12 +754,8 @@ export default function HomeScreen() {
     }
 
     /* Step2 pick date/time for edit */
-    function onPickDateChangeEdit(_ev: DateTimePickerEvent, sel?: Date) {
+    function onPickDateChangeEdit(sel?: Date) {
         if (sel) setTempDateEdit(sel);
-    }
-    function savePickDateEdit() {
-        setPickDateModalEditVisible(false);
-        setAddDayModalVisibleEdit(true);
     }
 
     /* Step3 (edit): invites */
@@ -836,18 +783,10 @@ export default function HomeScreen() {
     /* Step4 (edit) => voting date */
     function openVotingDatePickerEdit() {
         setVotingPickerEditVisible(true);
-        setEditModalVisible(false);
+        // setEditModalVisible(false);
     }
-    function cancelVotingDateEdit() {
-        setVotingPickerEditVisible(false);
-        setEditModalVisible(true);
-    }
-    function saveVotingDateEdit() {
-        setVotingPickerEditVisible(false);
-        setEditModalVisible(true);
-    }
-    function onVotingDateChangeEdit(_ev: DateTimePickerEvent, sel?: Date) {
-        if (sel) setEditEndVoting(sel);
+    function onVotingDateChangeEdit(sel?: Date) {
+        if (sel) setEditEndVotingDate(sel);
     }
 
     /* =============== VIEW / VOTE =============== */
@@ -1751,7 +1690,7 @@ export default function HomeScreen() {
                                         >
                                             <MaterialIcons name="calendar-today" size={24} color="#4CAF50" />
                                             <Text style={styles.votingButtonText}>
-                                                End Voting: {formatVotingDate(endVotingDate)}
+                                                End Voting: {formatDate(endVotingDate)}
                                             </Text>
                                         </TouchableOpacity>
 
@@ -1800,7 +1739,9 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Date</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{formatDay(tempDate)}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDate}>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickDateModalVisible(true);
+                                            }}>
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
                                             </TouchableOpacity>
@@ -1812,7 +1753,9 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempStart}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickStartModalVisible(true);
+                                                }}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
                                             </TouchableOpacity>
@@ -1824,7 +1767,9 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempEnd}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickEndModalVisible(true);
+                                            }}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
                                             </TouchableOpacity>
@@ -1858,128 +1803,70 @@ export default function HomeScreen() {
                 </Modal>
 
                 {/* PICK DATE (CREATE) */}
-                <Modal visible={pickDateModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Date</Text>
-                            <DateTimePicker
-                                value={tempDate}
-                                mode="date"
-                                display="spinner"
-                                onChange={(ev, sel) => onPickDateChange(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={closePickDate} />
-                                <Button title="Save" onPress={savePickDate} />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                <DateTimePickerComponent
+                    visible={pickDateModalVisible}
+                    date={tempDate}
+                    mode="date"
+                    onConfirm={(datetime) => {
+                        onPickDateChange(datetime);
+                        setPickDateModalVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickDateModalVisible(false);
+                    }}
+                />
 
                 {/* PICK START TIME (CREATE) */}
-                <Modal visible={pickStartModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Start Time</Text>
-                            <DateTimePicker
-                                value={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Set to false for 24-hour format
-                                    });
-                                    setTempStart(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickStartModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempStart(tempStart); // Save selected time to main state
-                                        setPickStartModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-
+                <DateTimePickerComponent
+                    visible={pickStartModalVisible}
+                    date={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()}
+                    mode="time"
+                    onConfirm={(datetime) => {
+                        const hhmm = datetime.toLocaleString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                        });
+                        setTempStart(hhmm);
+                        setPickStartModalVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickStartModalVisible(false);
+                    }}
+                />
 
                 {/* PICK END TIME (CREATE) */}
-                <Modal visible={pickEndModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick End Time</Text>
-                            <DateTimePicker
-                                value={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempEnd(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickEndModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempEnd(tempEnd); // Save selected time to main state
-                                        setPickEndModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-
+                <DateTimePickerComponent
+                    visible={pickEndModalVisible}
+                    date={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()}
+                    mode="time"
+                    onConfirm={(datetime) => {
+                        const hhmm = datetime.toLocaleString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                        });
+                        setTempEnd(hhmm);
+                        setPickEndModalVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickEndModalVisible(false);
+                    }}
+                />
 
                 {/* VOTING PICKER CREATE */}
-                <Modal visible={votingPickerVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Voting Deadline</Text>
-                            <DateTimePicker
-                                value={endVotingDate}
-                                mode="datetime"
-                                display="spinner"
-                                onChange={onVotingDateChange}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={cancelVotingDate} />
-                                <Button title="Save" onPress={saveVotingDate} />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                <DateTimePickerComponent
+                    visible={votingPickerVisible}
+                    date={endVotingDate}
+                    mode="datetime"
+                    onConfirm={(datetime) => {
+                        onVotingDateChange(datetime);
+                        setVotingPickerVisible(false);
+                    }}
+                    onCancel={() => {
+                        setVotingPickerVisible(false);
+                    }}
+                />
 
                 {/* EDIT EVENT MODAL */}
                 <Modal visible={editModalVisible} transparent animationType="slide">
@@ -2051,7 +1938,9 @@ export default function HomeScreen() {
                                                     <View key={i} style={styles.dayItem}>
                                                         <TouchableOpacity
                                                             style={styles.dayInfo}
-                                                            onPress={() => openAddDayModalEdit(i)}
+                                                            onPress={() => {
+                                                                openAddDayModalEdit(i);
+                                                            }}
                                                         >
                                                             <Text style={styles.dayText}>
                                                                 {formatDay(d.date)} | {d.start} - {d.end}
@@ -2140,7 +2029,6 @@ export default function HomeScreen() {
 
                                     {editStep === 4 && (
                                         <>
-
                                             {/* Voting Deadline Section */}
                                             <View style={styles.sectionContainer}>
                                                 <MaterialIcons name="event-note" size={24} color="#4CAF50" style={styles.sectionIcon} />
@@ -2156,7 +2044,7 @@ export default function HomeScreen() {
                                             >
                                                 <MaterialIcons name="calendar-today" size={24} color="#4CAF50" />
                                                 <Text style={styles.votingButtonText}>
-                                                    End Voting: {formatVotingDate(editEndVoting)}
+                                                    End Voting: {formatDate(editEndVotingDate)}
                                                 </Text>
                                             </TouchableOpacity>
 
@@ -2191,7 +2079,7 @@ export default function HomeScreen() {
                                 {/* Header */}
                                 <View style={styles.modalHeader}>
                                     <Text style={styles.modalTitle}>
-                                        {tempDayIndex !== null ? 'Edit Day' : 'Add Day'}
+                                        {tempDayIndexEdit !== null ? 'Edit Day' : 'Add Day'}
                                     </Text>
                                     <TouchableOpacity onPress={closeAddDayModalEdit}>
                                         <MaterialIcons name="close" size={24} color="#333" />
@@ -2204,8 +2092,10 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Date</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{formatDay(tempDate)}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDate}>
+                                            <Text style={styles.valueText}>{formatDay(tempDateEdit)}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickDateModalEditVisible(true)
+                                            }}>
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
                                             </TouchableOpacity>
@@ -2216,8 +2106,10 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempStart}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
+                                            <Text style={styles.valueText}>{tempStartEdit}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickStartModalEditVisible(true);
+                                            }}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
                                             </TouchableOpacity>
@@ -2228,8 +2120,10 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempEnd}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
+                                            <Text style={styles.valueText}>{tempEndEdit}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={() => {
+                                                setPickEndModalEditVisible(true);
+                                            }}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
                                             </TouchableOpacity>
@@ -2242,11 +2136,11 @@ export default function HomeScreen() {
                                     <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalEdit}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndex !== null && (
+                                    {tempDayIndexEdit !== null && (
                                         <TouchableOpacity
                                             style={styles.removeButton}
                                             onPress={() => {
-                                                removeDayEdit(tempDayIndex);
+                                                removeDayEdit(tempDayIndexEdit);
                                                 closeAddDayModalEdit();
                                             }}
                                         >
@@ -2263,137 +2157,71 @@ export default function HomeScreen() {
                 </Modal>
 
                 {/* PICK DATE (EDIT) */}
-                <Modal visible={pickDateModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Date (Edit)</Text>
-                            <DateTimePicker
-                                value={tempDateEdit}
-                                mode="date"
-                                display="spinner"
-                                onChange={(ev, sel) => onPickDateChangeEdit(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickDateModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
-                                <Button
-                                    title="Save"
-                                    onPress={savePickDateEdit}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                <DateTimePickerComponent
+                    visible={pickDateModalEditVisible}
+                    date={tempDateEdit}
+                    mode="date"
+                    onConfirm={(datetime) => {
+                        onPickDateChangeEdit(datetime);
+                        setPickDateModalEditVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickDateModalEditVisible(false);
+                    }}
+                />
 
                 {/* PICK START TIME (EDIT) */}
-                <Modal visible={pickStartModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Start Time (Edit)</Text>
-                            <DateTimePicker
-                                value={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()} // Use tempStartEdit or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempStartEdit(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickStartModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempStartEdit(tempStartEdit); // Save selected time to main state
-                                        setPickStartModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-
+                <DateTimePickerComponent
+                    visible={pickStartModalEditVisible}
+                    date={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()}
+                    mode="time"
+                    onConfirm={(datetime) => {
+                        const hhmm = datetime.toLocaleString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                        });
+                        setTempStartEdit(hhmm);
+                        setPickStartModalEditVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickStartModalEditVisible(false);
+                    }}
+                />
 
                 {/* PICK END TIME (EDIT) */}
-                <Modal visible={pickEndModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick End Time (Edit)</Text>
-                            <DateTimePicker
-                                value={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()} // Use tempEndEdit or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempEndEdit(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickEndModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempEndEdit(tempEndEdit); // Save selected time to main state
-                                        setPickEndModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
-
+                <DateTimePickerComponent
+                    visible={pickEndModalEditVisible}
+                    date={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()}
+                    mode="time"
+                    onConfirm={(datetime) => {
+                        const hhmm = datetime.toLocaleString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false,
+                        });
+                        setTempEndEdit(hhmm);
+                        setPickEndModalEditVisible(false);
+                    }}
+                    onCancel={() => {
+                        setPickEndModalEditVisible(false);
+                    }}
+                />
 
                 {/* VOTING date/time PICKER EDIT */}
-                <Modal visible={votingPickerEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Voting Deadline (Edit)</Text>
-                            <DateTimePicker
-                                value={editEndVoting}
-                                mode="datetime"
-                                display="spinner"
-                                onChange={(ev, sel) => onVotingDateChangeEdit(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={cancelVotingDateEdit} />
-                                <Button title="Save" onPress={saveVotingDateEdit} />
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                <DateTimePickerComponent
+                    visible={votingPickerEditVisible}
+                    date={editEndVotingDate}
+                    mode="datetime"
+                    onConfirm={(datetime) => {
+                        onVotingDateChangeEdit(datetime);
+                        setVotingPickerEditVisible(false);
+                    }}
+                    onCancel={() => {
+                        setVotingPickerEditVisible(false);
+                    }}
+                />
+
             </View>
         </TouchableWithoutFeedback>
     );
