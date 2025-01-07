@@ -1,6 +1,6 @@
 /*==============================================================*/
 /* DBMS name:      MySQL 5.0                                    */
-/* Created on:     06/01/2025 20:30:46                          */
+/* Created on:     07/01/2025 17:30:37                          */
 /*==============================================================*/
 
 
@@ -9,6 +9,7 @@ drop table if exists chose;
 drop table if exists date_option;
 drop table if exists friendship;
 drop table if exists invitation;
+drop table if exists user_attendance;
 drop table if exists tag;
 drop table if exists event;
 drop table if exists usernotification;
@@ -151,6 +152,17 @@ create table user
 );
 
 /*==============================================================*/
+/* Table: user_attendance                                       */
+/*==============================================================*/
+create table user_attendance
+(
+   id_event             int not null,
+   id_user              int not null,
+   will_attend          bool not null,
+   primary key (id_event, id_user)
+);
+
+/*==============================================================*/
 /* Table: usernotification                                      */
 /*==============================================================*/
 create table usernotification
@@ -195,9 +207,14 @@ alter table invitation add constraint FK_sends foreign key (id_event)
 alter table user add constraint FK_has foreign key (id_role)
       references role (id_role);
 
+alter table user_attendance add constraint FK_records_attendance foreign key (id_user)
+      references user (id_user);
+
+alter table user_attendance add constraint FK_tracks_attendance foreign key (id_event)
+      references event (id_event);
+
 alter table usernotification add constraint FK_belongs_to foreign key (id_notification)
       references notification (id_notification);
 
 alter table usernotification add constraint FK_receives_notification foreign key (id_user)
       references user (id_user);
-
