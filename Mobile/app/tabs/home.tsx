@@ -61,7 +61,6 @@ interface EventData {
     createdAt: Date;
     updatedAt: Date;
     votes?: Record<string, any>; // optional
-    durationHours?: string;      // optional
 }
 
 /* Mock "current" user */
@@ -101,7 +100,6 @@ const initialEvents: EventData[] = [
         endVoting: new Date(Date.now() + 1000 * 60 * 60 * 24),
         createdAt: new Date(),
         updatedAt: new Date(),
-        durationHours: '3',
     },
     {
         id: 'evt-2',
@@ -124,7 +122,6 @@ const initialEvents: EventData[] = [
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
-        durationHours: '3',
     },
     {
         id: 'evt-3',
@@ -162,7 +159,6 @@ const initialEvents: EventData[] = [
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
-        durationHours: '3',
     },
     {
         id: 'evt-4',
@@ -185,7 +181,6 @@ const initialEvents: EventData[] = [
         eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
-        durationHours: '3',
     },
     {
         id: 'evt-5',
@@ -208,7 +203,6 @@ const initialEvents: EventData[] = [
         eventDate: new Date(Date.now() - 500 * 60),
         createdAt: new Date(),
         updatedAt: new Date(),
-        durationHours: '3',
     },
 ];
 
@@ -223,8 +217,7 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
 
     if (e.eventDate) {
         const eventStart = e.eventDate.getTime();
-        const durationHours = Number(e.durationHours) || 0;
-        const eventEnd = eventStart + durationHours * 60 * 60 * 1000; // Calculate event end time
+        const eventEnd = eventStart + 3 * 60 * 60 * 1000; // TODO: get eventEnd from winning day!
 
         if (now >= eventStart && now <= eventEnd) {
             return 'in progress';
@@ -336,11 +329,9 @@ export default function HomeScreen() {
     const [createTitle, setCreateTitle] = useState('');
     const [createDesc, setCreateDesc] = useState('');
     const [createLoc, setCreateLoc] = useState('');
-    const [createDurationHours, setCreateDurationHours] = useState<string>('1');
-    const [createDurationMinutes, setCreateDurationMinutes] = useState<string>('00');
+
 
     // Step2
-    const [createDuration, setCreateDuration] = useState('');
     const [createDays, setCreateDays] = useState<SingleDay[]>([]);
 
     // AddDay Modal
@@ -376,7 +367,6 @@ export default function HomeScreen() {
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [editLoc, setEditLoc] = useState('');
-    const [editDuration, setEditDuration] = useState('');
     const [editDays, setEditDays] = useState<SingleDay[]>([]);
     const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
@@ -411,7 +401,6 @@ export default function HomeScreen() {
         setCreateTitle(''); // Clear the event title
         setCreateDesc(''); // Clear the event description
         setCreateLoc(''); // Clear the event location
-        setCreateDuration(''); // Clear the duration input (string expected)
         setCreateDays([]); // Clear the days array
         setInvitees([]); // Reset the list of invitees
         setTypedInvite(''); // Clear the typed invite input
@@ -717,7 +706,6 @@ export default function HomeScreen() {
         setEditTitle(e.title || '');
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
-        setEditDuration(e.durationHours || ''); // Pass durationHours as a string
         setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
         setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
@@ -1140,12 +1128,6 @@ export default function HomeScreen() {
                                                                         </Text>
                                                                     </View>
                                                                 )}
-                                                                <View style={styles.detailRow}>
-                                                                    <Text style={styles.detailLabel}>Duration:</Text>
-                                                                    <Text style={styles.detailValue}>
-                                                                        {`${selectedEvent.durationHours || 'N/A'} hours`}
-                                                                    </Text>
-                                                                </View>
                                                             </View>
 
                                                             {/* Participants Preview */}
@@ -1481,12 +1463,7 @@ export default function HomeScreen() {
                                         </View>
 
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
-                                            {/* Duration Selection */}
-                                            <View style={styles.fieldContainer}>
-                                                <Text style={styles.modalLabel}>
-                                                    Duration: <Text style={styles.durationText}>{selectedEvent?.durationHours || 'N/A'} hours</Text>
-                                                </Text>
-                                            </View>
+
 
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
@@ -1640,89 +1617,11 @@ export default function HomeScreen() {
                                                 accessibilityLabel="Event Location"
                                             />
                                         </View>
-
-                                        {/* Event Duration Section */}
-                                        <View style={styles.sectionContainer}>
-                                            <MaterialIcons name="timer" size={24} color="#4CAF50" style={styles.sectionIcon} />
-                                            <Text style={styles.label}>Event Duration</Text>
-                                        </View>
-
-                                        {/* Duration Inputs */}
-                                        <View style={styles.durationContainer}>
-                                            {/* Hours */}
-                                            <View style={styles.durationUnitContainer}>
-                                                <Text style={styles.durationLabel}>Hours</Text>
-                                                <View style={styles.stepperContainer}>
-                                                    <TouchableOpacity
-                                                        style={styles.stepperButton}
-                                                        onPress={() => {
-                                                            const current = parseInt(createDurationHours || '1', 10); // Ensure createDurationHours is a string
-                                                            const newHours = current > 0 ? (current - 1).toString() : '0'; // Minimum hours should be 1
-                                                            setCreateDurationHours(newHours);
-
-                                                        }}
-                                                        accessible={true}
-                                                        accessibilityLabel="Decrease hours"
-                                                    >
-                                                        <MaterialIcons name="remove" size={24} color="#fff" />
-                                                    </TouchableOpacity>
-                                                    <Text style={styles.stepperText}>{createDurationHours}</Text>
-                                                    <TouchableOpacity
-                                                        style={styles.stepperButton}
-                                                        onPress={() => {
-                                                            const current = parseInt(createDurationHours) || 0;
-                                                            const newHours = (current + 1).toString();
-                                                            setCreateDurationHours(newHours);
-                                                        }}
-                                                        accessible={true}
-                                                        accessibilityLabel="Increase hours"
-                                                    >
-                                                        <MaterialIcons name="add" size={24} color="#fff" />
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
-
-                                            {/* Minutes */}
-                                            <View style={styles.durationUnitContainer}>
-                                                <Text style={styles.durationLabel}>Minutes</Text>
-                                                <View style={styles.stepperContainer}>
-                                                    <TouchableOpacity
-                                                        style={styles.stepperButton}
-                                                        onPress={() => {
-                                                            let current = parseInt(createDurationMinutes) || 0;
-                                                            const newMinutes = current >= 5 ? (current - 5).toString().padStart(2, '0') : '00';
-                                                            setCreateDurationMinutes(newMinutes);
-                                                        }}
-                                                        accessible={true}
-                                                        accessibilityLabel="Decrease minutes"
-                                                    >
-                                                        <MaterialIcons name="remove" size={24} color="#fff" />
-                                                    </TouchableOpacity>
-                                                    <Text style={styles.stepperText}>{createDurationMinutes}</Text>
-                                                    <TouchableOpacity
-                                                        style={styles.stepperButton}
-                                                        onPress={() => {
-                                                            let current = parseInt(createDurationMinutes) || 0;
-                                                            const newMinutes = current < 55 ? (current + 5).toString().padStart(2, '0') : '60';
-                                                            setCreateDurationMinutes(newMinutes === '60' ? '00' : newMinutes);
-                                                            if (newMinutes === '60') {
-                                                                const newHours = (parseInt(createDurationHours) || 0) + 1;
-                                                                setCreateDurationHours(newHours.toString());
-                                                            }
-                                                        }}
-                                                        accessible={true}
-                                                        accessibilityLabel="Increase minutes"
-                                                    >
-                                                        <MaterialIcons name="add" size={24} color="#fff" />
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </View>
-                                        </View>
                                     </>
                                 )}
 
 
-                                {/* Step2 Duration + Days */}
+                                {/* Step2 Days */}
                                 {createStep === 2 && (
                                     <>
                                         {/* Days Selection Section */}
@@ -1984,7 +1883,7 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Start Time</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -1994,7 +1893,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Set to false for 24-hour format
                                     });
-                                    setTempStart(hhmm);
+                                    setTempStart(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2009,6 +1908,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempStart(tempStart); // Save selected time to main state
                                         setPickStartModalVisible(false);
                                         setAddDayModalVisible(true);
                                     }}
@@ -2018,13 +1918,14 @@ export default function HomeScreen() {
                     </View>
                 </Modal>
 
+
                 {/* PICK END TIME (CREATE) */}
                 <Modal visible={pickEndModalVisible} transparent animationType="fade">
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick End Time</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -2034,7 +1935,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempEnd(hhmm);
+                                    setTempEnd(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2049,6 +1950,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempEnd(tempEnd); // Save selected time to main state
                                         setPickEndModalVisible(false);
                                         setAddDayModalVisible(true);
                                     }}
@@ -2057,6 +1959,7 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 </Modal>
+
 
                 {/* VOTING PICKER CREATE */}
                 <Modal visible={votingPickerVisible} transparent animationType="fade">
@@ -2132,87 +2035,6 @@ export default function HomeScreen() {
                                                     accessible={true}
                                                     accessibilityLabel="Event Location"
                                                 />
-                                            </View>
-
-                                            {/* Event Duration Section */}
-                                            <View style={styles.sectionContainer}>
-                                                <MaterialIcons name="timer" size={24} color="#4CAF50" style={styles.sectionIcon} />
-                                                <Text style={styles.label}>Event Duration</Text>
-                                            </View>
-
-                                            {/* Duration Inputs 
-                                        TODO: add reader for current time
-                                        value={editDuration}
-                                        onChangeText={setEditDuration}
-                                        */}
-                                            <View style={styles.durationContainer}>
-                                                {/* Hours */}
-                                                <View style={styles.durationUnitContainer}>
-                                                    <Text style={styles.durationLabel}>Hours</Text>
-                                                    <View style={styles.stepperContainer}>
-                                                        <TouchableOpacity
-                                                            style={styles.stepperButton}
-                                                            onPress={() => {
-                                                                const current = parseInt(createDurationHours) || 1;
-                                                                const newHours = current > 0 ? (current - 1).toString() : '0';
-                                                                setCreateDurationHours(newHours);
-                                                            }}
-                                                            accessible={true}
-                                                            accessibilityLabel="Decrease hours"
-                                                        >
-                                                            <MaterialIcons name="remove" size={24} color="#fff" />
-                                                        </TouchableOpacity>
-                                                        <Text style={styles.stepperText}>{createDurationHours}</Text>
-                                                        <TouchableOpacity
-                                                            style={styles.stepperButton}
-                                                            onPress={() => {
-                                                                const current = parseInt(createDurationHours) || 0;
-                                                                const newHours = (current + 1).toString();
-                                                                setCreateDurationHours(newHours);
-                                                            }}
-                                                            accessible={true}
-                                                            accessibilityLabel="Increase hours"
-                                                        >
-                                                            <MaterialIcons name="add" size={24} color="#fff" />
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                </View>
-
-                                                {/* Minutes */}
-                                                <View style={styles.durationUnitContainer}>
-                                                    <Text style={styles.durationLabel}>Minutes</Text>
-                                                    <View style={styles.stepperContainer}>
-                                                        <TouchableOpacity
-                                                            style={styles.stepperButton}
-                                                            onPress={() => {
-                                                                let current = parseInt(createDurationMinutes) || 0;
-                                                                const newMinutes = current >= 5 ? (current - 5).toString().padStart(2, '0') : '00';
-                                                                setCreateDurationMinutes(newMinutes);
-                                                            }}
-                                                            accessible={true}
-                                                            accessibilityLabel="Decrease minutes"
-                                                        >
-                                                            <MaterialIcons name="remove" size={24} color="#fff" />
-                                                        </TouchableOpacity>
-                                                        <Text style={styles.stepperText}>{createDurationMinutes}</Text>
-                                                        <TouchableOpacity
-                                                            style={styles.stepperButton}
-                                                            onPress={() => {
-                                                                let current = parseInt(createDurationMinutes) || 0;
-                                                                const newMinutes = current < 55 ? (current + 5).toString().padStart(2, '0') : '60';
-                                                                setCreateDurationMinutes(newMinutes === '60' ? '00' : newMinutes);
-                                                                if (newMinutes === '60') {
-                                                                    const newHours = (parseInt(createDurationHours) || 0) + 1;
-                                                                    setCreateDurationHours(newHours.toString());
-                                                                }
-                                                            }}
-                                                            accessible={true}
-                                                            accessibilityLabel="Increase minutes"
-                                                        >
-                                                            <MaterialIcons name="add" size={24} color="#fff" />
-                                                        </TouchableOpacity>
-                                                    </View>
-                                                </View>
                                             </View>
                                         </>
                                     )}
@@ -2475,7 +2297,7 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Start Time (Edit)</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()} // Use tempStartEdit or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -2485,7 +2307,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempStartEdit(hhmm);
+                                    setTempStartEdit(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2500,6 +2322,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempStartEdit(tempStartEdit); // Save selected time to main state
                                         setPickStartModalEditVisible(false);
                                         setAddDayModalVisibleEdit(true);
                                     }}
@@ -2509,13 +2332,14 @@ export default function HomeScreen() {
                     </View>
                 </Modal>
 
+
                 {/* PICK END TIME (EDIT) */}
                 <Modal visible={pickEndModalEditVisible} transparent animationType="fade">
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick End Time (Edit)</Text>
                             <DateTimePicker
-                                value={new Date()}
+                                value={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()} // Use tempEndEdit or fallback to current time
                                 mode="time"
                                 display="spinner"
                                 onChange={(ev, sel) => {
@@ -2525,7 +2349,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempEndEdit(hhmm);
+                                    setTempEndEdit(hhmm); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2540,6 +2364,7 @@ export default function HomeScreen() {
                                 <Button
                                     title="Save"
                                     onPress={() => {
+                                        setTempEndEdit(tempEndEdit); // Save selected time to main state
                                         setPickEndModalEditVisible(false);
                                         setAddDayModalVisibleEdit(true);
                                     }}
@@ -2548,6 +2373,7 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 </Modal>
+
 
                 {/* VOTING date/time PICKER EDIT */}
                 <Modal visible={votingPickerEditVisible} transparent animationType="fade">

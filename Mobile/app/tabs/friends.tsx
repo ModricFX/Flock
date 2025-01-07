@@ -16,7 +16,6 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 
 /* IMPORT STYLES */
-
 import styles from '../styles/FriendsPageStyles';
 
 interface Friend {
@@ -24,6 +23,7 @@ interface Friend {
     username: string;
     pfp: string;
     email: string;
+    status: 'accepted' | 'pending';
 }
 
 export default function Friends() {
@@ -34,18 +34,21 @@ export default function Friends() {
             username: 'JohnDoe',
             pfp: 'https://i.pravatar.cc/100?img=12',
             email: 'johndoe@gmail.com',
+            status: 'accepted',
         },
         {
             id: '2',
             username: 'JaneSmith',
             pfp: 'https://i.pravatar.cc/100?img=28',
             email: 'janesmith@gmail.com',
+            status: 'accepted',
         },
         {
             id: '3',
             username: 'ModricFX',
             pfp: 'https://i.pravatar.cc/100?img=36',
             email: 'modricfx@gmail.com',
+            status: 'pending',
         },
     ]);
 
@@ -67,19 +70,45 @@ export default function Friends() {
         setSelectedFriend(null);
     };
 
-    // Handle adding a friend
+    // Handle ACCEPT (change status to 'accepted')
+    const handleAcceptFriend = (friendId: string) => {
+        setFriends((prev) =>
+            prev.map((f) =>
+                f.id === friendId ? { ...f, status: 'accepted' } : f
+            )
+        );
+        setSelectedFriend(null);
+    };
+
+    // Handle DENY (remove from list)
+    const handleDenyFriend = (friendId: string) => {
+        setFriends((prev) => prev.filter((f) => f.id !== friendId));
+        setSelectedFriend(null);
+    };
+
+    // Handle adding a friend -> new friends start in "pending"
     const handleAddFriend = () => {
         if (!newFriendUsername.trim()) return;
+
         const newFriend: Friend = {
             id: Math.random().toString(),
             username: newFriendUsername,
             pfp: 'https://i.pravatar.cc/100?img=60', // Or some default image
             email: newFriendUsername + '@gmail.com', // Or some default email
+            status: 'pending', // newly added friend is pending
         };
+
         setFriends((prev) => [newFriend, ...prev]);
         setNewFriendUsername('');
         setIsAddModalVisible(false);
     };
+
+    // Sort friends so 'accepted' are on top and 'pending' at the bottom
+    const sortedFriends = [...friends].sort((a, b) => {
+        if (a.status === 'accepted' && b.status === 'pending') return -1;
+        if (a.status === 'pending' && b.status === 'accepted') return 1;
+        return 0;
+    });
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -91,7 +120,7 @@ export default function Friends() {
 
                 {/* Friends List */}
                 <ScrollView contentContainerStyle={styles.scrollContent}>
-                    {friends.map((friend) => (
+                    {sortedFriends.map((friend) => (
                         <TouchableOpacity
                             key={friend.id}
                             style={styles.friendCard}
@@ -100,7 +129,10 @@ export default function Friends() {
                             <Image source={{ uri: friend.pfp }} style={styles.friendPfp} />
                             <View style={styles.friendInfo}>
                                 <Text style={styles.friendUsername}>{friend.username}</Text>
-                                <Text style={styles.friendStatus}>{friend.email}</Text>
+                                {/* If status is pending, show "Pending", else show the email */}
+                                <Text style={styles.friendStatus}>
+                                    {friend.status === 'pending' ? 'Pending' : friend.email}
+                                </Text>
                             </View>
                             <MaterialIcons name="chevron-right" size={24} color="#999" />
                         </TouchableOpacity>
@@ -138,19 +170,46 @@ export default function Friends() {
                                             source={{ uri: selectedFriend.pfp }}
                                             style={styles.modalPfp}
                                         />
-                                        <Text style={styles.modalUsername}>{selectedFriend.username}</Text>
-                                        <Text style={styles.modalStatus}>E-mail: {selectedFriend.email}</Text>
+                                        <Text style={styles.modalUsername}>
+                                            {selectedFriend.username}
+                                        </Text>
+                                        <Text style={styles.modalStatus}>
+                                            E-mail: {selectedFriend.email}
+                                        </Text>
 
                                         <View style={styles.modalActions}>
-                                            <Button
-                                                title="Remove Friend"
-                                                color="red"
-                                                onPress={() => handleRemoveFriend(selectedFriend.id)}
-                                            />
-                                            <Button
-                                                title="Close"
-                                                onPress={() => setSelectedFriend(null)}
-                                            />
+                                            {/* If friend is pending, show Accept/Deny; otherwise Remove/Close */}
+                                            {selectedFriend.status === 'pending' ? (
+                                                <>
+                                                    <Button
+                                                        title="Deny"
+                                                        color="red"
+                                                        onPress={() =>
+                                                            handleDenyFriend(selectedFriend.id)
+                                                        }
+                                                    />
+                                                    <Button
+                                                        title="Accept"
+                                                        onPress={() =>
+                                                            handleAcceptFriend(selectedFriend.id)
+                                                        }
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        title="Remove Friend"
+                                                        color="red"
+                                                        onPress={() =>
+                                                            handleRemoveFriend(selectedFriend.id)
+                                                        }
+                                                    />
+                                                    <Button
+                                                        title="Close"
+                                                        onPress={() => setSelectedFriend(null)}
+                                                    />
+                                                </>
+                                            )}
                                         </View>
                                     </>
                                 )}
