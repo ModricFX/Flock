@@ -143,26 +143,51 @@ public class EventRepository : IEventRepository
     }
 
 
-    public async Task<int> UpdateEvent(Event @event)
+    public async void UpdateEvent(Event @event)
     {
         var query = @"
             UPDATE `event`
             SET 
-                `id_event` = @Id_event, 
                 `name` = @Name, 
                 `description` = @Description, 
                 `location` = @Location, 
                 `end_voting_date` = @End_voting_date, 
                 `chosen_date_start` = @Chosen_date_start, 
                 `chosen_date_end` = @Chosen_date_end, 
-                `date_updated` = @Date_updated);
+                `date_updated` = @Date_updated,
+                `sysrowstate` = @SysRowState
             WHERE `id_event` = @Id_event;
         ";
 
         using (var connection = _context.CreateConnection())
         {
-            var id = await connection.ExecuteAsync(query, @event);
-            return id;
+            await connection.ExecuteAsync(query, @event);
+        }
+    }
+
+    public async void UpdateDateOption(DateOption option)
+    {
+        var query = @"
+            UPDATE `date_option`
+            SET 
+                `date_start` = @DateStart, 
+                `date_end` = @DateEnd 
+            WHERE `id_date_option` = @Id_date_option;
+        ";
+
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, option);
+        }
+    }
+
+    public async void AddTag(string event_id, string tag_id)
+    {
+        var query = "INSERT INTO `categorizes_as` (`id_event`, `id_tag`) VALUES(@Id_event, @Id_tag);";
+
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, new {Id_event = event_id, Id_tag = tag_id});
         }
     }
 
@@ -175,5 +200,16 @@ public class EventRepository : IEventRepository
             await connection.ExecuteAsync(query, new { Id = id });
         }
     }
+    
+    public async void DeleteDateOption(string id)
+    {
+        var query = "DELETE FROM `date_option` WHERE `id_date_option` = @Id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, new { Id = id });
+        }
+    }
+    
 }
 

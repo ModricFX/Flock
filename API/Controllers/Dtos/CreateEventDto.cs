@@ -10,4 +10,5 @@ public class CreateEventDto
     public string Id_user { get; set; }
     
     public CreateDateOptionDto[] Date_options { get; set; }
+    public int[] Tag_ids { get; set; }
 }

@@ -54,7 +54,12 @@ namespace flock.Controllers
                     
                     _ = await _eventRepository.CreateDateOption(opt);
                 }
-                
+
+                foreach (var tagId in request.Tag_ids)
+                {
+                    _eventRepository.AddTag(event_id.ToString(), tagId.ToString());
+                }
+
                 return Ok("Success, event id:" + event_id);
             }
             catch (Exception e)
@@ -68,10 +73,62 @@ namespace flock.Controllers
             Description = "Updates the event resource."
         )]
         [HttpPut()]
-        public async Task<IActionResult> Update(CreateEventDto request)
+        public async Task<IActionResult> Update(EventDto request)
         {
-           // TODO: Implement (make sure to check if a user is authorized to update the event)
-           throw new NotImplementedException();
+            try
+            {
+                Event current_event = await _eventRepository.GetEventById(request.Id_event.ToString());
+
+                if (current_event.Id_user != request.Id_user)
+                {
+                    return Unauthorized();
+                }
+
+                current_event.Name = request.Name;
+                current_event.Description = request.Description;
+                current_event.Location = request.Location;
+                current_event.End_voting_date = request.End_voting_date;
+                current_event.Chosen_date_start = request.Chosen_date_start;
+                current_event.Chosen_date_end = request.Chosen_date_end;
+                current_event.Date_updated = DateTime.UtcNow;
+                current_event.SysRowState = request.SysRowState;
+
+                _eventRepository.UpdateEvent(current_event);
+
+                current_event.Date_options.RemoveAll(x =>
+                    request.Date_options.Any(y => y.Id_date_option == x.Id_date_option));
+
+                foreach (var opt in current_event.Date_options)
+                {
+                    _eventRepository.DeleteDateOption(opt.Id_date_option.ToString());
+                }
+
+                foreach (var dateOption in request.Date_options)
+                {
+                    DateOption transformed_date_option = new DateOption
+                    {
+                        Id_date_option = dateOption.Id_date_option,
+                        Id_event = current_event.Id_event,
+                        DateStart = dateOption.DateStart,
+                        DateEnd = dateOption.DateEnd,
+                    };
+
+                    if (dateOption.Id_date_option == 0)
+                    {
+                        await _eventRepository.CreateDateOption(transformed_date_option);
+
+                        continue;
+                    }
+                    
+                    _eventRepository.UpdateDateOption(transformed_date_option);
+                }
+
+                return Ok("Success");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [SwaggerOperation(

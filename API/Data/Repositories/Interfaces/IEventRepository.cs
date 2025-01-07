@@ -9,6 +9,9 @@ public interface IEventRepository
     Task<User> GetUserById(string id);
     Task<int> CreateEvent(Event user);
     Task<int> CreateDateOption(DateOption opt);
-    Task<int> UpdateEvent(Event user);
+    void UpdateEvent(Event ev);
+    void UpdateDateOption(DateOption option);
+    void AddTag(string event_id, string tag_id);
     void DeleteEvent(string id);
+    void DeleteDateOption(string id);
 }

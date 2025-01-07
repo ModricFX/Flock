@@ -21,4 +21,5 @@ public class Event
     public int SysRowState { get; set; }
     
     public List<DateOption> Date_options { get; set; }
+    public List<Tag> Tags { get; set; }
 }
