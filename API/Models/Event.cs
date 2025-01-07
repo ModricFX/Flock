@@ -15,6 +15,9 @@ public class Event
     public DateTime Date_created { get; set; }
     public DateTime Date_updated { get; set; }
     public DateTime End_voting_date { get; set; }
+    
+    public DateTime Chosen_date_start { get; set; }
+    public DateTime Chosen_date_end { get; set; }
     public int SysRowState { get; set; }
 
 
