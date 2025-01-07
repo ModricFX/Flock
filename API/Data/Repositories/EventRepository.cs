@@ -15,24 +15,79 @@ public class EventRepository : IEventRepository
 
     public async Task<Event> GetEventById(string id)
     {
-        var query = "SELECT * FROM `event` WHERE `id_event` = @Id";
+        var query = @"
+        SELECT e.*, d.*
+        FROM `event` e
+        LEFT JOIN `date_option` d ON e.id_event = d.id_event
+        WHERE e.`id_event` = @Id";
 
         using (var connection = _context.CreateConnection())
         {
-            return await connection.QueryFirstOrDefaultAsync<Event>(query, new { Id = id });
+            var eventDictionary = new Dictionary<int, Event>();
+
+            var eventWithDateOptions = await connection.QueryAsync<Event, DateOption, Event>(
+                query,
+                (eventObj, dateOption) =>
+                {
+                    if (!eventDictionary.TryGetValue(eventObj.Id_event, out var eventEntry))
+                    {
+                        eventEntry = eventObj;
+                        eventEntry.Date_options = new List<DateOption>();
+                        eventDictionary.Add(eventEntry.Id_event, eventEntry);
+                    }
+
+                    if (dateOption != null)
+                    {
+                        eventEntry.Date_options.Add(dateOption);
+                    }
+
+                    return eventEntry;
+                },
+                new { Id = id },
+                splitOn: "Id_date_option"
+            );
+
+            return eventWithDateOptions.FirstOrDefault();
         }
     }
 
     public async Task<List<Event>> GetAllEvents()
     {
-        var query = "SELECT * FROM `event` WHERE `sysrowstate` = 1";
+        var query = @"
+        SELECT e.*, d.*
+        FROM `event` e
+        LEFT JOIN `date_option` d ON e.id_event = d.id_event
+        WHERE e.`sysrowstate` = 1";
 
         using (var connection = _context.CreateConnection())
         {
-            var events = await connection.QueryAsync<Event>(query);
-            return events.ToList();
+            var eventDictionary = new Dictionary<int, Event>();
+
+            var events = await connection.QueryAsync<Event, DateOption, Event>(
+                query,
+                (eventObj, dateOption) =>
+                {
+                    if (!eventDictionary.TryGetValue(eventObj.Id_event, out var eventEntry))
+                    {
+                        eventEntry = eventObj;
+                        eventEntry.Date_options = new List<DateOption>();
+                        eventDictionary.Add(eventEntry.Id_event, eventEntry);
+                    }
+
+                    if (dateOption != null)
+                    {
+                        eventEntry.Date_options.Add(dateOption);
+                    }
+
+                    return eventEntry;
+                },
+                splitOn: "Id_date_option"
+            );
+
+            return events.Distinct().ToList();
         }
     }
+
 
     public async Task<User> GetUserById(string id)
     {
@@ -94,11 +149,12 @@ public class EventRepository : IEventRepository
             UPDATE `event`
             SET 
                 `id_event` = @Id_event, 
-                `icon_url` = @Icon_url, 
                 `name` = @Name, 
                 `description` = @Description, 
                 `location` = @Location, 
-                `date_created` = @Date_created, 
+                `end_voting_date` = @End_voting_date, 
+                `chosen_date_start` = @Chosen_date_start, 
+                `chosen_date_end` = @Chosen_date_end, 
                 `date_updated` = @Date_updated);
             WHERE `id_event` = @Id_event;
         ";

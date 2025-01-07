@@ -19,7 +19,6 @@ public class Event
     public DateTime Chosen_date_start { get; set; }
     public DateTime Chosen_date_end { get; set; }
     public int SysRowState { get; set; }
-
-
-    // TODO: Add support for defining available event schedules
+    
+    public List<DateOption> Date_options { get; set; }
 }
