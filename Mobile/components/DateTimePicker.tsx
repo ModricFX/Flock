@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View } from 'react-native';
+import { Modal, View, Platform } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import styles from '../app/styles/HomePageStyles';
 
@@ -18,6 +18,7 @@ const DateTimePickerComponent: React.FC<DateTimePickerComponentProps> = ({ visib
                 <DateTimePickerModal
                     isVisible={true}
                     mode={mode}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     date={date}
                     onConfirm={onConfirm}
                     onCancel={onCancel}
