@@ -466,6 +466,15 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
+        // Check if `EndVoting` is in the future
+        const currentTime = new Date();
+        const endVotingTime = new Date(endVotingDate);
+
+        if (endVotingTime <= currentTime) {
+            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            return;
+        }
+
         const newEvt: EventData = {
             id: Math.random().toString(),
             createdBy: currentUser?.id || 'unknown',
@@ -572,8 +581,21 @@ export default function HomeScreen() {
             })
         );
     };
-
+    // Convert time strings to comparable numbers (e.g., "10:00" -> 1000)
+    const convertTimeToNumber = (time: string) => {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 100 + minutes;
+    };
     function handleSaveDayCreate() {
+        // Check if end time is smaller than start time
+        const startTimeNumber = convertTimeToNumber(tempStart);
+        const endTimeNumber = convertTimeToNumber(tempEnd);
+
+        if (endTimeNumber < startTimeNumber) {
+            alert("End time cannot be earlier than start time. Please correct the time.");
+            return; // Exit the function to prevent saving invalid data
+        }
+
         if (tempDayIndex !== null) {
             // edit
             const copy = [...createDays];
@@ -604,6 +626,14 @@ export default function HomeScreen() {
         setAddDayModalVisible(false);
         setPickDateModalVisible(true);
     }
+
+    function openPickDateEdit() {
+        // close Day modal, open date modal
+        setAddDayModalVisibleEdit(false);
+        setPickDateModalEditVisible(true);
+    }
+
+
     function closePickDate() {
         setPickDateModalVisible(false);
         setAddDayModalVisible(true);
@@ -623,6 +653,16 @@ export default function HomeScreen() {
     function openPickEndTime() {
         setAddDayModalVisible(false);
         setPickEndModalVisible(true);
+    }
+
+    function openPickStartTimeEdit() {
+        setAddDayModalVisibleEdit(false);
+        setPickStartModalEditVisible(true);
+    }
+
+    function openPickEndTimeEdit() {
+        setAddDayModalVisibleEdit(false);
+        setPickEndModalEditVisible(true);
     }
 
     /* Step3 create -> invites */
@@ -737,6 +777,16 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
+
+        // Check if `editEndVoting` is in the future
+        const currentTime = new Date();
+        const endVotingTime = new Date(editEndVoting);
+
+        if (endVotingTime <= currentTime) {
+            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            return;
+        }
+
         const updated: EventData = {
             ...editEvent,
             title: editTitle,
@@ -775,7 +825,18 @@ export default function HomeScreen() {
         setAddDayModalVisibleEdit(false);
         setEditModalVisible(true);
     }
+
     function handleSaveDayEdit() {
+        // Check if end time is smaller than start time
+        const startTimeNumber = convertTimeToNumber(tempStartEdit);
+        const endTimeNumber = convertTimeToNumber(tempEndEdit);
+
+        if (endTimeNumber < startTimeNumber) {
+            alert("End time cannot be earlier than start time. Please correct the time.");
+            return; // Exit the function to prevent saving invalid data
+        }
+
+        // Proceed with saving data if validation passes
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
@@ -785,10 +846,16 @@ export default function HomeScreen() {
             };
             setEditDays(copy);
         } else {
-            setEditDays(prev => [...prev, { date: tempDateEdit, start: tempStartEdit, end: tempEndEdit }]);
+            setEditDays((prev) => [
+                ...prev,
+                { date: tempDateEdit, start: tempStartEdit, end: tempEndEdit },
+            ]);
         }
+
         closeAddDayModalEdit();
     }
+
+
     function removeDayEdit(i: number) {
         Alert.alert('Remove Day', 'Are you sure?', [
             { text: 'Cancel', style: 'cancel' },
@@ -2191,7 +2258,7 @@ export default function HomeScreen() {
                                 {/* Header */}
                                 <View style={styles.modalHeader}>
                                     <Text style={styles.modalTitle}>
-                                        {tempDayIndex !== null ? 'Edit Day' : 'Add Day'}
+                                        {tempDayIndexEdit !== null ? 'Edit Day' : 'Add Day'}
                                     </Text>
                                     <TouchableOpacity onPress={closeAddDayModalEdit}>
                                         <MaterialIcons name="close" size={24} color="#333" />
@@ -2204,8 +2271,8 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Date</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{formatDay(tempDate)}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDate}>
+                                            <Text style={styles.valueText}>{formatDay(tempDateEdit)}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDateEdit}>
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
                                             </TouchableOpacity>
@@ -2216,8 +2283,8 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempStart}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
+                                            <Text style={styles.valueText}>{tempStartEdit}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTimeEdit}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
                                             </TouchableOpacity>
@@ -2228,8 +2295,8 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempEnd}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
+                                            <Text style={styles.valueText}>{tempEndEdit}</Text>
+                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTimeEdit}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
                                             </TouchableOpacity>
@@ -2242,11 +2309,11 @@ export default function HomeScreen() {
                                     <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalEdit}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndex !== null && (
+                                    {tempDayIndexEdit !== null && (
                                         <TouchableOpacity
                                             style={styles.removeButton}
                                             onPress={() => {
-                                                removeDayEdit(tempDayIndex);
+                                                removeDayEdit(tempDayIndexEdit);
                                                 closeAddDayModalEdit();
                                             }}
                                         >
