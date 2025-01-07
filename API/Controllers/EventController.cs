@@ -9,7 +9,7 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    
+    [Authorize]
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
@@ -113,11 +113,14 @@ namespace flock.Controllers
             Description = "Deletes the event resource."
         )]
         [HttpDelete()]
-        public async Task<IActionResult> Delete(string id)
+        public async Task<IActionResult> Delete(DeleteEventDto eventDeletion, string user_id)
         {
             try
             {
-                _eventRepository.DeleteEvent(id);
+                if(eventDeletion.Id_user != user_id)
+                    return Unauthorized();
+                
+                _eventRepository.DeleteEvent(eventDeletion.Id_event);
                 return Ok("Success");
 
             }
