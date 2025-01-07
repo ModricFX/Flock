@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
 
+
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -13,7 +15,7 @@ const HomePage: React.FC = () => {
         if (homeTypo) {
           homeTypo.style.transition = "opacity 0.3s ease-in";
           homeTypo.style.opacity = "1";
-          homeTypo.innerHTML = "FLOCK";
+          homeTypo.innerHTML = '<img src="flock-logo-bel.svg" alt="Flock Logo" style="width: 150px; height: auto; margin-top: 10px;" />';
         }
       } else {
         if (homeTypo) {
@@ -42,12 +44,9 @@ const HomePage: React.FC = () => {
     <>
       {/* Hero Section */}
       <Box id="home-box" style={styles.heroSection}>
-        <Typography variant="h1" noWrap style={styles.title}>
-          FLOCK
-        </Typography>
-        <Typography variant="h4" noWrap style={styles.subtitle}>
-          A new way to make plans
-        </Typography>
+        <div>
+          <img src="/flock-logo-bel.svg" alt="FLOCK Logo" style={{ marginBottom: '20px' }} />
+        </div>
         <Box style={styles.buttonGroup}>
           <Button variant="contained" style={styles.signUpButton} onClick={handleSignUp}>
             Sign Up

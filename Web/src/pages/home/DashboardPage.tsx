@@ -1,6 +1,8 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import InfoIcon from '@mui/icons-material/Info';
 import {
+  Avatar,
+  Chip,
   Container,
   Drawer,
   Paper,
@@ -19,8 +21,10 @@ import {
   ListItemIcon,
   Toolbar,
   InputAdornment,
-
+  IconButton,
 } from "@mui/material";
+import { format } from 'date-fns';
+
 
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { authService } from '../../services/authservice';
@@ -31,6 +35,8 @@ import LocationOnIcon from "@mui/icons-material/LocationOn"; //ikona za lokation
 import TimerIcon from "@mui/icons-material/Timer"; // Ikona za timer (ura)
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";// Ikona za datum (ura)
 import AccessTimeIcon from "@mui/icons-material/AccessTime";// Ikona za uro
+import PersonAddIcon from '@mui/icons-material/PersonAdd'; //ikona za dodajanje oseb
+import CloseIcon from '@mui/icons-material/Close';
 
 import { DesktopDateTimePicker } from "@mui/x-date-pickers/DesktopDateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -53,6 +59,11 @@ interface Event {
   days?: { date: string; startTime: string; endTime: string }[]; 
 }
 
+interface Friend {
+  name: string;
+  email: string;
+}
+
 const DashboardPage: React.FC = () => {
 
   const [openDialog, setOpenDialog] = useState(false); // State to manage dialog visibility
@@ -62,6 +73,14 @@ const DashboardPage: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [votingDate, setVotingDate] = useState<Date | null>(null); 
   const [editEventIndex, setEditEventIndex] = useState<number | null>(null);
+  const [username, setUsername] = useState<string>('');
+  const [invitedUsers, setInvitedUsers] = useState<Friend[]>([]);
+  const exampleFriends: Friend[] = [
+    { name: 'Alice', email: 'alice@example.com' },
+    { name: 'Bob', email: 'bob@example.com' },
+    { name: 'Jane', email: 'jane@example.com' }
+  ];
+  
   const [newEvent, setNewEvent] = useState<Event>({
     title: "",
     startDate: "",
@@ -75,9 +94,19 @@ const DashboardPage: React.FC = () => {
     StartMinute: 0,
     DeadlineDate: "",
     DeadlineTime: "",
-
-    
   });
+
+  const handleAddUser = (friend: Friend) => {
+    if (friend.name.trim() && !invitedUsers.some(user => user.email === friend.email)) {
+      setInvitedUsers([...invitedUsers, friend]);
+      setUsername('');
+    }
+  };
+
+  const handleRemoveUser = (index: number) => {
+    const updatedUsers = invitedUsers.filter((_, i) => i !== index);
+    setInvitedUsers(updatedUsers);
+  };
 
  // Handle opening the dialog
   const handleOpenDialog = () => {
@@ -92,6 +121,11 @@ const DashboardPage: React.FC = () => {
    // Handle change in DateTimePicker
    const handleDateTimeChange = (newDate: Date | null) => {
     setVotingDate(newDate);
+  };
+
+  const handleRemoveDay = (index: number) => {
+    const updatedDays = newEvent.days?.filter((_, i) => i !== index) || [];
+    setNewEvent({ ...newEvent, days: updatedDays });
   };
 
   useEffect(() => {
@@ -153,7 +187,6 @@ const DashboardPage: React.FC = () => {
     setNewEvent({ ...newEvent, [type]: e.target.value });
   };
 
-
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, type: keyof Event): void => {
     setNewEvent({ ...newEvent, [type]: e.target.value });
   };
@@ -189,14 +222,14 @@ const DashboardPage: React.FC = () => {
 
   const [startTime, setStartTime] = useState<string>(""); // Shranjuje začetni čas
   const [endTime, setEndTime] = useState<string>(""); // Shranjuje končni čas
- const handleAddDay = (data: { date: string; startTime: string; endTime: string }) => {
-  if (data.date && data.startTime && data.endTime) {
-    setNewEvent((prevEvent) => ({
-      ...prevEvent,
-      days: [...(prevEvent.days || []), data], // Dodaj dan
-    }));
-  }
-};
+  const handleAddDay = (data: { date: string; startTime: string; endTime: string }) => {
+    if (data.date && data.startTime && data.endTime) {
+      setNewEvent((prevEvent) => ({
+        ...prevEvent,
+        days: [...(prevEvent.days || []), data], // Dodaj dan
+      }));
+    }
+  };
 
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
@@ -252,9 +285,8 @@ const DashboardPage: React.FC = () => {
       <Box sx={{ textAlign: "center", marginTop: 3 }}>
         <Button
           variant="contained"
-          color="primary"
+          sx={{ fontSize: 24, padding: "10px 20px", borderRadius: "50%", backgroundColor: '#4CAF50', color: '#fff' }}
           onClick={() => handleOpen()}
-          sx={{ fontSize: 24, padding: "10px 20px", borderRadius: "50%" }}
         >
           +
         </Button>
@@ -346,6 +378,9 @@ const DashboardPage: React.FC = () => {
                       primary={`Date: ${day.date}`}
                       secondary={`Start: ${day.startTime} | End: ${day.endTime}`}
                     />
+                    <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveDay(index)}>
+                    <CloseIcon style={{ color: '#ff6666' }} />
+                  </IconButton>
                   </ListItem>
                 ))}
               </List>
@@ -394,111 +429,82 @@ const DashboardPage: React.FC = () => {
               <DialogContent sx={{ padding: "24px" }}>
                 {/* Date Picker */}
                 <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
-                  <Box>
-                    <Typography>Date</Typography>
-                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
-                      {selectedDate ? selectedDate : "Pick a Date"}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<CalendarMonthIcon />}
+                  <Typography>Date</Typography>
+                  <TextField
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
                     sx={{
-                      backgroundColor: "#4CAF50",
-                      color: "#fff",
-                      textTransform: "none",
-                      "&:hover": { backgroundColor: "#388E3C" },
+                      marginLeft: 2,
+                      flexGrow: 1,
+                      maxWidth: '200px',
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                      },
                     }}
-                    onClick={() => {
-                      const datePicker = document.querySelector("#datePicker");
-                      if (datePicker) {
-                        (datePicker as HTMLElement).click(); // Open hidden date picker
-                      }
-                    }}
-                  >
-                    Pick Date
-                  </Button>
+                  />
                 </Box>
-
-                {/* Hidden Native Date Picker */}
-                <input
-                  id="datePicker"
-                  type="date"
-                  style={{ display: "none" }}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
 
                 {/* Start Time Picker */}
                 <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
-                  <Box>
-                    <Typography>Start Time</Typography>
-                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
-                      {startTime ? startTime : "Pick Start"}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<AccessTimeIcon />}
+                  <Typography>Start Time</Typography>
+                  <TextField
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
                     sx={{
-                      backgroundColor: "#4CAF50",
-                      color: "#fff",
-                      textTransform: "none",
-                      "&:hover": { backgroundColor: "#388E3C" },
+                      marginLeft: 2,
+                      flexGrow: 1,
+                      maxWidth: '200px',
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                      },
                     }}
-                    onClick={() => {
-                      const startTimePicker = document.querySelector("#startTimePicker");
-                      if (startTimePicker) {
-                        (startTimePicker as HTMLElement).click(); // Open hidden start time picker
-                      }
-                    }}
-                  >
-                    Pick Start
-                  </Button>
+                  />
                 </Box>
-
-                {/* Hidden Native Start Time Picker */}
-                <input
-                  id="startTimePicker"
-                  type="time"
-                  style={{ display: "none" }}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
 
                 {/* End Time Picker */}
                 <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
-                  <Box>
-                    <Typography>End Time</Typography>
-                    <Typography sx={{ fontSize: "1rem", color: "#555" }}>
-                      {endTime ? endTime : "Pick End"}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<AccessTimeIcon />}
+                  <Typography>End Time</Typography>
+                  <TextField
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
                     sx={{
-                      backgroundColor: "#4CAF50",
-                      color: "#fff",
-                      textTransform: "none",
-                      "&:hover": { backgroundColor: "#388E3C" },
+                      marginLeft: 2,
+                      flexGrow: 1,
+                      maxWidth: '200px',
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#4CAF50',
+                        },
+                      },
                     }}
-                    onClick={() => {
-                      const endTimePicker = document.querySelector("#endTimePicker");
-                      if (endTimePicker) {
-                        (endTimePicker as HTMLElement).click();
-                      }
-                    }}
-                  >
-                    Pick End
-                  </Button>
+                  />
                 </Box>
 
-                {/* Hidden Native End Time Picker */}
-                <input
-                  id="endTimePicker"
-                  type="time"
-                  style={{ display: "none" }}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
               </DialogContent>
               <DialogActions sx={{ justifyContent: "space-between", paddingBottom: "16px", paddingLeft: "20px", padding: "20px" }}>
                 <Button
@@ -544,11 +550,52 @@ const DashboardPage: React.FC = () => {
           </Box>
         )}
 
-
         {step === 3 && (
-          <Box>
-
-          </Box>
+          <>
+            <Box display="flex" alignItems="center">
+              <PersonAddIcon style={{ color: '#4CAF50' }}/>
+              <Typography variant="body1" style={{ marginLeft: 8 }}>
+                Invite Friends
+              </Typography>
+            </Box>
+            <Box display="flex" alignItems="center" marginTop={2}>
+              {exampleFriends.map((friend, index) => (
+                <Chip
+                  key={index}
+                  label={<Typography variant="body1" style={{ fontSize: '1rem' }}>{friend.name}</Typography>}
+                  onClick={() => handleAddUser(friend)}
+                  style={{ margin: 4 }}
+                />
+              ))}
+            </Box>
+            <Box display="flex" alignItems="center" marginTop={2} width="100%" padding={2}>
+              <TextField
+                label="Type username/email"
+                variant="outlined"
+                size="small"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={{ marginRight: 8, flexGrow: 1 }}
+              />
+              <Button variant="contained" style={{ backgroundColor: '#4CAF50', color: '#fff', height: '40px' }} onClick={() => handleAddUser({ name: username, email: username })}>
+                +
+              </Button>
+            </Box>
+            <Typography variant="h6" style={{ marginTop: 8, marginBottom: 4 }}>
+              Invited:
+            </Typography>
+            <Box display="flex" flexDirection="column" alignItems="flex-start" marginTop={1} width="100%" padding={1}>
+              {invitedUsers.map((user, index) => (
+                <Chip
+                  key={index}
+                  label={<Typography variant="body1" style={{ fontSize: '1rem' }}>{`${user.name} (${user.email})`}</Typography>}
+                  onDelete={() => handleRemoveUser(index)}
+                  deleteIcon={<CloseIcon style={{ color: '#ff6666' }} />}
+                  style={{ margin: 3, maxWidth: 'fit-content' }}
+                />
+              ))}
+            </Box>
+          </>
         )}
 
         {step === 4 && (
