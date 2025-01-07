@@ -27,6 +27,7 @@
     "@react-navigation/bottom-tabs": "^7.0.7",
     "@react-navigation/native": "^7.0.4",
     "@react-navigation/stack": "^7.0.6",
+    "@types/react-native": "^0.70.19",
     "appwrite": "^16.0.2",
     "axios": "^1.7.8",
     "expo": "~52.0.11",
