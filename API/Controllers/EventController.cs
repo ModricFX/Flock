@@ -85,5 +85,19 @@ namespace flock.Controllers
             throw new NotImplementedException();
         }
 
+        [HttpDelete()]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                _eventRepository.DeleteEvent(id);
+                return Ok("Success");
+
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
     }
 }

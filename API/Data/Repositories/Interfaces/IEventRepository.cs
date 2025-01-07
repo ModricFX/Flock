@@ -9,4 +9,5 @@ public interface IEventRepository
     Task<int> CreateEvent(Event user);
     Task<int> CreateDateOption(DateOption opt);
     Task<int> UpdateEvent(Event user);
+    void DeleteEvent(string id);
 }

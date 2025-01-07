@@ -99,5 +99,14 @@ public class EventRepository : IEventRepository
         }
     }
 
+    public async void DeleteEvent(string id)
+    {
+        var query = "DELETE FROM `event` WHERE `id_event` = @Id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, new { Id = id });
+        }
+    }
 }
 
