@@ -230,7 +230,11 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
     return 'upcoming';
 }
 
-
+// Convert time strings to comparable numbers (e.g., "10:00" -> 1000)
+const convertTimeToNumber = (time: string) => {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours * 100 + minutes;
+};
 
 function formatDate(date: Date) {
     return date.toLocaleString([], {
@@ -242,7 +246,6 @@ function formatDate(date: Date) {
         hourCycle: 'h23',
     });
 }
-
 
 /** Returns string like "Monday, 15.01.2024" */
 function formatDay(date: Date) {
@@ -463,6 +466,14 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
+        // Check if EndVoting is in the future
+        const currentTime = new Date();
+        const endVotingTime = new Date(endVotingDate);
+
+        if (endVotingTime <= currentTime) {
+            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            return;
+        }
         const newEvt: EventData = {
             id: Math.random().toString(),
             createdBy: currentUser?.id || 'unknown',
@@ -570,6 +581,15 @@ export default function HomeScreen() {
     };
 
     function handleSaveDayCreate() {
+        // Check if end time is smaller than start time
+        const startTimeNumber = convertTimeToNumber(tempStart);
+        const endTimeNumber = convertTimeToNumber(tempEnd);
+
+        if (endTimeNumber < startTimeNumber) {
+            alert("End time cannot be earlier than start time. Please correct the time.");
+            return;
+        }
+
         if (tempDayIndex !== null) {
             // edit
             const copy = [...createDays];
@@ -689,6 +709,14 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
+        // Check if EndVoting is in the future
+        const currentTime = new Date();
+        const endVotingTime = new Date(endVotingDate);
+
+        if (endVotingTime <= currentTime) {
+            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            return;
+        }
         const updated: EventData = {
             ...editEvent,
             title: editTitle,
@@ -727,6 +755,15 @@ export default function HomeScreen() {
         // setEditModalVisible(true);
     }
     function handleSaveDayEdit() {
+        // Check if end time is smaller than start time
+        const startTimeNumber = convertTimeToNumber(tempStart);
+        const endTimeNumber = convertTimeToNumber(tempEnd);
+
+        if (endTimeNumber < startTimeNumber) {
+            alert("End time cannot be earlier than start time. Please correct the time.");
+            return;
+        }
+
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
