@@ -175,7 +175,7 @@ alter table chose add constraint FK_chose foreign key (id_user)
       references user (id_user);
 
 alter table date_option add constraint FK_offers foreign key (id_event)
-      references event (id_event);
+      references event (id_event) on delete cascade;
 
 alter table event add constraint FK_created foreign key (id_user)
       references user (id_user);
