@@ -1,3 +1,5 @@
+namespace flock.Models;
+
 public class Event
 {
     public int Id_event { get; set; }

@@ -1,9 +1,9 @@
 ﻿using flock.Data.Repositories.Interfaces;
-using flock.Models;
-using flock.Models.Auth;
+using flock.Controllers.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using flock.Models;
 
 namespace flock.Controllers
 {

@@ -1,8 +1,7 @@
-﻿namespace flock.Models.Auth
+﻿namespace flock.Controllers.Dtos;
+    
+public class CreateUserTokenDto
 {
-    public class CreateUserTokenDto
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
+    public string Email { get; set; }
+    public string Password { get; set; }
 }

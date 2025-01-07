@@ -1,9 +1,9 @@
 using flock.Data.Repositories.Interfaces;
-using flock.Models;
-using flock.Models.Auth;
+using flock.Controllers.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using flock.Models;
 
 namespace flock.Controllers
 {
@@ -42,6 +42,18 @@ namespace flock.Controllers
                 };
                 
                 var event_id = await _eventRepository.CreateEvent(ev);
+
+                foreach (var dateOption in request.Date_options)
+                {
+                    DateOption opt = new DateOption
+                    {
+                        Id_event = event_id,
+                        DateStart = dateOption.DateStart,
+                        DateEnd = dateOption.DateEnd,
+                    };
+                    
+                    _ = await _eventRepository.CreateDateOption(opt);
+                }
                 
                 return Ok("Success, event id:" + event_id);
             }
