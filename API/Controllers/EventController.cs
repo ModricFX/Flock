@@ -75,16 +75,43 @@ namespace flock.Controllers
         }
 
         [SwaggerOperation(
+            Summary = "Get event",
+            Description = "Returns selected event"
+        )]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetEventById(string id)
+        {
+            try
+            {
+                return Ok(await _eventRepository.GetEventById(id));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [SwaggerOperation(
             Summary = "List events",
             Description = "Returns all existing event resources"
         )]
         [HttpGet()]
         public async Task<IActionResult> List()
         {
-            // TODO: Implement
-            throw new NotImplementedException();
+            try
+            {
+                return Ok(await _eventRepository.GetAllEvents());
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
+        [SwaggerOperation(
+            Summary = "Delete event",
+            Description = "Deletes the event resource."
+        )]
         [HttpDelete()]
         public async Task<IActionResult> Delete(string id)
         {

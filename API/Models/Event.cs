@@ -3,6 +3,7 @@ namespace flock.Models;
 public class Event
 {
     public int Id_event { get; set; }
+    public int Id_user { get; set; }
     public string Icon_url { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }

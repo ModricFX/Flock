@@ -23,6 +23,17 @@ public class EventRepository : IEventRepository
         }
     }
 
+    public async Task<List<Event>> GetAllEvents()
+    {
+        var query = "SELECT * FROM `event` WHERE `sysrowstate` = 1";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var events = await connection.QueryAsync<Event>(query);
+            return events.ToList();
+        }
+    }
+
     public async Task<User> GetUserById(string id)
     {
         var query = "SELECT * FROM `user` WHERE `id_user` = @Id";
