@@ -13,6 +13,7 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
+    Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -21,6 +22,7 @@ import DateTimePickerComponent from '../../components/DateTimePicker';
 /* IMPORT STYLES */
 
 import styles from '../styles/HomePageStyles';
+import friendStyles from '../styles/FriendsPageStyles';
 
 
 const isIOS = Platform.OS === 'ios';
@@ -33,11 +35,13 @@ interface User {
     id: string;
     username: string;
     email: string;
+    pfpUrl: string;
 }
 
 interface Participant {
     username: string;
     email: string;
+    pfpUrl: string;
     status: 'pending' | 'accepted' | 'declined';
 }
 
@@ -72,13 +76,14 @@ const mockCurrentUser: User = {
     id: 'u-001',
     username: 'MyUser',
     email: 'myuser@domain.com',
+    pfpUrl: 'https://i.pravatar.cc/100?img=49',
 };
 
 /* Mock friend list */
 const mockFriends: User[] = [
-    { id: 'u-002', username: 'Alice', email: 'alice@example.com' },
-    { id: 'u-003', username: 'Bob', email: 'bob@example.com' },
-    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com' },
+    { id: 'u-002', username: 'Alice', email: 'alice@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=23' },
+    { id: 'u-003', username: 'Bob', email: 'bob@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=34' },
+    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
 ];
 
 /* Some initial events */
@@ -96,9 +101,9 @@ const initialEvents: EventData[] = [
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Alice', email: 'alice@example.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@example.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=12' },
+            { username: 'Alice', email: 'alice@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
+            { username: 'Bob', email: 'bob@example.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
         ],
         end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
         createdAt: new Date(),
@@ -117,8 +122,8 @@ const initialEvents: EventData[] = [
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
+            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
         ],
         end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
@@ -142,18 +147,18 @@ const initialEvents: EventData[] = [
             }
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
-            { username: 'Bob1', email: 'bob@gmail.com', status: 'declined' },
-            { username: 'Bob2', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob3', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob4', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob5', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob6', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob7', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob8', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=11' },
+            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=10' },
+            { username: 'Bob1', email: 'bob@gmail.com', status: 'declined', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob2', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob3', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob4', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob5', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob6', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob7', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob8', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
         ],
         end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
@@ -173,8 +178,8 @@ const initialEvents: EventData[] = [
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=07' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=06' },
         ],
         end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
@@ -194,8 +199,8 @@ const initialEvents: EventData[] = [
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=05' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=04' },
         ],
         end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 500 * 60),
@@ -697,15 +702,17 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setInvitees([...invitees, { username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
         }
     }
+
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
             const newPart: Participant = {
                 username: typedInvite.split('@')[0],
                 email: typedInvite,
+                pfpUrl: 'https://i.pravatar.cc/100?img=02',
                 status: 'pending',
             };
             setInvitees([...invitees, newPart]);
@@ -909,7 +916,7 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
         }
     }
     function addTypedInviteEdit() {
@@ -919,6 +926,7 @@ export default function HomeScreen() {
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
+                pfpUrl: 'https://i.pravatar.cc/100?img=50'
             };
             setEditInvitees([...editInvitees, newPart]);
         }
@@ -1475,12 +1483,13 @@ export default function HomeScreen() {
                                                                                     // TODO: add user pfp instead of person icon
                                                                                     return (
                                                                                         <View key={index} style={styles.participantRow}>
-                                                                                            <MaterialIcons
-                                                                                                name="person"
-                                                                                                size={20}
-                                                                                                color="#4CAF50"
-                                                                                                style={{ marginRight: 8 }}
-                                                                                            />
+                                                                                            {/*<MaterialIcons*/}
+                                                                                            {/*    name="person"*/}
+                                                                                            {/*    size={20}*/}
+                                                                                            {/*    color="#4CAF50"*/}
+                                                                                            {/*    style={{ marginRight: 8 }}*/}
+                                                                                            {/*/>*/}
+                                                                                            <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
                                                                                             <View style={{ flex: 1 }}>
                                                                                                 <Text style={styles.participantName}>{p.username}</Text>
                                                                                                 <Text style={styles.participantEmail}>{p.email}</Text>
@@ -1515,12 +1524,13 @@ export default function HomeScreen() {
                                                                                 // Otherwise, use the existing accepted/declined/pending logic
                                                                                 return (
                                                                                     <View key={index} style={styles.participantRow}>
-                                                                                        <MaterialIcons
-                                                                                            name="person"
-                                                                                            size={20}
-                                                                                            color="#4CAF50"
-                                                                                            style={{ marginRight: 8 }}
-                                                                                        />
+                                                                                        {/*<MaterialIcons*/}
+                                                                                        {/*    name="person"*/}
+                                                                                        {/*    size={20}*/}
+                                                                                        {/*    color="#4CAF50"*/}
+                                                                                        {/*    style={{ marginRight: 8 }}*/}
+                                                                                        {/*/>*/}
+                                                                                        <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
                                                                                         <View style={{ flex: 1 }}>
                                                                                             <Text style={styles.participantName}>{p.username}</Text>
                                                                                             <Text style={styles.participantEmail}>{p.email}</Text>
