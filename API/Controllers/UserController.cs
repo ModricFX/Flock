@@ -62,7 +62,7 @@ namespace flock.Controllers
         public async Task<IActionResult> GetAuthenticatedUser()
         {
             // Check if the user is authenticated
-            if (!User.Identity.IsAuthenticated)
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return Unauthorized("User is not authenticated.");
 
             var userEmail = User.Identity.Name; // This should be populated from the token
@@ -87,6 +87,51 @@ namespace flock.Controllers
 
             return Ok(userDto);
         }
+    
+        [Route("/api/user/relationship")]
+        [HttpPost()]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserRelationship(RelationshipDto request){
+            try
+            {
+                if (User.Identity == null || !User.Identity.IsAuthenticated) return Unauthorized("User is not authenticated.");
+                var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
 
+                var relationship = new Friendship
+                {
+                    Id_user = user_data.Id_user,
+                    Use_id_user = request.related_user_id,
+                    Status = request.status,
+                    Date_updated = DateTime.UtcNow,
+                };
+
+                _userRepository.UpdateUserRelationship(relationship);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        
+        [Route("/api/user/relationship")]
+        [HttpGet()]
+        [Authorize]
+        public async Task<IActionResult> GetAllRelationshipsWithStatus(string status){
+            try
+            {
+                if (User.Identity == null || !User.Identity.IsAuthenticated) return Unauthorized("User is not authenticated.");
+                var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
+
+                var relationships = _userRepository.GetAllRelationshipsWithStatus(user_data.Id_user, status);
+
+                return Ok(relationships);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

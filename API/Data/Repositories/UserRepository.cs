@@ -40,6 +40,28 @@ namespace flock.Data.Repositories
             }
         }
 
+        public async void UpdateUserRelationship(Friendship friendship)
+        {
+            var query = "REPLACE INTO friendship (id_user, use_id_user, status, date_updated) VALUES (@User_id ,@Related_user_id, @Status, @Date_updated);";
+            
+            
+            using (var connection = _context.CreateConnection())
+            {
+                await connection.ExecuteAsync(query, friendship);
+            }
+        }
+
+        public async Task<List<Friendship>> GetAllRelationshipsWithStatus(int user_id, string status)
+        {
+            var query = "SELECT * FROM `friendship` WHERE `status` = @Status AND (`id_user` = @User_id OR `use_id_user` = @User_id);";
+            
+            using (var connection = _context.CreateConnection())
+            {
+                var result = await connection.QueryAsync<Friendship>(query, new { Status = status, User_id = user_id });
+                return result.ToList(); 
+            }
+        }
+
         public async Task UpdateUserAsync(User user)
         {
             var query = @"
