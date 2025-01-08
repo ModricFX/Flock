@@ -85,6 +85,7 @@ namespace flock.Controllers
             try
             {
                 Event current_event = await _eventRepository.GetEventById(request.Id_event);
+                current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
 
                 if (current_event.Id_user != request.Id_user)
                 {
@@ -130,10 +131,25 @@ namespace flock.Controllers
                     _eventRepository.UpdateDateOption(transformed_date_option);
                 }
 
-                current_event = await _eventRepository.GetEventById(current_event.Id_event);
-                current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                foreach (var id in request.Participant_ids)
+                {
+                    if (!current_event.Invitations.Exists(x => x.Id_user == id))
+                    {
+                        _eventRepository.SendInvitation(current_event.Id_event, id);
+                    }
+                }
                 
-                return Ok(current_event);
+                current_event.Invitations.RemoveAll(x => x.Id_event == request.Id_event && request.Participant_ids.Contains(x.Id_user));
+                
+                foreach (var part in current_event.Invitations)
+                {
+                    _eventRepository.DeleteInvitation(part.Id_event, part.Id_user);
+                }
+                
+                Event newev = await _eventRepository.GetEventById(current_event.Id_event); 
+                newev.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                
+                return Ok(newev);
             }
             catch (Exception e)
             {

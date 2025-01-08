@@ -218,6 +218,22 @@ public class EventRepository : IEventRepository
             await connection.ExecuteAsync(query, parameters);
         }
     }
+    
+    public async void DeleteInvitation(int event_id, int user_id)
+    {
+        var query = "DELETE FROM `invitation` WHERE `id_event` = @Id_event AND `id_user` = @Id_user;";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var parameters = new
+            {
+                Id_event = event_id,
+                Id_user = user_id,
+            };
+            
+            await connection.ExecuteAsync(query, parameters);
+        }
+    }
 
     public async void DeleteEvent(int id)
     {

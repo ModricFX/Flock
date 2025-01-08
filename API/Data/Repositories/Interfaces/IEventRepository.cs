@@ -14,6 +14,7 @@ public interface IEventRepository
     void UpdateDateOption(DateOption option);
     void AddTag(int event_id, int tag_id);
     void SendInvitation(int event_id, int user_id);
+    void DeleteInvitation(int event_id, int user_id);
     void DeleteEvent(int id);
     void DeleteDateOption(int id);
 }

@@ -15,4 +15,6 @@ public class EventDto
     public int SysRowState { get; set; }
     
     public DateOptionDto[] Date_options { get; set; }
+    
+    public int[] Participant_ids { get; set; }
 }
