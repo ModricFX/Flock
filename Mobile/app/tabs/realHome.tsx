@@ -26,6 +26,8 @@ import styles from '../styles/HomePageStyles';
 // Selection which platform it is
 const isIOS = Platform.OS === 'ios' ? true : false;
 
+console.log("Running for platform: ", isIOS ? "iOS" : "Android");
+
 /* ----------------------------------------
    Mock user, friend list, and data models
 ---------------------------------------- */
@@ -43,9 +45,8 @@ interface Participant {
 
 /** A single day record with date, times, etc. */
 interface SingleDay {
-    date: Date;       // e.g. 2024-01-15
-    start: string;    // e.g. '08:00 AM'
-    end: string;      // e.g. '10:00 PM'
+    dateStart: Date;       // 2025-01-08T11:54:15.658Z
+    dateEnd: Date;         // 2025-01-08T11:54:15.658Z
 }
 
 /**
@@ -53,15 +54,15 @@ interface SingleDay {
  * We store an array of dayTimes, each item = SingleDay
  */
 interface EventData {
-    id: string;
-    createdBy: string;
-    title: string;
-    description: string;
-    location: string;
-
-    dayTimes: SingleDay[];       // List of chosen days
+    id_event: string,
+    name: string,
+    description: string,
+    location: string,
+    end_voting_date: Date;             // People can vote until this date/time
+    id_user: string;                    // ID of the user who created the event,
+    date_options: SingleDay[];       // List of chosen days
     participants: Participant[];
-    endVoting: Date;             // People can vote until this date/time
+
     eventDate?: Date;            // Final chosen date/time (if set)
     createdAt: Date;
     updatedAt: Date;
@@ -85,16 +86,15 @@ const mockFriends: User[] = [
 /* Some initial events */
 const initialEvents: EventData[] = [
     {
-        id: 'evt-1',
-        createdBy: mockCurrentUser.id,
-        title: 'My Birthday Party',
+        id_event: 'evt-1',
+        id_user: mockCurrentUser.id,
+        name: 'My Birthday Party',
         description: 'Pizza and cake!',
         location: 'My House',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 0, 15),
-                start: '08:00',
-                end: '11:00',
+                dateStart: new Date(2024, 0, 15, 8, 0),
+                dateEnd: new Date(2024, 0, 15, 11, 0),
             },
         ],
         participants: [
@@ -102,48 +102,45 @@ const initialEvents: EventData[] = [
             { username: 'Alice', email: 'alice@example.com', status: 'pending' },
             { username: 'Bob', email: 'bob@example.com', status: 'accepted' },
         ],
-        endVoting: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-2',
-        createdBy: 'u-004', // belongs to Charlie
-        title: 'Yoga Retreat',
+        id_event: 'evt-2',
+        id_user: 'u-004', // belongs to Charlie
+        name: 'Yoga Retreat',
         description: 'Relaxing yoga for all levels',
         location: 'Health & Wellness Center',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '12:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
             { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
             { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-3',
-        createdBy: 'u-004', // belongs to Charlie
-        title: 'Test event',
+        id_event: 'evt-3',
+        id_user: 'u-004', // belongs to Charlie
+        name: 'Test event',
         description: 'Testing the events',
         location: 'Home alone',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '13:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 13, 0),
             },
             {
-                date: new Date(2024, 1, 6),
-                start: '15:00',
-                end: '20:00',
+                dateStart: new Date(2024, 1, 6, 15, 0),
+                dateEnd: new Date(2024, 1, 6, 20, 0),
             }
         ],
         participants: [
@@ -160,51 +157,49 @@ const initialEvents: EventData[] = [
             { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted' },
             { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted' },
         ],
-        endVoting: new Date(Date.now() + 1000 * 60 * 60 * 2),
+        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-4',
-        createdBy: 'u-003', // belongs to Bob
-        title: 'Beach Day',
+        id_event: 'evt-4',
+        id_user: 'u-003', // belongs to Bob
+        name: 'Beach Day',
         description: 'Fun in the sun!',
         location: 'Sunny Beach',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00 AM',
-                end: '12:00 PM',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
             { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
             { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-5',
-        createdBy: 'u-002', // belongs to Alice
-        title: 'Neki Day',
+        id_event: 'evt-5',
+        id_user: 'u-002', // belongs to Alice
+        name: 'Neki Day',
         description: 'Fun',
         location: 'House apartment',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '12:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
             { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
             { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 500 * 60),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -216,7 +211,7 @@ const initialEvents: EventData[] = [
 function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
     const now = Date.now();
 
-    if (e.endVoting && e.endVoting.getTime() > now) {
+    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
         return 'voting';
     }
 
@@ -261,6 +256,20 @@ function formatDay(date: Date) {
     return `${dayName}, ${dd}.${mm}.${yyyy}`;
 }
 
+function getDateFrom(dateStart: Date) {
+    return new Date(dateStart.getFullYear(), dateStart.getMonth(), dateStart.getDate());
+}
+
+function getHoursFrom(dateTime: Date) {
+    const date = new Date(dateTime);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+
+
+
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -285,11 +294,12 @@ export default function HomeScreen() {
         // Or if you want to detect event ID changes:
         // if (availability.__eventId === selectedEvent.id) return;
 
-        if (selectedEvent.dayTimes) {
+        if (selectedEvent.date_options) {
             const mergedAvailability: { [key: string]: any } = {};
 
-            selectedEvent.dayTimes.forEach((dayTime) => {
-                const dayKey = dayTime.date.toISOString();
+            selectedEvent.date_options.forEach((date_option) => {
+                const date = getDateFrom(date_option.dateStart);
+                const dayKey = date.toISOString();
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -298,14 +308,11 @@ export default function HomeScreen() {
                     };
                 } else {
                     // Otherwise, initialize
-                    const [startHours, startMinutes] = dayTime.start.split(':').map(Number);
-                    const [endHours, endMinutes] = dayTime.end.split(':').map(Number);
+                    const startTime = new Date(date_option.dateStart);
+                    startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
 
-                    const startTime = new Date(dayTime.date);
-                    startTime.setHours(startHours, startMinutes, 0, 0);
-
-                    const endTime = new Date(dayTime.date);
-                    endTime.setHours(endHours, endMinutes, 0, 0);
+                    const endTime = new Date(date_option.dateEnd);
+                    endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
                     mergedAvailability[dayKey] = {
                         startTime,
@@ -477,14 +484,14 @@ export default function HomeScreen() {
         }
 
         const newEvt: EventData = {
-            id: Math.random().toString(),
-            createdBy: currentUser?.id || 'unknown',
-            title: createTitle,
+            id_event: Math.random().toString(),
+            id_user: currentUser?.id || 'unknown',
+            name: createTitle,
             description: createDesc,
             location: createLoc,
-            dayTimes: createDays,
+            date_options: createDays,
             participants: invitees,
-            endVoting: endVotingDate,
+            end_voting_date: endVotingDate,
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -498,9 +505,9 @@ export default function HomeScreen() {
             // Editing an existing day
             const existing = createDays[index];
             setTempDayIndex(index);
-            setTempDate(existing.date);
-            setTempStart(existing.start); // Assuming `start` is already in the desired format
-            setTempEnd(existing.end);     // Assuming `end` is already in the desired format
+            setTempDate(getDateFrom(existing.dateStart));
+            setTempStart(getHoursFrom(existing.dateStart)); // Assuming `start` is already in the desired format
+            setTempEnd(getHoursFrom(existing.dateEnd));     // Assuming `end` is already in the desired format
         } else {
             // Adding a new day
             setTempDayIndex(null);
@@ -568,7 +575,7 @@ export default function HomeScreen() {
         // 3) (Optional) Update the global events array to reflect changes on the homepage
         setEvents((prevEvents) =>
             prevEvents.map((evt) => {
-                if (evt.id === selectedEvent?.id) {
+                if (evt.id_event === selectedEvent?.id_event) {
                     return {
                         ...evt,
                         participants: evt.participants.map((p) =>
@@ -600,11 +607,22 @@ export default function HomeScreen() {
         if (tempDayIndex !== null) {
             // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { date: tempDate, start: tempStart, end: tempEnd };
+            copy[tempDayIndex] = {
+                dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+            };
+
             setCreateDays(copy);
         } else {
             // new
-            setCreateDays(prev => [...prev, { date: tempDate, start: tempStart, end: tempEnd }]);
+            setCreateDays(prev => [
+                ...prev,
+                {
+                    dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                    dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+                }
+            ]);
+
         }
         closeAddDayModalCreate();
     }
@@ -731,12 +749,12 @@ export default function HomeScreen() {
     function openEdit(e: EventData) {
         setEditEvent(e);
         setEditStep(1);
-        setEditTitle(e.title || '');
+        setEditTitle(e.name || '');
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
-        setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
+        setEditDays(e.date_options ? [...e.date_options] : []); // Spread to prevent direct reference issues
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
-        setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
+        setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
     }
 
@@ -777,15 +795,15 @@ export default function HomeScreen() {
 
         const updated: EventData = {
             ...editEvent,
-            title: editTitle,
+            name: editTitle,
             description: editDesc,
             location: editLoc,
-            dayTimes: editDays,
+            date_options: editDays,
             participants: editInvitees,
-            endVoting: editEndVoting,
+            end_voting_date: editEndVoting,
             updatedAt: new Date(),
         };
-        setEvents(prev => prev.map(evt => evt.id === updated.id ? updated : evt));
+        setEvents(prev => prev.map(evt => evt.id_event === updated.id_event ? updated : evt));
         closeEditEvent();
     }
 
@@ -795,9 +813,10 @@ export default function HomeScreen() {
             // Editing an existing day
             setTempDayIndexEdit(index);
             const existing = editDays[index];
-            setTempDateEdit(existing.date || new Date());
-            setTempStartEdit(existing.start || '08:00');
-            setTempEndEdit(existing.end || '10:00');
+            setTempDateEdit(existing.dateStart ? getDateFrom(existing.dateStart) : new Date());
+            setTempStartEdit(existing.dateStart ? getHoursFrom(existing.dateStart) : '08:00');
+            setTempEndEdit(existing.dateEnd ? getHoursFrom(existing.dateEnd) : '10:00');
+
         } else {
             // Adding a new day
             setTempDayIndexEdit(null);
@@ -828,18 +847,19 @@ export default function HomeScreen() {
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
-                date: tempDateEdit,
-                start: tempStartEdit,
-                end: tempEndEdit,
+                dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
             };
             setEditDays(copy);
         } else {
             setEditDays((prev) => [
                 ...prev,
-                { date: tempDateEdit, start: tempStartEdit, end: tempEndEdit },
+                {
+                    dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                    dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
+                },
             ]);
         }
-
         closeAddDayModalEdit();
     }
 
@@ -917,8 +937,8 @@ export default function HomeScreen() {
     }
 
     /* Partition MY vs. OTHERS */
-    const myEvents = events.filter(e => e.createdBy === currentUser?.id);
-    const otherEvents = events.filter(e => e.createdBy !== currentUser?.id);
+    const myEvents = events.filter(e => e.id_user === currentUser?.id);
+    const otherEvents = events.filter(e => e.id_user !== currentUser?.id);
 
     if (loading) {
         return (
@@ -953,16 +973,16 @@ export default function HomeScreen() {
                             >
                                 {myEvents.map(evt => (
                                     <TouchableOpacity
-                                        key={evt.id}
+                                        key={evt.id_event}
                                         style={styles.eventCard}
                                         onPress={() => openView(evt)}
                                         activeOpacity={0.8}
                                         accessible={true}
-                                        accessibilityLabel={`Edit event ${evt.title}`}
+                                        accessibilityLabel={`Edit event ${evt.name}`}
                                     >
                                         {/* Event Header */}
                                         <View style={styles.eventHeader}>
-                                            <Text style={styles.eventTitle}>{evt.title}</Text>
+                                            <Text style={styles.eventTitle}>{evt.name}</Text>
                                             <View style={[
                                                 styles.statusBadge,
                                                 getStatusStyle(getEventStatus(evt))
@@ -989,7 +1009,7 @@ export default function HomeScreen() {
                                             <View style={styles.dateRow}>
                                                 <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                 <Text style={styles.dateText}>
-                                                    Voting Ends: {formatDate(evt.endVoting)}
+                                                    Voting Ends: {formatDate(evt.end_voting_date)}
                                                 </Text>
                                             </View>
                                             {evt.eventDate && (
@@ -1030,16 +1050,16 @@ export default function HomeScreen() {
                                     const userParticipant = evt.participants.find(p => p.email === currentUser?.email);
                                     return (
                                         <TouchableOpacity
-                                            key={evt.id}
+                                            key={evt.id_event}
                                             style={styles.eventCard}
                                             onPress={() => openView(evt)}
                                             activeOpacity={0.8}
                                             accessible={true}
-                                            accessibilityLabel={`View event ${evt.title}`}
+                                            accessibilityLabel={`View event ${evt.name}`}
                                         >
                                             {/* Event Header */}
                                             <View style={styles.eventHeader}>
-                                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                                <Text style={styles.eventTitle}>{evt.name}</Text>
                                                 <View style={[
                                                     styles.statusBadge,
                                                     getStatusStyle(eventStatus)
@@ -1067,7 +1087,7 @@ export default function HomeScreen() {
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
-                                                            Voting Ends: {formatDate(evt.endVoting)}
+                                                            Voting Ends: {formatDate(evt.end_voting_date)}
                                                         </Text>
                                                     </View>
                                                 ) : (
@@ -1127,13 +1147,13 @@ export default function HomeScreen() {
                                             (() => {
                                                 const eventStatus = getEventStatus(selectedEvent);
                                                 // Check if current user created this event
-                                                const isCreator = selectedEvent.createdBy === currentUser?.id;
+                                                const isCreator = selectedEvent.id_user === currentUser?.id;
 
                                                 return (
                                                     <>
                                                         {/* Modal Header */}
                                                         <View style={styles.modalHeader}>
-                                                            <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
+                                                            <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
                                                             <TouchableOpacity
                                                                 onPress={closeView}
                                                                 accessibilityLabel="Close Modal"
@@ -1154,8 +1174,8 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {mockFriends.find(friend => friend.id === selectedEvent.createdBy)
-                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.email})`
+                                                                        {mockFriends.find(friend => friend.id === selectedEvent.id_user)
+                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.email})`
                                                                             : 'Unknown'}
                                                                     </Text>
                                                                 </View>
@@ -1175,11 +1195,11 @@ export default function HomeScreen() {
                                                                         </Text>
                                                                     </View>
                                                                 )}
-                                                                {selectedEvent.endVoting && eventStatus === 'voting' && (
+                                                                {selectedEvent.end_voting_date && eventStatus === 'voting' && (
                                                                     <View style={styles.detailRow}>
                                                                         <Text style={styles.detailLabel}>Voting Ends:</Text>
                                                                         <Text style={styles.detailValue}>
-                                                                            {formatDate(selectedEvent.endVoting)}
+                                                                            {formatDate(selectedEvent.end_voting_date)}
                                                                         </Text>
                                                                     </View>
                                                                 )}
@@ -1358,9 +1378,7 @@ export default function HomeScreen() {
                                                             transparent={true}
                                                             onRequestClose={() => setShowParticipantsModal(false)}
                                                         >
-                                                            {/* Tapping outside closes the modal */}
                                                             <View style={styles.modalOverlay}>
-                                                                {/* Modal Card */}
                                                                 <View style={styles.participantsModalContainer}>
 
                                                                     {/* Header */}
@@ -1374,26 +1392,32 @@ export default function HomeScreen() {
                                                                         </TouchableOpacity>
                                                                     </View>
 
-                                                                    {/* Summary: Accepted / Declined / Pending */}
+                                                                    {/* Summary: Accepted / Declined / Pending (or Voted / Pending if "voting") */}
                                                                     {(() => {
                                                                         const participants = selectedEvent?.participants ?? [];
-                                                                        const acceptedCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'accepted'
-                                                                        ).length;
-                                                                        const declinedCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'declined'
-                                                                        ).length;
-                                                                        const pendingCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'pending'
-                                                                        ).length;
 
-                                                                        return (
-                                                                            <View style={styles.summaryRow}>
-                                                                                <Text style={styles.summaryText}>
-                                                                                    Accepted: {acceptedCount} | Declined: {declinedCount} | Pending: {pendingCount}
-                                                                                </Text>
-                                                                            </View>
-                                                                        );
+                                                                        if (eventStatus === 'voting') {
+                                                                            const votedCount = participants.filter((p) => p.status.toLowerCase() !== 'pending').length;
+                                                                            const pendingCount = participants.filter((p) => p.status.toLowerCase() === 'pending').length;
+                                                                            return (
+                                                                                <View style={styles.summaryRow}>
+                                                                                    <Text style={styles.summaryText}>
+                                                                                        Voted: {votedCount} | Pending: {pendingCount}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            );
+                                                                        } else {
+                                                                            const acceptedCount = participants.filter((p) => p.status.toLowerCase() === 'accepted').length;
+                                                                            const declinedCount = participants.filter((p) => p.status.toLowerCase() === 'declined').length;
+                                                                            const pendingCount = participants.filter((p) => p.status.toLowerCase() === 'pending').length;
+                                                                            return (
+                                                                                <View style={styles.summaryRow}>
+                                                                                    <Text style={styles.summaryText}>
+                                                                                        Accepted: {acceptedCount} | Declined: {declinedCount} | Pending: {pendingCount}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            );
+                                                                        }
                                                                     })()}
 
                                                                     {/* Scrollable List of Participants */}
@@ -1404,12 +1428,12 @@ export default function HomeScreen() {
                                                                     >
                                                                         {(() => {
                                                                             const participants = selectedEvent?.participants ?? [];
-                                                                            // accepted -> 0, declined -> 1, pending -> 2
                                                                             const order: Record<string, number> = {
                                                                                 accepted: 0,
                                                                                 declined: 1,
                                                                                 pending: 2,
                                                                             };
+
                                                                             const sortedParticipants = participants.slice().sort((a, b) => {
                                                                                 const statusA = a.status.toLowerCase();
                                                                                 const statusB = b.status.toLowerCase();
@@ -1418,50 +1442,98 @@ export default function HomeScreen() {
                                                                                 return sortA - sortB;
                                                                             });
 
-                                                                            return sortedParticipants.map((p, index) => (
-                                                                                <View key={index} style={styles.participantRow}>
-                                                                                    {/* Person Icon */}
-                                                                                    <MaterialIcons
-                                                                                        name="person"
-                                                                                        size={20}
-                                                                                        color="#4CAF50"
-                                                                                        style={{ marginRight: 8 }}
-                                                                                    />
-                                                                                    {/* Username & Email */}
-                                                                                    <View style={{ flex: 1 }}>
-                                                                                        <Text style={styles.participantName}>{p.username}</Text>
-                                                                                        <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                            return sortedParticipants.map((p, index) => {
+                                                                                // If the event is in "voting" status, show either "VOTED" or "PENDING"
+                                                                                if (eventStatus === 'voting') {
+                                                                                    const isPending = p.status.toLowerCase() === 'pending';
+                                                                                    return (
+                                                                                        <View key={index} style={styles.participantRow}>
+                                                                                            <MaterialIcons
+                                                                                                name="person"
+                                                                                                size={20}
+                                                                                                color="#4CAF50"
+                                                                                                style={{ marginRight: 8 }}
+                                                                                            />
+                                                                                            <View style={{ flex: 1 }}>
+                                                                                                <Text style={styles.participantName}>{p.username}</Text>
+                                                                                                <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                                            </View>
+                                                                                            <View style={styles.statusContainer}>
+                                                                                                {isPending ? (
+                                                                                                    <>
+                                                                                                        <MaterialIcons
+                                                                                                            name="help-outline"
+                                                                                                            size={20}
+                                                                                                            color="orange"
+                                                                                                            style={{ marginRight: 4 }}
+                                                                                                        />
+                                                                                                        <Text style={styles.participantStatus}>PENDING</Text>
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <MaterialIcons
+                                                                                                            name="check-circle"
+                                                                                                            size={20}
+                                                                                                            color="green"
+                                                                                                            style={{ marginRight: 4 }}
+                                                                                                        />
+                                                                                                        <Text style={styles.participantStatus}>VOTED</Text>
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </View>
+                                                                                        </View>
+                                                                                    );
+                                                                                }
+
+                                                                                // Otherwise, use the existing accepted/declined/pending logic
+                                                                                return (
+                                                                                    <View key={index} style={styles.participantRow}>
+                                                                                        <MaterialIcons
+                                                                                            name="person"
+                                                                                            size={20}
+                                                                                            color="#4CAF50"
+                                                                                            style={{ marginRight: 8 }}
+                                                                                        />
+                                                                                        <View style={{ flex: 1 }}>
+                                                                                            <Text style={styles.participantName}>{p.username}</Text>
+                                                                                            <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                                        </View>
+                                                                                        <View style={styles.statusContainer}>
+                                                                                            {p.status.toLowerCase() === 'accepted' ? (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="check-circle"
+                                                                                                        size={20}
+                                                                                                        color="green"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>ACCEPTED</Text>
+                                                                                                </>
+                                                                                            ) : p.status.toLowerCase() === 'declined' ? (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="cancel"
+                                                                                                        size={20}
+                                                                                                        color="red"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>DECLINED</Text>
+                                                                                                </>
+                                                                                            ) : (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="help-outline"
+                                                                                                        size={20}
+                                                                                                        color="orange"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>PENDING</Text>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </View>
                                                                                     </View>
-                                                                                    {/* Status Icon & Text */}
-                                                                                    <View style={styles.statusContainer}>
-                                                                                        {p.status.toLowerCase() === 'accepted' ? (
-                                                                                            <MaterialIcons
-                                                                                                name="check-circle"
-                                                                                                size={20}
-                                                                                                color="green"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        ) : p.status.toLowerCase() === 'declined' ? (
-                                                                                            <MaterialIcons
-                                                                                                name="cancel"
-                                                                                                size={20}
-                                                                                                color="red"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        ) : (
-                                                                                            <MaterialIcons
-                                                                                                name="help-outline"
-                                                                                                size={20}
-                                                                                                color="orange"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        )}
-                                                                                        <Text style={styles.participantStatus}>
-                                                                                            {p.status.toUpperCase()}
-                                                                                        </Text>
-                                                                                    </View>
-                                                                                </View>
-                                                                            ));
+                                                                                );
+                                                                            });
                                                                         })()}
                                                                     </ScrollView>
 
@@ -1504,7 +1576,7 @@ export default function HomeScreen() {
                                     <View style={styles.votingModalContainer}>
                                         <View style={styles.votingModalHeader}>
                                             <Text style={styles.modalTitle}>
-                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.title || 'Event'}</Text>
+                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.name || 'Event'}</Text>
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
@@ -1515,21 +1587,21 @@ export default function HomeScreen() {
                                         </View>
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
-                                            {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
-                                                const dayKey = dayTime.date.toISOString();
+                                            {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
+                                                const dayKey = getDateFrom(dayTime.dateStart).toISOString();
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 return (
                                                     <View key={index} style={styles.dayContainer}>
                                                         <View style={styles.dayHeader}>
                                                             <Text style={styles.dayTitle}>
-                                                                {dayTime.date.toLocaleDateString('en-US', { weekday: 'long' })},{' '}
-                                                                {dayTime.date.toLocaleDateString()}
+                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString('en-US', { weekday: 'long' })},{' '}
+                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString()}
                                                             </Text>
                                                             <View style={styles.availableContainer}>
                                                                 <MaterialIcons name="schedule" size={20} color="#4CAF50" />
                                                                 <Text style={styles.availableText}>
-                                                                    {dayTime.start} - {dayTime.end}
+                                                                    {getHoursFrom(dayTime.dateStart)} - {getHoursFrom(dayTime.dateEnd)}
                                                                 </Text>
                                                             </View>
                                                         </View>
@@ -1687,7 +1759,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalCreate(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -2197,7 +2269,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalEdit(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
