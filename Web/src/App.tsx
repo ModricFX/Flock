@@ -290,7 +290,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <PersonAdd fontSize="small" />
                     Add another account
                 </MenuItem>
-                <MenuItem>
+                <MenuItem onClick={() => navigate("/settings")}>
                     <Settings fontSize="small" />
                     Settings
                 </MenuItem>

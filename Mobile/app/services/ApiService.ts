@@ -30,6 +30,22 @@ class ApiService {
         });
     }
 
+    get(endpoint: string, config?: object) {
+        return this.api.get(endpoint, config);
+    }
+
+    post(endpoint: string, data: object, config?: object) {
+        return this.api.post(endpoint, data, config);
+    }
+
+    put(endpoint: string, data: object, config?: object) {
+        return this.api.put(endpoint, data, config);
+    }
+
+    delete(endpoint: string, config?: object) {
+        return this.api.delete(endpoint, config);
+    }
+
     getApi(): AxiosInstance {
         return this.api;
     }

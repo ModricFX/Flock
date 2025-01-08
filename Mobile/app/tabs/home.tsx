@@ -592,6 +592,8 @@ export default function HomeScreen() {
             })
         );
     };
+
+    // Convert time strings to comparable numbers (e.g., "10:00" -> 1000)
     const convertTimeToNumber = (time: string) => {
         const [hours, minutes] = time.split(":").map(Number);
         return hours * 100 + minutes;
@@ -603,7 +605,7 @@ export default function HomeScreen() {
 
         if (endTimeNumber < startTimeNumber) {
             alert("End time cannot be earlier than start time. Please correct the time.");
-            return;
+            return; // Exit the function to prevent saving invalid data
         }
 
         if (tempDayIndex !== null) {
@@ -887,6 +889,7 @@ export default function HomeScreen() {
                 },
             ]);
         }
+
         closeAddDayModalEdit();
     }
 

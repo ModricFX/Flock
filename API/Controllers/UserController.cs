@@ -1,9 +1,9 @@
 ﻿using flock.Data.Repositories.Interfaces;
-using flock.Models;
-using flock.Models.Auth;
+using flock.Controllers.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using flock.Models;
 
 namespace flock.Controllers
 {
@@ -61,10 +61,11 @@ namespace flock.Controllers
         [Authorize]
         public async Task<IActionResult> GetAuthenticatedUser()
         {
-            // Check if the user is authenticated
-            if (!User.Identity.IsAuthenticated)
-                return Unauthorized("User is not authenticated.");
-
+            if (User?.Identity?.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            
             var userEmail = User.Identity.Name; // This should be populated from the token
             if (string.IsNullOrEmpty(userEmail))
                 return Unauthorized("Invalid token.");
@@ -87,6 +88,85 @@ namespace flock.Controllers
 
             return Ok(userDto);
         }
+        
+        [Route("/api/user/{id}")]
+        [HttpGet()]
+        [Authorize]
+        public async Task<IActionResult> GetUserInfo(int id)
+        {
+            if (User?.Identity?.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            
+            var user = await _userRepository.GetUserById(id);
+            if (user == null)
+                return NotFound("User not found.");
 
+            var userDto = new UserDto
+            {
+                Id_user = user.Id_user,
+                First_name = user.First_name,
+                Last_name = user.Last_name,
+                Username = user.Username,
+                Email = user.Email,
+                Email_verified = user.Email_verified,
+                Date_created = user.Date_created,
+                Date_updated = user.Date_updated
+            };
+
+            return Ok(userDto);
+        }
+    
+        [Route("/api/user/relationship")]
+        [HttpPost()]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserRelationship(RelationshipDto request){
+            try
+            {
+                if (User?.Identity?.IsAuthenticated == false)
+                {
+                    return Unauthorized();
+                }
+                
+                var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
+
+                var relationship = new Friendship
+                {
+                    Id_user = user_data.Id_user,
+                    Use_id_user = request.related_user_id,
+                    Status = request.status,
+                    Date_updated = DateTime.UtcNow,
+                };
+
+                _userRepository.UpdateUserRelationship(relationship);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        
+        [Route("/api/user/relationship/{id}")]
+        [HttpGet()]
+        [Authorize]
+        public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){
+            try
+            {
+                if (User?.Identity?.IsAuthenticated == false)
+                {
+                    return Unauthorized();
+                }
+                var relationships = await _userRepository.GetAllRelationshipsWithStatus(id, status);
+
+                return Ok(relationships);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
