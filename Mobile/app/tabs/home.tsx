@@ -1813,7 +1813,7 @@ export default function HomeScreen() {
                                         {/* Add Day Button */}
                                         <TouchableOpacity
                                             style={styles.addDayButton}
-                                            onPress={openAddDayModalCreate}
+                                            onPress={() => openAddDayModalCreate()}
                                         >
                                             <MaterialIcons name="add-circle-outline" size={24} color="#fff" />
                                             <Text style={styles.addDayButtonText}>Add Day</Text>
@@ -1967,7 +1967,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempStart}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={openPickStartTime}
+                                                onPress={() => openPickStartTime()}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
@@ -1982,7 +1982,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempEnd}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={openPickEndTime}
+                                                onPress={() => openPickEndTime()}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
@@ -1993,7 +1993,7 @@ export default function HomeScreen() {
 
                                 {/* Actions */}
                                 <View style={styles.modalEventButtons}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalCreate}>
+                                    <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalCreate()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
                                     {tempDayIndex !== null && (
@@ -2007,7 +2007,7 @@ export default function HomeScreen() {
                                             <Text style={styles.removeButtonText}>Remove</Text>
                                         </TouchableOpacity>
                                     )}
-                                    <TouchableOpacity style={styles.saveButton} onPress={handleSaveDayCreate}>
+                                    <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayCreate()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -2048,8 +2048,8 @@ export default function HomeScreen() {
                                 />
                             )}
                             <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={closePickDate} />
-                                <Button title="Save" onPress={savePickDate} />
+                                <Button title="Cancel" onPress={() => closePickDate()} />
+                                <Button title="Save" onPress={() => savePickDate()} />
                             </View>
                         </View>
                     </View>
@@ -2194,8 +2194,8 @@ export default function HomeScreen() {
                                     textColor="black" // Ensure visibility
                                 />
                                 <View style={styles.modalEventButtons}>
-                                    <Button title="Cancel" onPress={cancelVotingDate} />
-                                    <Button title="Save" onPress={saveVotingDate} />
+                                    <Button title="Cancel" onPress={() => cancelVotingDate()} />
+                                    <Button title="Save" onPress={() => saveVotingDate()} />
                                 </View>
                             </View>
                         </View>
@@ -2304,7 +2304,7 @@ export default function HomeScreen() {
                                             {/* Add Day Button */}
                                             <TouchableOpacity
                                                 style={styles.addDayButton}
-                                                onPress={openAddDayModalEdit}
+                                                onPress={() => openAddDayModalEdit()}
                                             >
                                                 <MaterialIcons name="add-circle-outline" size={24} color="#fff" />
                                                 <Text style={styles.addDayButtonText}>Add Day</Text>
@@ -2345,7 +2345,7 @@ export default function HomeScreen() {
                                                 />
                                                 <TouchableOpacity
                                                     style={styles.addInviteButton}
-                                                    onPress={addTypedInviteEdit}
+                                                    onPress={() => addTypedInviteEdit()}
                                                 >
                                                     <MaterialIcons name="add" size={24} color="#fff" />
                                                 </TouchableOpacity>
@@ -2384,7 +2384,7 @@ export default function HomeScreen() {
                                             {/* Voting Deadline Button */}
                                             <TouchableOpacity
                                                 style={styles.votingButton}
-                                                onPress={openVotingDatePickerEdit}
+                                                onPress={() => openVotingDatePickerEdit()}
                                                 accessible={true}
                                                 accessibilityLabel="Select Voting Deadline"
                                             >
@@ -2409,8 +2409,8 @@ export default function HomeScreen() {
                                     )}
                                 </ScrollView>
                                 <View style={styles.modalEventButtons}>
-                                    <Button title={editStep === 1 ? 'Cancel' : 'Back'} onPress={handlePrevStepEdit} />
-                                    <Button title={editStep < 4 ? 'Next' : 'Save'} onPress={handleNextStepEdit} />
+                                    <Button title={editStep === 1 ? 'Cancel' : 'Back'} onPress={() => handlePrevStepEdit()} />
+                                    <Button title={editStep < 4 ? 'Next' : 'Save'} onPress={() => handleNextStepEdit()} />
                                 </View>
                             </View>
                         </KeyboardAvoidingView>
@@ -2427,7 +2427,7 @@ export default function HomeScreen() {
                                     <Text style={styles.modalTitle}>
                                         {tempDayIndexEdit !== null ? 'Edit Day' : 'Add Day'}
                                     </Text>
-                                    <TouchableOpacity onPress={closeAddDayModalEdit}>
+                                    <TouchableOpacity onPress={() => closeAddDayModalEdit()}>
                                         <MaterialIcons name="close" size={24} color="#333" />
                                     </TouchableOpacity>
                                 </View>
@@ -2441,7 +2441,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{formatDay(tempDateEdit)}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={openPickDateEdit}
+                                                onPress={() => openPickDateEdit()}
                                             >
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
@@ -2456,7 +2456,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempStartEdit}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={openPickStartTimeEdit}
+                                                onPress={() => openPickStartTimeEdit()}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
@@ -2471,7 +2471,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempEndEdit}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={openPickEndTimeEdit}
+                                                onPress={() => openPickEndTimeEdit()}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
@@ -2482,7 +2482,7 @@ export default function HomeScreen() {
 
                                 {/* Actions */}
                                 <View style={styles.modalEventButtons}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalEdit}>
+                                    <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalEdit()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
                                     {tempDayIndexEdit !== null && (
@@ -2496,7 +2496,7 @@ export default function HomeScreen() {
                                             <Text style={styles.removeButtonText}>Remove</Text>
                                         </TouchableOpacity>
                                     )}
-                                    <TouchableOpacity style={styles.saveButton} onPress={handleSaveDayEdit}>
+                                    <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayEdit()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -2526,7 +2526,7 @@ export default function HomeScreen() {
                                             setAddDayModalVisibleEdit(true);
                                         }}
                                     />
-                                    <Button title="Save" onPress={savePickDateEdit} />
+                                    <Button title="Save" onPress={() => savePickDateEdit()} />
                                 </View>
                             </View>
                         </View>
@@ -2682,8 +2682,8 @@ export default function HomeScreen() {
                                     textColor="black"
                                 />
                                 <View style={styles.modalEventButtons}>
-                                    <Button title="Cancel" onPress={cancelVotingDateEdit} />
-                                    <Button title="Save" onPress={saveVotingDateEdit} />
+                                    <Button title="Cancel" onPress={() => cancelVotingDateEdit()} />
+                                    <Button title="Save" onPress={() => saveVotingDateEdit()} />
                                 </View>
                             </View>
                         </View>
