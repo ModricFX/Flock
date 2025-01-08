@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#4CAF50', // Default color, can be overridden
+        backgroundColor: '#4CAF50',
         borderRadius: 12,
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -162,25 +162,25 @@ const styles = StyleSheet.create({
     /* =============  STATUS STYLES  =============== */
     /* ============================================= */
     statusUpcoming: {
-        backgroundColor: '#4CAF50', // Green
+        backgroundColor: '#4CAF50',
         color: '#fff',
         padding: 5,
         borderRadius: 4,
     },
     statusVoting: {
-        backgroundColor: '#FF9800', // Orange
+        backgroundColor: '#FF9800',
         color: '#fff',
         padding: 5,
         borderRadius: 4,
     },
     statusCompleted: {
-        backgroundColor: '#9E9E9E', // Gray
+        backgroundColor: '#9E9E9E',
         color: '#fff',
         padding: 5,
         borderRadius: 4,
     },
     statusInProgress: {
-        backgroundColor: '#2196F3', // Blue
+        backgroundColor: '#2196F3',
         color: '#fff',
         padding: 5,
         borderRadius: 4,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     cancelButton: {
-        backgroundColor: '#ccc', // Gray
+        backgroundColor: '#ccc',
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     removeButton: {
-        backgroundColor: '#e74c3c', // Red
+        backgroundColor: '#e74c3c',
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     saveButton: {
-        backgroundColor: '#4CAF50', // Green
+        backgroundColor: '#4CAF50',
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     editButton: {
-        backgroundColor: '#FF9800', // Orange or any color you like
+        backgroundColor: '#2196F3',
     },
     modalLabel: {
         fontSize: 16,
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     participantsButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#2196F3',
+        backgroundColor: '#4CAF50',
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 5,
@@ -745,16 +745,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     voteButton: {
-        backgroundColor: '#FF9800', // Orange for voting
+        backgroundColor: '#FF9800',
     },
     confirmButton: {
-        backgroundColor: '#4CAF50', // Green for confirm
+        backgroundColor: '#4CAF50',
     },
     denyButton: {
-        backgroundColor: '#F44336', // Red for deny
+        backgroundColor: '#fb4e41',
     },
     closeButton: {
-        backgroundColor: '#757575', // Gray for close
+        backgroundColor: '#757575',
     },
 
     /* ============================================= */
