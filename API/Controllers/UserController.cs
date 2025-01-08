@@ -61,6 +61,11 @@ namespace flock.Controllers
         [Authorize]
         public async Task<IActionResult> GetAuthenticatedUser()
         {
+            if (User?.Identity?.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            
             var userEmail = User.Identity.Name; // This should be populated from the token
             if (string.IsNullOrEmpty(userEmail))
                 return Unauthorized("Invalid token.");
@@ -89,6 +94,11 @@ namespace flock.Controllers
         [Authorize]
         public async Task<IActionResult> GetUserInfo(int id)
         {
+            if (User?.Identity?.IsAuthenticated == false)
+            {
+                return Unauthorized();
+            }
+            
             var user = await _userRepository.GetUserById(id);
             if (user == null)
                 return NotFound("User not found.");
@@ -114,6 +124,11 @@ namespace flock.Controllers
         public async Task<IActionResult> UpdateUserRelationship(RelationshipDto request){
             try
             {
+                if (User?.Identity?.IsAuthenticated == false)
+                {
+                    return Unauthorized();
+                }
+                
                 var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
 
                 var relationship = new Friendship
@@ -140,6 +155,10 @@ namespace flock.Controllers
         public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){
             try
             {
+                if (User?.Identity?.IsAuthenticated == false)
+                {
+                    return Unauthorized();
+                }
                 var relationships = await _userRepository.GetAllRelationshipsWithStatus(id, status);
 
                 return Ok(relationships);
