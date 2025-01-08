@@ -36,22 +36,22 @@ export default function Notifications() {
     const [popupVisible, setPopupVisible] = useState(false);
     const [selectedNotification, setSelectedNotification] = useState<any>(null);
     const [notificationPopupVisible, setNotificationPopupVisible] = useState(false);
-    const slideAnim = useState(new Animated.Value(300))[0];
+    const slideAnim = useState(new Animated.Value(100))[0];
 
     const handleNotificationClick = (notification: any) => {
         setSelectedNotification(notification);
         setNotificationPopupVisible(true);
         Animated.timing(slideAnim, {
             toValue: 0,
-            duration: 300,
+            duration: 150,
             useNativeDriver: true,
         }).start();
     };
 
     const closeNotificationPopup = () => {
         Animated.timing(slideAnim, {
-            toValue: 300,
-            duration: 300,
+            toValue: 100,
+            duration: 100,
             useNativeDriver: true,
         }).start(() => {
             setNotificationPopupVisible(false);

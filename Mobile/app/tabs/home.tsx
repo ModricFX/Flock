@@ -13,13 +13,20 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Alert,
+    Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePickerComponent from '../../components/DateTimePicker';
 
 /* IMPORT STYLES */
 
 import styles from '../styles/HomePageStyles';
+import friendStyles from '../styles/FriendsPageStyles';
+
+
+const isIOS = Platform.OS === 'ios';
+console.log("Running for platform: ", isIOS ? "iOS" : "Android");
 
 /* ----------------------------------------
    Mock user, friend list, and data models
@@ -28,19 +35,20 @@ interface User {
     id: string;
     username: string;
     email: string;
+    pfpUrl: string;
 }
 
 interface Participant {
     username: string;
     email: string;
+    pfpUrl: string;
     status: 'pending' | 'accepted' | 'declined';
 }
 
 /** A single day record with date, times, etc. */
 interface SingleDay {
-    date: Date;       // e.g. 2024-01-15
-    start: string;    // e.g. '08:00 AM'
-    end: string;      // e.g. '10:00 PM'
+    dateStart: Date;       // 2025-01-08T11:54:15.658Z
+    dateEnd: Date;         // 2025-01-08T11:54:15.658Z
 }
 
 /**
@@ -48,15 +56,15 @@ interface SingleDay {
  * We store an array of dayTimes, each item = SingleDay
  */
 interface EventData {
-    id: string;
-    createdBy: string;
-    title: string;
-    description: string;
-    location: string;
-
-    dayTimes: SingleDay[];       // List of chosen days
+    id_event: string,
+    name: string,
+    description: string,
+    location: string,
+    end_voting_date: Date;             // People can vote until this date/time
+    id_user: string;                    // ID of the user who created the event,
+    date_options: SingleDay[];       // List of chosen days
     participants: Participant[];
-    endVoting: Date;             // People can vote until this date/time
+
     eventDate?: Date;            // Final chosen date/time (if set)
     createdAt: Date;
     updatedAt: Date;
@@ -68,150 +76,145 @@ const mockCurrentUser: User = {
     id: 'u-001',
     username: 'MyUser',
     email: 'myuser@domain.com',
+    pfpUrl: 'https://i.pravatar.cc/100?img=49',
 };
 
 /* Mock friend list */
 const mockFriends: User[] = [
-    { id: 'u-002', username: 'Alice', email: 'alice@example.com' },
-    { id: 'u-003', username: 'Bob', email: 'bob@example.com' },
-    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com' },
+    { id: 'u-002', username: 'Alice', email: 'alice@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=23' },
+    { id: 'u-003', username: 'Bob', email: 'bob@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=34' },
+    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
 ];
 
 /* Some initial events */
 const initialEvents: EventData[] = [
     {
-        id: 'evt-1',
-        createdBy: mockCurrentUser.id,
-        title: 'My Birthday Party',
+        id_event: 'evt-1',
+        id_user: mockCurrentUser.id,
+        name: 'My Birthday Party',
         description: 'Pizza and cake!',
         location: 'My House',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 0, 15),
-                start: '08:00',
-                end: '11:00',
+                dateStart: new Date(2024, 0, 15, 8, 0),
+                dateEnd: new Date(2024, 0, 15, 11, 0),
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Alice', email: 'alice@example.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@example.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=12' },
+            { username: 'Alice', email: 'alice@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
+            { username: 'Bob', email: 'bob@example.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
         ],
-        endVoting: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-2',
-        createdBy: 'u-004', // belongs to Charlie
-        title: 'Yoga Retreat',
+        id_event: 'evt-2',
+        id_user: 'u-004', // belongs to Charlie
+        name: 'Yoga Retreat',
         description: 'Relaxing yoga for all levels',
         location: 'Health & Wellness Center',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '12:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
+            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-3',
-        createdBy: 'u-004', // belongs to Charlie
-        title: 'Test event',
+        id_event: 'evt-3',
+        id_user: 'u-004', // belongs to Charlie
+        name: 'Test event',
         description: 'Testing the events',
         location: 'Home alone',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '13:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 13, 0),
             },
             {
-                date: new Date(2024, 1, 6),
-                start: '15:00',
-                end: '20:00',
+                dateStart: new Date(2024, 1, 6, 15, 0),
+                dateEnd: new Date(2024, 1, 6, 20, 0),
             }
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending' },
-            { username: 'Bob1', email: 'bob@gmail.com', status: 'declined' },
-            { username: 'Bob2', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob3', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob4', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob5', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob6', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob7', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob8', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted' },
-            { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=11' },
+            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=10' },
+            { username: 'Bob1', email: 'bob@gmail.com', status: 'declined', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob2', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob3', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob4', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
+            { username: 'Bob5', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob6', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob7', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob8', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
+            { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
         ],
-        endVoting: new Date(Date.now() + 1000 * 60 * 60 * 2),
+        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
         eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-4',
-        createdBy: 'u-003', // belongs to Bob
-        title: 'Beach Day',
+        id_event: 'evt-4',
+        id_user: 'u-003', // belongs to Bob
+        name: 'Beach Day',
         description: 'Fun in the sun!',
         location: 'Sunny Beach',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00 AM',
-                end: '12:00 PM',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=07' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=06' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
     {
-        id: 'evt-5',
-        createdBy: 'u-002', // belongs to Alice
-        title: 'Neki Day',
+        id_event: 'evt-5',
+        id_user: 'u-002', // belongs to Alice
+        name: 'Neki Day',
         description: 'Fun',
         location: 'House apartment',
-        dayTimes: [
+        date_options: [
             {
-                date: new Date(2024, 1, 5),
-                start: '09:00',
-                end: '12:00',
+                dateStart: new Date(2024, 1, 5, 9, 0),
+                dateEnd: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted' },
+            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=05' },
+            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=04' },
         ],
-        endVoting: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
         eventDate: new Date(Date.now() - 500 * 60),
         createdAt: new Date(),
         updatedAt: new Date(),
     },
 ];
 
-/* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet, 
+/* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet,
    and 'done' if the picked date is in the past. */
 function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
     const now = Date.now();
 
-    if (e.endVoting && e.endVoting.getTime() > now) {
+    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
         return 'voting';
     }
 
@@ -231,8 +234,6 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
     return 'upcoming';
 }
 
-
-
 function formatDate(date: Date) {
     return date.toLocaleString([], {
         month: 'short',
@@ -243,7 +244,6 @@ function formatDate(date: Date) {
         hourCycle: 'h23', // Use 24-hour format
     });
 }
-
 
 /** Returns string like "Monday, 15.01.2024" */
 function formatDay(date: Date) {
@@ -258,6 +258,18 @@ function formatDay(date: Date) {
     const yyyy = date.getFullYear();
     return `${dayName}, ${dd}.${mm}.${yyyy}`;
 }
+
+function getDateFrom(dateStart: Date) {
+    return new Date(dateStart.getFullYear(), dateStart.getMonth(), dateStart.getDate());
+}
+
+function getHoursFrom(dateTime: Date) {
+    const date = new Date(dateTime);
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
@@ -283,11 +295,12 @@ export default function HomeScreen() {
         // Or if you want to detect event ID changes:
         // if (availability.__eventId === selectedEvent.id) return;
 
-        if (selectedEvent.dayTimes) {
+        if (selectedEvent.date_options) {
             const mergedAvailability: { [key: string]: any } = {};
 
-            selectedEvent.dayTimes.forEach((dayTime) => {
-                const dayKey = dayTime.date.toISOString();
+            selectedEvent.date_options.forEach((date_option) => {
+                const date = getDateFrom(date_option.dateStart);
+                const dayKey = date.toISOString();
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -296,14 +309,11 @@ export default function HomeScreen() {
                     };
                 } else {
                     // Otherwise, initialize
-                    const [startHours, startMinutes] = dayTime.start.split(':').map(Number);
-                    const [endHours, endMinutes] = dayTime.end.split(':').map(Number);
+                    const startTime = new Date(date_option.dateStart);
+                    startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
 
-                    const startTime = new Date(dayTime.date);
-                    startTime.setHours(startHours, startMinutes, 0, 0);
-
-                    const endTime = new Date(dayTime.date);
-                    endTime.setHours(endHours, endMinutes, 0, 0);
+                    const endTime = new Date(date_option.dateEnd);
+                    endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
                     mergedAvailability[dayKey] = {
                         startTime,
@@ -388,7 +398,6 @@ export default function HomeScreen() {
     const [votingPickerEditVisible, setVotingPickerEditVisible] = useState(false);
 
     // =============== VIEW / VOTE ===============
-    const [voteModalVisible, setVoteModalVisible] = useState(false);
     const [showVotingPicker, setShowVotingPicker] = useState(false);
 
     const [showParticipantsModal, setShowParticipantsModal] = useState(false);
@@ -428,7 +437,6 @@ export default function HomeScreen() {
         }
     }
 
-    // Get corresponding icon for status
     function getStatusIcon(status: string): "schedule" | "play-arrow" | "done" | "autorenew" {
         switch (status) {
             case "upcoming":
@@ -444,7 +452,6 @@ export default function HomeScreen() {
         }
     }
 
-    // Get corresponding status style
     function getStatusStyle(status: string) {
         switch (status) {
             case 'upcoming':
@@ -476,14 +483,14 @@ export default function HomeScreen() {
         }
 
         const newEvt: EventData = {
-            id: Math.random().toString(),
-            createdBy: currentUser?.id || 'unknown',
-            title: createTitle,
+            id_event: Math.random().toString(),
+            id_user: currentUser?.id || 'unknown',
+            name: createTitle,
             description: createDesc,
             location: createLoc,
-            dayTimes: createDays,
+            date_options: createDays,
             participants: invitees,
-            endVoting: endVotingDate,
+            end_voting_date: endVotingDate,
             createdAt: new Date(),
             updatedAt: new Date(),
         };
@@ -497,25 +504,29 @@ export default function HomeScreen() {
             // Editing an existing day
             const existing = createDays[index];
             setTempDayIndex(index);
-            setTempDate(existing.date);
-            setTempStart(existing.start); // Assuming `start` is already in the desired format
-            setTempEnd(existing.end);     // Assuming `end` is already in the desired format
+            setTempDate(getDateFrom(existing.dateStart));
+            setTempStart(getHoursFrom(existing.dateStart));
+            setTempEnd(getHoursFrom(existing.dateEnd));
         } else {
             // Adding a new day
             setTempDayIndex(null);
             setTempDate(new Date());
-            setTempStart('08:00'); // Default start time in 24-hour format
-            setTempEnd('10:00');   // Default end time in 24-hour format
+            setTempStart('08:00');
+            setTempEnd('10:00');
         }
 
         // Show the Add Day modal and hide the Create Event modal
         setAddDayModalVisible(true);
-        setCreateModalVisible(false);
+        if (isIOS) {
+            setCreateModalVisible(false);
+        }
     }
 
     function closeAddDayModalCreate() {
         setAddDayModalVisible(false);
-        setCreateModalVisible(true);
+        if (isIOS) {
+            setCreateModalVisible(true);
+        }
     }
 
     const handleAvailabilityResponse = (dayKey: string, isAvailable: boolean) => {
@@ -567,7 +578,7 @@ export default function HomeScreen() {
         // 3) (Optional) Update the global events array to reflect changes on the homepage
         setEvents((prevEvents) =>
             prevEvents.map((evt) => {
-                if (evt.id === selectedEvent?.id) {
+                if (evt.id_event === selectedEvent?.id_event) {
                     return {
                         ...evt,
                         participants: evt.participants.map((p) =>
@@ -581,6 +592,7 @@ export default function HomeScreen() {
             })
         );
     };
+
     // Convert time strings to comparable numbers (e.g., "10:00" -> 1000)
     const convertTimeToNumber = (time: string) => {
         const [hours, minutes] = time.split(":").map(Number);
@@ -599,11 +611,22 @@ export default function HomeScreen() {
         if (tempDayIndex !== null) {
             // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { date: tempDate, start: tempStart, end: tempEnd };
+            copy[tempDayIndex] = {
+                dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+            };
+
             setCreateDays(copy);
         } else {
             // new
-            setCreateDays(prev => [...prev, { date: tempDate, start: tempStart, end: tempEnd }]);
+            setCreateDays(prev => [
+                ...prev,
+                {
+                    dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                    dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+                }
+            ]);
+
         }
         closeAddDayModalCreate();
     }
@@ -622,61 +645,76 @@ export default function HomeScreen() {
 
     /* Step2: picking date/time => each is a separate modal */
     function openPickDate() {
-        // close Day modal, open date modal
-        setAddDayModalVisible(false);
+        if (isIOS) {
+            setAddDayModalVisible(false);
+        }
         setPickDateModalVisible(true);
     }
 
     function openPickDateEdit() {
-        // close Day modal, open date modal
-        setAddDayModalVisibleEdit(false);
+        if (isIOS) {
+            setAddDayModalVisibleEdit(false);
+        }
         setPickDateModalEditVisible(true);
     }
 
-
     function closePickDate() {
         setPickDateModalVisible(false);
-        setAddDayModalVisible(true);
+        if (isIOS) {
+            setAddDayModalVisible(true);
+        }
     }
-    function onPickDateChange(_ev: DateTimePickerEvent, sel?: Date) {
+    function onPickDateChange(sel?: Date) {
         if (sel) setTempDate(sel);
     }
     function savePickDate() {
         setPickDateModalVisible(false);
-        setAddDayModalVisible(true);
+        if (isIOS) {
+            setAddDayModalVisible(true);
+        }
     }
 
     function openPickStartTime() {
-        setAddDayModalVisible(false);
+        if (isIOS) {
+            setAddDayModalVisible(false);
+        }
         setPickStartModalVisible(true);
     }
     function openPickEndTime() {
-        setAddDayModalVisible(false);
+        if (isIOS) {
+            setAddDayModalVisible(false);
+        }
         setPickEndModalVisible(true);
     }
 
     function openPickStartTimeEdit() {
-        setAddDayModalVisibleEdit(false);
+        if (isIOS) {
+            setAddDayModalVisibleEdit(false);
+        }
         setPickStartModalEditVisible(true);
     }
 
     function openPickEndTimeEdit() {
-        setAddDayModalVisibleEdit(false);
+        if (isIOS) {
+            setAddDayModalVisibleEdit(false);
+        }
         setPickEndModalEditVisible(true);
     }
 
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setInvitees([...invitees, { username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
         }
     }
+
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
             const newPart: Participant = {
                 username: typedInvite.split('@')[0],
                 email: typedInvite,
+                pfpUrl: 'https://i.pravatar.cc/100?img=02',
                 status: 'pending',
             };
             setInvitees([...invitees, newPart]);
@@ -691,31 +729,25 @@ export default function HomeScreen() {
     /* Step4 create -> Voting */
     function openVotingDatePickerCreate() {
         setVotingPickerVisible(true);
-        setCreateModalVisible(false);
+        if (isIOS) {
+            setCreateModalVisible(false);
+        }
     }
     function cancelVotingDate() {
         setVotingPickerVisible(false);
-        setCreateModalVisible(true);
+        if (isIOS) {
+            setCreateModalVisible(true);
+        }
     }
     function saveVotingDate() {
         setVotingPickerVisible(false);
-        setCreateModalVisible(true);
+        if (isIOS) {
+            setCreateModalVisible(true);
+        }
     }
-    function onVotingDateChange(_ev: DateTimePickerEvent, sel?: Date) {
+    function onVotingDateChange(sel?: Date) {
         if (sel) setEndVotingDate(sel);
     }
-
-    const formatVotingDate = (date: Date) => {
-        return date.toLocaleString([], {
-            month: 'short',        // e.g., "Jan"
-            day: 'numeric',        // e.g., "25"
-            year: 'numeric',       // e.g., "2024"
-            hour: '2-digit',       // e.g., "14"
-            minute: '2-digit',     // e.g., "30"
-            hour12: false,         // Ensures 24-hour time format
-        });
-    };
-
 
     // Function to handle date changes from the picker
     const handleVotingDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -725,7 +757,7 @@ export default function HomeScreen() {
         }
     };
 
-    const [isOtherEventsModalVisible, setIsOtherEventsModalVisible] = useState<boolean>(false);
+    const [isEventModalVisible, setIsEventModalVisible] = useState<boolean>(false);
 
     const [isVotingModalVisible, setIsVotingModalVisible] = useState(false);
     const [availability, setAvailability] = useState<{
@@ -743,12 +775,12 @@ export default function HomeScreen() {
     function openEdit(e: EventData) {
         setEditEvent(e);
         setEditStep(1);
-        setEditTitle(e.title || '');
+        setEditTitle(e.name || '');
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
-        setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
+        setEditDays(e.date_options ? [...e.date_options] : []); // Spread to prevent direct reference issues
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
-        setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
+        setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
     }
 
@@ -789,15 +821,15 @@ export default function HomeScreen() {
 
         const updated: EventData = {
             ...editEvent,
-            title: editTitle,
+            name: editTitle,
             description: editDesc,
             location: editLoc,
-            dayTimes: editDays,
+            date_options: editDays,
             participants: editInvitees,
-            endVoting: editEndVoting,
+            end_voting_date: editEndVoting,
             updatedAt: new Date(),
         };
-        setEvents(prev => prev.map(evt => evt.id === updated.id ? updated : evt));
+        setEvents(prev => prev.map(evt => evt.id_event === updated.id_event ? updated : evt));
         closeEditEvent();
     }
 
@@ -807,9 +839,9 @@ export default function HomeScreen() {
             // Editing an existing day
             setTempDayIndexEdit(index);
             const existing = editDays[index];
-            setTempDateEdit(existing.date || new Date());
-            setTempStartEdit(existing.start || '08:00');
-            setTempEndEdit(existing.end || '10:00');
+            setTempDateEdit(existing.dateStart ? getDateFrom(existing.dateStart) : new Date());
+            setTempStartEdit(existing.dateStart ? getHoursFrom(existing.dateStart) : '08:00');
+            setTempEndEdit(existing.dateEnd ? getHoursFrom(existing.dateEnd) : '10:00');
         } else {
             // Adding a new day
             setTempDayIndexEdit(null);
@@ -818,12 +850,16 @@ export default function HomeScreen() {
             setTempEndEdit('10:00'); // Default end time in 24-hour format
         }
         setAddDayModalVisibleEdit(true);
-        setEditModalVisible(false);
+        if (isIOS) {
+            setEditModalVisible(false);
+        }
     }
 
     function closeAddDayModalEdit() {
         setAddDayModalVisibleEdit(false);
-        setEditModalVisible(true);
+        if (isIOS) {
+            setEditModalVisible(true);
+        }
     }
 
     function handleSaveDayEdit() {
@@ -840,15 +876,17 @@ export default function HomeScreen() {
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
-                date: tempDateEdit,
-                start: tempStartEdit,
-                end: tempEndEdit,
+                dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
             };
             setEditDays(copy);
         } else {
             setEditDays((prev) => [
                 ...prev,
-                { date: tempDateEdit, start: tempStartEdit, end: tempEndEdit },
+                {
+                    dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                    dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
+                },
             ]);
         }
 
@@ -870,7 +908,7 @@ export default function HomeScreen() {
     }
 
     /* Step2 pick date/time for edit */
-    function onPickDateChangeEdit(_ev: DateTimePickerEvent, sel?: Date) {
+    function onPickDateChangeEdit(sel?: Date) {
         if (sel) setTempDateEdit(sel);
     }
     function savePickDateEdit() {
@@ -881,7 +919,7 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
         }
     }
     function addTypedInviteEdit() {
@@ -891,6 +929,7 @@ export default function HomeScreen() {
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
+                pfpUrl: 'https://i.pravatar.cc/100?img=50'
             };
             setEditInvitees([...editInvitees, newPart]);
         }
@@ -903,34 +942,40 @@ export default function HomeScreen() {
     /* Step4 (edit) => voting date */
     function openVotingDatePickerEdit() {
         setVotingPickerEditVisible(true);
-        setEditModalVisible(false);
+        if (isIOS) {
+            setEditModalVisible(false);
+        }
     }
     function cancelVotingDateEdit() {
         setVotingPickerEditVisible(false);
-        setEditModalVisible(true);
+        if (isIOS) {
+            setEditModalVisible(true);
+        }
     }
     function saveVotingDateEdit() {
         setVotingPickerEditVisible(false);
-        setEditModalVisible(true);
+        if (isIOS) {
+            setEditModalVisible(true);
+        }
     }
-    function onVotingDateChangeEdit(_ev: DateTimePickerEvent, sel?: Date) {
+    function onVotingDateChangeEdit(sel?: Date) {
         if (sel) setEditEndVoting(sel);
     }
 
     /* =============== VIEW / VOTE =============== */
     function openView(event: EventData) {
         setSelectedEvent(event); // Set the selected event
-        setIsOtherEventsModalVisible(true); // Show the modal
+        setIsEventModalVisible(true); // Show the modal
     }
 
     function closeView() {
-        setIsOtherEventsModalVisible(false); // Hide the modal
+        setIsEventModalVisible(false); // Hide the modal
         setSelectedEvent(null); // Clear the selected event
     }
 
     /* Partition MY vs. OTHERS */
-    const myEvents = events.filter(e => e.createdBy === currentUser?.id);
-    const otherEvents = events.filter(e => e.createdBy !== currentUser?.id);
+    const myEvents = events.filter(e => e.id_user === currentUser?.id);
+    const otherEvents = events.filter(e => e.id_user !== currentUser?.id);
 
     if (loading) {
         return (
@@ -965,16 +1010,16 @@ export default function HomeScreen() {
                             >
                                 {myEvents.map(evt => (
                                     <TouchableOpacity
-                                        key={evt.id}
+                                        key={evt.id_event}
                                         style={styles.eventCard}
                                         onPress={() => openView(evt)}
                                         activeOpacity={0.8}
                                         accessible={true}
-                                        accessibilityLabel={`Edit event ${evt.title}`}
+                                        accessibilityLabel={`Edit event ${evt.name}`}
                                     >
                                         {/* Event Header */}
                                         <View style={styles.eventHeader}>
-                                            <Text style={styles.eventTitle}>{evt.title}</Text>
+                                            <Text style={styles.eventTitle}>{evt.name}</Text>
                                             <View style={[
                                                 styles.statusBadge,
                                                 getStatusStyle(getEventStatus(evt))
@@ -1001,7 +1046,7 @@ export default function HomeScreen() {
                                             <View style={styles.dateRow}>
                                                 <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                 <Text style={styles.dateText}>
-                                                    Voting Ends: {formatDate(evt.endVoting)}
+                                                    Voting Ends: {formatDate(evt.end_voting_date)}
                                                 </Text>
                                             </View>
                                             {evt.eventDate && (
@@ -1042,16 +1087,16 @@ export default function HomeScreen() {
                                     const userParticipant = evt.participants.find(p => p.email === currentUser?.email);
                                     return (
                                         <TouchableOpacity
-                                            key={evt.id}
+                                            key={evt.id_event}
                                             style={styles.eventCard}
                                             onPress={() => openView(evt)}
                                             activeOpacity={0.8}
                                             accessible={true}
-                                            accessibilityLabel={`View event ${evt.title}`}
+                                            accessibilityLabel={`View event ${evt.name}`}
                                         >
                                             {/* Event Header */}
                                             <View style={styles.eventHeader}>
-                                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                                <Text style={styles.eventTitle}>{evt.name}</Text>
                                                 <View style={[
                                                     styles.statusBadge,
                                                     getStatusStyle(eventStatus)
@@ -1079,7 +1124,7 @@ export default function HomeScreen() {
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
-                                                            Voting Ends: {formatDate(evt.endVoting)}
+                                                            Voting Ends: {formatDate(evt.end_voting_date)}
                                                         </Text>
                                                     </View>
                                                 ) : (
@@ -1124,9 +1169,9 @@ export default function HomeScreen() {
                         )}
                     </View>
 
-                    {/* Other Event Details Modal */}
+                    {/* Event Details Modal */}
                     <Modal
-                        visible={isOtherEventsModalVisible}
+                        visible={isEventModalVisible}
                         animationType="slide"
                         transparent={true}
                         onRequestClose={closeView}
@@ -1139,13 +1184,13 @@ export default function HomeScreen() {
                                             (() => {
                                                 const eventStatus = getEventStatus(selectedEvent);
                                                 // Check if current user created this event
-                                                const isCreator = selectedEvent.createdBy === currentUser?.id;
+                                                const isCreator = selectedEvent.id_user === currentUser?.id;
 
                                                 return (
                                                     <>
                                                         {/* Modal Header */}
                                                         <View style={styles.modalHeader}>
-                                                            <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
+                                                            <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
                                                             <TouchableOpacity
                                                                 onPress={closeView}
                                                                 accessibilityLabel="Close Modal"
@@ -1166,8 +1211,8 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {mockFriends.find(friend => friend.id === selectedEvent.createdBy)
-                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.email})`
+                                                                        {mockFriends.find(friend => friend.id === selectedEvent.id_user)
+                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.email})`
                                                                             : 'Unknown'}
                                                                     </Text>
                                                                 </View>
@@ -1187,11 +1232,11 @@ export default function HomeScreen() {
                                                                         </Text>
                                                                     </View>
                                                                 )}
-                                                                {selectedEvent.endVoting && eventStatus === 'voting' && (
+                                                                {selectedEvent.end_voting_date && eventStatus === 'voting' && (
                                                                     <View style={styles.detailRow}>
                                                                         <Text style={styles.detailLabel}>Voting Ends:</Text>
                                                                         <Text style={styles.detailValue}>
-                                                                            {formatDate(selectedEvent.endVoting)}
+                                                                            {formatDate(selectedEvent.end_voting_date)}
                                                                         </Text>
                                                                     </View>
                                                                 )}
@@ -1225,8 +1270,10 @@ export default function HomeScreen() {
                                                                     <TouchableOpacity
                                                                         style={[styles.actionButton, styles.voteButton]}
                                                                         onPress={() => {
-                                                                            setIsOtherEventsModalVisible(false);
                                                                             setIsVotingModalVisible(true);
+                                                                            if (isIOS) {
+                                                                                setIsEventModalVisible(false);
+                                                                            }
                                                                         }}
                                                                     >
                                                                         <MaterialIcons name="how-to-vote" size={20} color="#fff" />
@@ -1344,9 +1391,7 @@ export default function HomeScreen() {
                                                                 <TouchableOpacity
                                                                     style={[styles.actionButton, styles.editButton]}
                                                                     onPress={() => {
-                                                                        // Close the details modal
-                                                                        setIsOtherEventsModalVisible(false);
-                                                                        // Now open your existing edit flow
+                                                                        setIsEventModalVisible(false);
                                                                         openEdit(selectedEvent);
                                                                     }}
                                                                 >
@@ -1370,9 +1415,7 @@ export default function HomeScreen() {
                                                             transparent={true}
                                                             onRequestClose={() => setShowParticipantsModal(false)}
                                                         >
-                                                            {/* Tapping outside closes the modal */}
                                                             <View style={styles.modalOverlay}>
-                                                                {/* Modal Card */}
                                                                 <View style={styles.participantsModalContainer}>
 
                                                                     {/* Header */}
@@ -1386,26 +1429,32 @@ export default function HomeScreen() {
                                                                         </TouchableOpacity>
                                                                     </View>
 
-                                                                    {/* Summary: Accepted / Declined / Pending */}
+                                                                    {/* Summary: Accepted / Declined / Pending (or Voted / Pending if "voting") */}
                                                                     {(() => {
                                                                         const participants = selectedEvent?.participants ?? [];
-                                                                        const acceptedCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'accepted'
-                                                                        ).length;
-                                                                        const declinedCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'declined'
-                                                                        ).length;
-                                                                        const pendingCount = participants.filter(
-                                                                            (p) => p.status.toLowerCase() === 'pending'
-                                                                        ).length;
 
-                                                                        return (
-                                                                            <View style={styles.summaryRow}>
-                                                                                <Text style={styles.summaryText}>
-                                                                                    Accepted: {acceptedCount} | Declined: {declinedCount} | Pending: {pendingCount}
-                                                                                </Text>
-                                                                            </View>
-                                                                        );
+                                                                        if (eventStatus === 'voting') {
+                                                                            const votedCount = participants.filter((p) => p.status.toLowerCase() !== 'pending').length;
+                                                                            const pendingCount = participants.filter((p) => p.status.toLowerCase() === 'pending').length;
+                                                                            return (
+                                                                                <View style={styles.summaryRow}>
+                                                                                    <Text style={styles.summaryText}>
+                                                                                        Voted: {votedCount} | Pending: {pendingCount}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            );
+                                                                        } else {
+                                                                            const acceptedCount = participants.filter((p) => p.status.toLowerCase() === 'accepted').length;
+                                                                            const declinedCount = participants.filter((p) => p.status.toLowerCase() === 'declined').length;
+                                                                            const pendingCount = participants.filter((p) => p.status.toLowerCase() === 'pending').length;
+                                                                            return (
+                                                                                <View style={styles.summaryRow}>
+                                                                                    <Text style={styles.summaryText}>
+                                                                                        Accepted: {acceptedCount} | Declined: {declinedCount} | Pending: {pendingCount}
+                                                                                    </Text>
+                                                                                </View>
+                                                                            );
+                                                                        }
                                                                     })()}
 
                                                                     {/* Scrollable List of Participants */}
@@ -1416,12 +1465,12 @@ export default function HomeScreen() {
                                                                     >
                                                                         {(() => {
                                                                             const participants = selectedEvent?.participants ?? [];
-                                                                            // accepted -> 0, declined -> 1, pending -> 2
                                                                             const order: Record<string, number> = {
                                                                                 accepted: 0,
                                                                                 declined: 1,
                                                                                 pending: 2,
                                                                             };
+
                                                                             const sortedParticipants = participants.slice().sort((a, b) => {
                                                                                 const statusA = a.status.toLowerCase();
                                                                                 const statusB = b.status.toLowerCase();
@@ -1430,50 +1479,101 @@ export default function HomeScreen() {
                                                                                 return sortA - sortB;
                                                                             });
 
-                                                                            return sortedParticipants.map((p, index) => (
-                                                                                <View key={index} style={styles.participantRow}>
-                                                                                    {/* Person Icon */}
-                                                                                    <MaterialIcons
-                                                                                        name="person"
-                                                                                        size={20}
-                                                                                        color="#4CAF50"
-                                                                                        style={{ marginRight: 8 }}
-                                                                                    />
-                                                                                    {/* Username & Email */}
-                                                                                    <View style={{ flex: 1 }}>
-                                                                                        <Text style={styles.participantName}>{p.username}</Text>
-                                                                                        <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                            return sortedParticipants.map((p, index) => {
+                                                                                // If the event is in "voting" status, show either "VOTED" or "PENDING"
+                                                                                if (eventStatus === 'voting') {
+                                                                                    const isPending = p.status.toLowerCase() === 'pending';
+                                                                                    // TODO: add user pfp instead of person icon
+                                                                                    return (
+                                                                                        <View key={index} style={styles.participantRow}>
+                                                                                            {/*<MaterialIcons*/}
+                                                                                            {/*    name="person"*/}
+                                                                                            {/*    size={20}*/}
+                                                                                            {/*    color="#4CAF50"*/}
+                                                                                            {/*    style={{ marginRight: 8 }}*/}
+                                                                                            {/*/>*/}
+                                                                                            <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
+                                                                                            <View style={{ flex: 1 }}>
+                                                                                                <Text style={styles.participantName}>{p.username}</Text>
+                                                                                                <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                                            </View>
+                                                                                            <View style={styles.statusContainer}>
+                                                                                                {isPending ? (
+                                                                                                    <>
+                                                                                                        <MaterialIcons
+                                                                                                            name="help-outline"
+                                                                                                            size={20}
+                                                                                                            color="orange"
+                                                                                                            style={{ marginRight: 4 }}
+                                                                                                        />
+                                                                                                        <Text style={styles.participantStatus}>PENDING</Text>
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <MaterialIcons
+                                                                                                            name="check-circle"
+                                                                                                            size={20}
+                                                                                                            color="green"
+                                                                                                            style={{ marginRight: 4 }}
+                                                                                                        />
+                                                                                                        <Text style={styles.participantStatus}>VOTED</Text>
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </View>
+                                                                                        </View>
+                                                                                    );
+                                                                                }
+
+                                                                                // Otherwise, use the existing accepted/declined/pending logic
+                                                                                return (
+                                                                                    <View key={index} style={styles.participantRow}>
+                                                                                        {/*<MaterialIcons*/}
+                                                                                        {/*    name="person"*/}
+                                                                                        {/*    size={20}*/}
+                                                                                        {/*    color="#4CAF50"*/}
+                                                                                        {/*    style={{ marginRight: 8 }}*/}
+                                                                                        {/*/>*/}
+                                                                                        <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
+                                                                                        <View style={{ flex: 1 }}>
+                                                                                            <Text style={styles.participantName}>{p.username}</Text>
+                                                                                            <Text style={styles.participantEmail}>{p.email}</Text>
+                                                                                        </View>
+                                                                                        <View style={styles.statusContainer}>
+                                                                                            {p.status.toLowerCase() === 'accepted' ? (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="check-circle"
+                                                                                                        size={20}
+                                                                                                        color="green"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>ACCEPTED</Text>
+                                                                                                </>
+                                                                                            ) : p.status.toLowerCase() === 'declined' ? (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="cancel"
+                                                                                                        size={20}
+                                                                                                        color="red"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>DECLINED</Text>
+                                                                                                </>
+                                                                                            ) : (
+                                                                                                <>
+                                                                                                    <MaterialIcons
+                                                                                                        name="help-outline"
+                                                                                                        size={20}
+                                                                                                        color="orange"
+                                                                                                        style={{ marginRight: 4 }}
+                                                                                                    />
+                                                                                                    <Text style={styles.participantStatus}>PENDING</Text>
+                                                                                                </>
+                                                                                            )}
+                                                                                        </View>
                                                                                     </View>
-                                                                                    {/* Status Icon & Text */}
-                                                                                    <View style={styles.statusContainer}>
-                                                                                        {p.status.toLowerCase() === 'accepted' ? (
-                                                                                            <MaterialIcons
-                                                                                                name="check-circle"
-                                                                                                size={20}
-                                                                                                color="green"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        ) : p.status.toLowerCase() === 'declined' ? (
-                                                                                            <MaterialIcons
-                                                                                                name="cancel"
-                                                                                                size={20}
-                                                                                                color="red"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        ) : (
-                                                                                            <MaterialIcons
-                                                                                                name="help-outline"
-                                                                                                size={20}
-                                                                                                color="orange"
-                                                                                                style={{ marginRight: 4 }}
-                                                                                            />
-                                                                                        )}
-                                                                                        <Text style={styles.participantStatus}>
-                                                                                            {p.status.toUpperCase()}
-                                                                                        </Text>
-                                                                                    </View>
-                                                                                </View>
-                                                                            ));
+                                                                                );
+                                                                            });
                                                                         })()}
                                                                     </ScrollView>
 
@@ -1503,9 +1603,6 @@ export default function HomeScreen() {
                         </TouchableWithoutFeedback>
                     </Modal>
 
-
-
-
                     {/* VOTING MODAL SYSTEM */}
                     <Modal
                         visible={isVotingModalVisible}
@@ -1519,35 +1616,32 @@ export default function HomeScreen() {
                                     <View style={styles.votingModalContainer}>
                                         <View style={styles.votingModalHeader}>
                                             <Text style={styles.modalTitle}>
-                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.title || 'Event'}</Text>
+                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.name || 'Event'}</Text>
                                             </Text>
                                             <TouchableOpacity
-                                                onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
+                                                onPress={() => { setIsVotingModalVisible(false); setIsEventModalVisible(true); }}
                                                 accessibilityLabel="Close Voting Modal"
                                             >
                                                 <MaterialIcons name="close" size={24} color="#333" />
                                             </TouchableOpacity>
                                         </View>
-
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
-
-
                                             {/* Availability Selection for Each Day */}
-                                            {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
-                                                const dayKey = dayTime.date.toISOString();
+                                            {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
+                                                const dayKey = getDateFrom(dayTime.dateStart).toISOString();
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 return (
                                                     <View key={index} style={styles.dayContainer}>
                                                         <View style={styles.dayHeader}>
                                                             <Text style={styles.dayTitle}>
-                                                                {dayTime.date.toLocaleDateString('en-US', { weekday: 'long' })},{' '}
-                                                                {dayTime.date.toLocaleDateString()}
+                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString('en-US', { weekday: 'long' })},{' '}
+                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString()}
                                                             </Text>
                                                             <View style={styles.availableContainer}>
                                                                 <MaterialIcons name="schedule" size={20} color="#4CAF50" />
                                                                 <Text style={styles.availableText}>
-                                                                    {dayTime.start} - {dayTime.end}
+                                                                    {getHoursFrom(dayTime.dateStart)} - {getHoursFrom(dayTime.dateEnd)}
                                                                 </Text>
                                                             </View>
                                                         </View>
@@ -1597,12 +1691,11 @@ export default function HomeScreen() {
                                                 );
                                             })}
                                         </ScrollView>
-
                                         {/* Voting Modal Actions */}
                                         <View style={styles.modalActions}>
                                             <Button
                                                 title="Back"
-                                                onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
+                                                onPress={() => { setIsVotingModalVisible(false); setIsEventModalVisible(true); }}
                                                 color="#757575"
                                             />
                                         </View>
@@ -1611,8 +1704,6 @@ export default function HomeScreen() {
                             </View>
                         </TouchableWithoutFeedback>
                     </Modal>
-
-
                 </ScrollView>
 
                 {/* FAB */}
@@ -1687,7 +1778,6 @@ export default function HomeScreen() {
                                     </>
                                 )}
 
-
                                 {/* Step2 Days */}
                                 {createStep === 2 && (
                                     <>
@@ -1709,7 +1799,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalCreate(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -1733,8 +1823,6 @@ export default function HomeScreen() {
                                         </TouchableOpacity>
                                     </>
                                 )}
-
-
 
                                 {/* Step3 Invites */}
                                 {createStep === 3 && (
@@ -1798,8 +1886,6 @@ export default function HomeScreen() {
                                     </>
                                 )}
 
-
-                                {/* Step4 Voting End */}
                                 {/* Step4 Voting Deadline */}
                                 {createStep === 4 && (
                                     <>
@@ -1818,7 +1904,7 @@ export default function HomeScreen() {
                                         >
                                             <MaterialIcons name="calendar-today" size={24} color="#4CAF50" />
                                             <Text style={styles.votingButtonText}>
-                                                End Voting: {formatVotingDate(endVotingDate)}
+                                                End Voting: {formatDate(endVotingDate)}
                                             </Text>
                                         </TouchableOpacity>
 
@@ -1867,7 +1953,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Date</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{formatDay(tempDate)}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDate}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={openPickDate}
+                                            >
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
                                             </TouchableOpacity>
@@ -1879,7 +1968,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempStart}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={() => openPickStartTime()}
+                                            >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
                                             </TouchableOpacity>
@@ -1891,7 +1983,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempEnd}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={() => openPickEndTime()}
+                                            >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
                                             </TouchableOpacity>
@@ -1901,21 +1996,10 @@ export default function HomeScreen() {
 
                                 {/* Actions */}
                                 <View style={styles.modalEventButtons}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalCreate}>
+                                    <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalCreate()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndex !== null && (
-                                        <TouchableOpacity
-                                            style={styles.removeButton}
-                                            onPress={() => {
-                                                removeDayCreate(tempDayIndex);
-                                                closeAddDayModalCreate();
-                                            }}
-                                        >
-                                            <Text style={styles.removeButtonText}>Remove</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    <TouchableOpacity style={styles.saveButton} onPress={handleSaveDayCreate}>
+                                    <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayCreate()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -1929,124 +2013,199 @@ export default function HomeScreen() {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Date</Text>
-                            <DateTimePicker
-                                value={tempDate}
-                                mode="date"
-                                display="spinner"
-                                onChange={(ev, sel) => onPickDateChange(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
+                            {isIOS ? (
+                                // iOS Date Picker
+                                <DateTimePicker
+                                    value={tempDate}
+                                    mode="date"
+                                    display="spinner"
+                                    onChange={(event, selectedDate) => {
+                                        onPickDateChange(selectedDate);
+                                    }}
+                                    textColor='black' // Set text color to ensure visibility
+                                />
+                            ) : (
+                                // Android Date Picker
+                                <DateTimePickerComponent
+                                    visible={pickDateModalVisible}
+                                    date={tempDate}
+                                    mode="date"
+                                    onConfirm={(datetime) => {
+                                        onPickDateChange(datetime);
+                                        setPickDateModalVisible(false);
+                                    }}
+                                    onCancel={() => {
+                                        setPickDateModalVisible(false);
+                                    }}
+                                />
+                            )}
                             <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={closePickDate} />
-                                <Button title="Save" onPress={savePickDate} />
+                                <Button title="Cancel" onPress={() => closePickDate()} />
+                                <Button title="Save" onPress={() => savePickDate()} />
                             </View>
                         </View>
                     </View>
                 </Modal>
 
                 {/* PICK START TIME (CREATE) */}
-                <Modal visible={pickStartModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Start Time</Text>
-                            <DateTimePicker
-                                value={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Set to false for 24-hour format
-                                    });
-                                    setTempStart(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickStartModalVisible(false);
-                                        setAddDayModalVisible(true);
+                {isIOS ? (
+                    <Modal visible={pickStartModalVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick Start Time</Text>
+                                <DateTimePicker
+                                    value={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={(ev, sel) => {
+                                        if (!sel) return;
+                                        const hhmm = sel.toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false, // Use 24-hour format
+                                        });
+                                        setTempStart(hhmm); // Update temporary state with selected time
                                     }}
+                                    textColor="black" // Ensure visibility
                                 />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempStart(tempStart); // Save selected time to main state
-                                        setPickStartModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={() => {
+                                            setPickStartModalVisible(false);
+                                            setAddDayModalVisible(true);
+                                        }}
+                                    />
+                                    <Button
+                                        title="Save"
+                                        onPress={() => {
+                                            setTempStart(tempStart); // Save selected time to main state
+                                            setPickStartModalVisible(false);
+                                            setAddDayModalVisible(true);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
-
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={pickStartModalVisible}
+                        date={tempStart ? new Date(`1970-01-01T${tempStart}:00`) : new Date()} // Use tempStart or fallback to current time
+                        mode="time"
+                        onConfirm={(datetime) => {
+                            const hhmm = datetime.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false, // Use 24-hour format
+                            });
+                            setTempStart(hhmm);
+                            setPickStartModalVisible(false);
+                        }}
+                        onCancel={() => {
+                            setPickStartModalVisible(false);
+                        }}
+                    />
+                )}
 
                 {/* PICK END TIME (CREATE) */}
-                <Modal visible={pickEndModalVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick End Time</Text>
-                            <DateTimePicker
-                                value={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempEnd(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickEndModalVisible(false);
-                                        setAddDayModalVisible(true);
+                {isIOS ? (
+                    <Modal visible={pickEndModalVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick End Time</Text>
+                                <DateTimePicker
+                                    value={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={(ev, sel) => {
+                                        if (!sel) return;
+                                        const hhmm = sel.toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false, // Ensure 24-hour format
+                                        });
+                                        setTempEnd(hhmm); // Update temporary state with selected time
                                     }}
+                                    textColor="black" // Ensure visibility
                                 />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempEnd(tempEnd); // Save selected time to main state
-                                        setPickEndModalVisible(false);
-                                        setAddDayModalVisible(true);
-                                    }}
-                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={() => {
+                                            setPickEndModalVisible(false);
+                                            setAddDayModalVisible(true);
+                                        }}
+                                    />
+                                    <Button
+                                        title="Save"
+                                        onPress={() => {
+                                            setTempEnd(tempEnd); // Save selected time to main state
+                                            setPickEndModalVisible(false);
+                                            setAddDayModalVisible(true);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
-
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={pickEndModalVisible}
+                        date={tempEnd ? new Date(`1970-01-01T${tempEnd}:00`) : new Date()} // Use tempEnd or fallback to current time
+                        mode="time"
+                        onConfirm={(datetime) => {
+                            const hhmm = datetime.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false, // Ensure 24-hour format
+                            });
+                            setTempEnd(hhmm);
+                            setPickEndModalVisible(false);
+                        }}
+                        onCancel={() => {
+                            setPickEndModalVisible(false);
+                        }}
+                    />
+                )}
 
                 {/* VOTING PICKER CREATE */}
-                <Modal visible={votingPickerVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Voting Deadline</Text>
-                            <DateTimePicker
-                                value={endVotingDate}
-                                mode="datetime"
-                                display="spinner"
-                                onChange={onVotingDateChange}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={cancelVotingDate} />
-                                <Button title="Save" onPress={saveVotingDate} />
+                {isIOS ? (
+                    <Modal visible={votingPickerVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick Voting Deadline</Text>
+                                <DateTimePicker
+                                    value={endVotingDate} // Current deadline
+                                    mode="datetime"
+                                    display="spinner"
+                                    onChange={(ev, sel) => {
+                                        if (!sel) return; // Handle cancellation
+                                        onVotingDateChange(sel); // Update deadline
+                                    }}
+                                    textColor="black" // Ensure visibility
+                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button title="Cancel" onPress={() => cancelVotingDate()} />
+                                    <Button title="Save" onPress={() => saveVotingDate()} />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={votingPickerVisible}
+                        date={endVotingDate} // Current deadline
+                        mode="datetime"
+                        onConfirm={(datetime) => {
+                            onVotingDateChange(datetime); // Update deadline
+                            setVotingPickerVisible(false); // Close picker
+                        }}
+                        onCancel={() => {
+                            setVotingPickerVisible(false); // Close picker
+                        }}
+                    />
+                )}
 
                 {/* EDIT EVENT MODAL */}
                 <Modal visible={editModalVisible} transparent animationType="slide">
@@ -2121,7 +2280,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalEdit(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -2178,7 +2337,7 @@ export default function HomeScreen() {
                                                 />
                                                 <TouchableOpacity
                                                     style={styles.addInviteButton}
-                                                    onPress={addTypedInviteEdit}
+                                                    onPress={() => addTypedInviteEdit()}
                                                 >
                                                     <MaterialIcons name="add" size={24} color="#fff" />
                                                 </TouchableOpacity>
@@ -2217,13 +2376,13 @@ export default function HomeScreen() {
                                             {/* Voting Deadline Button */}
                                             <TouchableOpacity
                                                 style={styles.votingButton}
-                                                onPress={openVotingDatePickerEdit}
+                                                onPress={() => openVotingDatePickerEdit()}
                                                 accessible={true}
                                                 accessibilityLabel="Select Voting Deadline"
                                             >
                                                 <MaterialIcons name="calendar-today" size={24} color="#4CAF50" />
                                                 <Text style={styles.votingButtonText}>
-                                                    End Voting: {formatVotingDate(editEndVoting)}
+                                                    End Voting: {formatDate(editEndVoting)}
                                                 </Text>
                                             </TouchableOpacity>
 
@@ -2242,8 +2401,8 @@ export default function HomeScreen() {
                                     )}
                                 </ScrollView>
                                 <View style={styles.modalEventButtons}>
-                                    <Button title={editStep === 1 ? 'Cancel' : 'Back'} onPress={handlePrevStepEdit} />
-                                    <Button title={editStep < 4 ? 'Next' : 'Save'} onPress={handleNextStepEdit} />
+                                    <Button title={editStep === 1 ? 'Cancel' : 'Back'} onPress={() => handlePrevStepEdit()} />
+                                    <Button title={editStep < 4 ? 'Next' : 'Save'} onPress={() => handleNextStepEdit()} />
                                 </View>
                             </View>
                         </KeyboardAvoidingView>
@@ -2260,7 +2419,7 @@ export default function HomeScreen() {
                                     <Text style={styles.modalTitle}>
                                         {tempDayIndexEdit !== null ? 'Edit Day' : 'Add Day'}
                                     </Text>
-                                    <TouchableOpacity onPress={closeAddDayModalEdit}>
+                                    <TouchableOpacity onPress={() => closeAddDayModalEdit()}>
                                         <MaterialIcons name="close" size={24} color="#333" />
                                     </TouchableOpacity>
                                 </View>
@@ -2272,7 +2431,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Date</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{formatDay(tempDateEdit)}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickDateEdit}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={() => openPickDateEdit()}
+                                            >
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
                                             </TouchableOpacity>
@@ -2284,7 +2446,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempStartEdit}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTimeEdit}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={() => openPickStartTimeEdit()}
+                                            >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
                                             </TouchableOpacity>
@@ -2296,7 +2461,10 @@ export default function HomeScreen() {
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
                                             <Text style={styles.valueText}>{tempEndEdit}</Text>
-                                            <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTimeEdit}>
+                                            <TouchableOpacity
+                                                style={styles.pickerButton}
+                                                onPress={() => openPickEndTimeEdit()}
+                                            >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
                                             </TouchableOpacity>
@@ -2306,21 +2474,10 @@ export default function HomeScreen() {
 
                                 {/* Actions */}
                                 <View style={styles.modalEventButtons}>
-                                    <TouchableOpacity style={styles.cancelButton} onPress={closeAddDayModalEdit}>
+                                    <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalEdit()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndexEdit !== null && (
-                                        <TouchableOpacity
-                                            style={styles.removeButton}
-                                            onPress={() => {
-                                                removeDayEdit(tempDayIndexEdit);
-                                                closeAddDayModalEdit();
-                                            }}
-                                        >
-                                            <Text style={styles.removeButtonText}>Remove</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    <TouchableOpacity style={styles.saveButton} onPress={handleSaveDayEdit}>
+                                    <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayEdit()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
                                 </View>
@@ -2330,137 +2487,202 @@ export default function HomeScreen() {
                 </Modal>
 
                 {/* PICK DATE (EDIT) */}
-                <Modal visible={pickDateModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Date (Edit)</Text>
-                            <DateTimePicker
-                                value={tempDateEdit}
-                                mode="date"
-                                display="spinner"
-                                onChange={(ev, sel) => onPickDateChangeEdit(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickDateModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
+                {isIOS ? (
+                    <Modal visible={pickDateModalEditVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick Date (Edit)</Text>
+                                <DateTimePicker
+                                    value={tempDateEdit}
+                                    mode="date"
+                                    display="spinner"
+                                    onChange={(ev, sel) => onPickDateChangeEdit(sel)}
+                                    textColor="black"
                                 />
-                                <Button
-                                    title="Save"
-                                    onPress={savePickDateEdit}
-                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={() => {
+                                            setPickDateModalEditVisible(false);
+                                            setAddDayModalVisibleEdit(true);
+                                        }}
+                                    />
+                                    <Button title="Save" onPress={() => savePickDateEdit()} />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={pickDateModalEditVisible}
+                        date={tempDateEdit}
+                        mode="date"
+                        onConfirm={(datetime) => {
+                            onPickDateChangeEdit(datetime);
+                            setPickDateModalEditVisible(false);
+                        }}
+                        onCancel={() => {
+                            setPickDateModalEditVisible(false);
+                        }}
+                    />
+                )}
 
                 {/* PICK START TIME (EDIT) */}
-                <Modal visible={pickStartModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Start Time (Edit)</Text>
-                            <DateTimePicker
-                                value={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()} // Use tempStartEdit or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempStartEdit(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickStartModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
+                {isIOS ? (
+                    <Modal visible={pickStartModalEditVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick Start Time (Edit)</Text>
+                                <DateTimePicker
+                                    value={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()}
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={(ev, sel) => {
+                                        if (!sel) return;
+                                        const hhmm = sel.toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false,
+                                        });
+                                        setTempStartEdit(hhmm);
                                     }}
+                                    textColor="black"
                                 />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempStartEdit(tempStartEdit); // Save selected time to main state
-                                        setPickStartModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={() => {
+                                            setPickStartModalEditVisible(false);
+                                            setAddDayModalVisibleEdit(true);
+                                        }}
+                                    />
+                                    <Button
+                                        title="Save"
+                                        onPress={() => {
+                                            setTempStartEdit(tempStartEdit);
+                                            setPickStartModalEditVisible(false);
+                                            setAddDayModalVisibleEdit(true);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
-
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={pickStartModalEditVisible}
+                        date={tempStartEdit ? new Date(`1970-01-01T${tempStartEdit}:00`) : new Date()}
+                        mode="time"
+                        onConfirm={(datetime) => {
+                            const hhmm = datetime.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                            });
+                            setTempStartEdit(hhmm);
+                            setPickStartModalEditVisible(false);
+                        }}
+                        onCancel={() => {
+                            setPickStartModalEditVisible(false);
+                        }}
+                    />
+                )}
 
                 {/* PICK END TIME (EDIT) */}
-                <Modal visible={pickEndModalEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick End Time (Edit)</Text>
-                            <DateTimePicker
-                                value={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()} // Use tempEndEdit or fallback to current time
-                                mode="time"
-                                display="spinner"
-                                onChange={(ev, sel) => {
-                                    if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempEndEdit(hhmm); // Update temporary state with selected time
-                                }}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button
-                                    title="Cancel"
-                                    onPress={() => {
-                                        setPickEndModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
+                {isIOS ? (
+                    <Modal visible={pickEndModalEditVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick End Time (Edit)</Text>
+                                <DateTimePicker
+                                    value={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()}
+                                    mode="time"
+                                    display="spinner"
+                                    onChange={(ev, sel) => {
+                                        if (!sel) return;
+                                        const hhmm = sel.toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: false,
+                                        });
+                                        setTempEndEdit(hhmm);
                                     }}
+                                    textColor="black"
                                 />
-                                <Button
-                                    title="Save"
-                                    onPress={() => {
-                                        setTempEndEdit(tempEndEdit); // Save selected time to main state
-                                        setPickEndModalEditVisible(false);
-                                        setAddDayModalVisibleEdit(true);
-                                    }}
-                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={() => {
+                                            setPickEndModalEditVisible(false);
+                                            setAddDayModalVisibleEdit(true);
+                                        }}
+                                    />
+                                    <Button
+                                        title="Save"
+                                        onPress={() => {
+                                            setTempEndEdit(tempEndEdit);
+                                            setPickEndModalEditVisible(false);
+                                            setAddDayModalVisibleEdit(true);
+                                        }}
+                                    />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
-
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={pickEndModalEditVisible}
+                        date={tempEndEdit ? new Date(`1970-01-01T${tempEndEdit}:00`) : new Date()}
+                        mode="time"
+                        onConfirm={(datetime) => {
+                            const hhmm = datetime.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false,
+                            });
+                            setTempEndEdit(hhmm);
+                            setPickEndModalEditVisible(false);
+                        }}
+                        onCancel={() => {
+                            setPickEndModalEditVisible(false);
+                        }}
+                    />
+                )}
 
                 {/* VOTING date/time PICKER EDIT */}
-                <Modal visible={votingPickerEditVisible} transparent animationType="fade">
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalContainer}>
-                            <Text style={styles.modalTitle}>Pick Voting Deadline (Edit)</Text>
-                            <DateTimePicker
-                                value={editEndVoting}
-                                mode="datetime"
-                                display="spinner"
-                                onChange={(ev, sel) => onVotingDateChangeEdit(ev, sel)}
-                                textColor="black" // Set text color to ensure visibility
-                            />
-                            <View style={styles.modalEventButtons}>
-                                <Button title="Cancel" onPress={cancelVotingDateEdit} />
-                                <Button title="Save" onPress={saveVotingDateEdit} />
+                {isIOS ? (
+                    <Modal visible={votingPickerEditVisible} transparent animationType="fade">
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContainer}>
+                                <Text style={styles.modalTitle}>Pick Voting Deadline (Edit)</Text>
+                                <DateTimePicker
+                                    value={editEndVoting}
+                                    mode="datetime"
+                                    display="spinner"
+                                    onChange={(ev, sel) => onVotingDateChangeEdit(sel)}
+                                    textColor="black"
+                                />
+                                <View style={styles.modalEventButtons}>
+                                    <Button title="Cancel" onPress={() => cancelVotingDateEdit()} />
+                                    <Button title="Save" onPress={() => saveVotingDateEdit()} />
+                                </View>
                             </View>
                         </View>
-                    </View>
-                </Modal>
+                    </Modal>
+                ) : (
+                    <DateTimePickerComponent
+                        visible={votingPickerEditVisible}
+                        date={editEndVoting}
+                        mode="datetime"
+                        onConfirm={(datetime) => {
+                            onVotingDateChangeEdit(datetime);
+                            setVotingPickerEditVisible(false);
+                        }}
+                        onCancel={() => {
+                            setVotingPickerEditVisible(false);
+                        }}
+                    />
+                )}
             </View>
         </TouchableWithoutFeedback>
     );
