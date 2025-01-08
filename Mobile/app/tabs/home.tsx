@@ -1813,7 +1813,7 @@ export default function HomeScreen() {
                                         {/* Add Day Button */}
                                         <TouchableOpacity
                                             style={styles.addDayButton}
-                                            onPress={() => openAddDayModalCreate()}
+                                            onPress={openAddDayModalCreate}
                                         >
                                             <MaterialIcons name="add-circle-outline" size={24} color="#fff" />
                                             <Text style={styles.addDayButtonText}>Add Day</Text>
@@ -1952,7 +1952,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{formatDay(tempDate)}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={() => openPickDate}
+                                                onPress={openPickDate}
                                             >
                                                 <MaterialIcons name="calendar-today" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Date</Text>
@@ -1967,7 +1967,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempStart}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={() => openPickStartTime}
+                                                onPress={openPickStartTime}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
@@ -1982,7 +1982,7 @@ export default function HomeScreen() {
                                             <Text style={styles.valueText}>{tempEnd}</Text>
                                             <TouchableOpacity
                                                 style={styles.pickerButton}
-                                                onPress={() => openPickEndTime}
+                                                onPress={openPickEndTime}
                                             >
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
@@ -2304,7 +2304,7 @@ export default function HomeScreen() {
                                             {/* Add Day Button */}
                                             <TouchableOpacity
                                                 style={styles.addDayButton}
-                                                onPress={() => openAddDayModalEdit()}
+                                                onPress={openAddDayModalEdit}
                                             >
                                                 <MaterialIcons name="add-circle-outline" size={24} color="#fff" />
                                                 <Text style={styles.addDayButtonText}>Add Day</Text>
