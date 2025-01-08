@@ -64,7 +64,10 @@ namespace flock.Controllers
                     _eventRepository.SendInvitation(event_id, user_id);
                 }
 
-                return Ok("Success, event id:" + event_id);
+                ev = await _eventRepository.GetEventById(event_id);
+                ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                
+                return Ok(ev);
             }
             catch (Exception e)
             {
@@ -127,7 +130,10 @@ namespace flock.Controllers
                     _eventRepository.UpdateDateOption(transformed_date_option);
                 }
 
-                return Ok("Success");
+                current_event = await _eventRepository.GetEventById(current_event.Id_event);
+                current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                
+                return Ok(current_event);
             }
             catch (Exception e)
             {

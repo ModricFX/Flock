@@ -34,11 +34,11 @@ interface User {
     email: string;
 }
 
-interface Participant {
-    id: string;
-    username: string;
-    email: string;
-    status: 'pending' | 'accepted' | 'declined';
+interface Invitation {
+    id_event: string;
+    id_user: string;
+    status: string;
+    date_invited: Date;
 }
 
 /**
@@ -63,7 +63,8 @@ interface EventData {
     chosen_date_end: Date,
     end_voting_date: Date;
 
-    participants: Participant[];
+    invitations: Invitation[];
+    participants: User[];
 }
 
 interface DateOption{
@@ -233,7 +234,12 @@ async function getdata() {
             event_data.date_created = new Date(event_data.date_created);
             event_data.date_updated = new Date(event_data.date_updated);
 
-            event_data.participants = [];
+            event_data.invitations.forEach(invitation => {
+                let found = mockFriends.find(friend => friend.id === invitation.id_user);
+                if(found !== undefined) {
+                    event_data.participants.push(found);
+                }
+            });
 
             console.log(event_data.id_user);
 
@@ -391,7 +397,7 @@ export default function HomeScreen() {
     const [pickEndModalVisible, setPickEndModalVisible] = useState(false);
 
     // Step3
-    const [invitees, setInvitees] = useState<Participant[]>([]);
+    const [invitees, setInvitees] = useState<User[]>([]);
     const [typedInvite, setTypedInvite] = useState('');
 
     // Step4
@@ -411,7 +417,7 @@ export default function HomeScreen() {
     const [editDesc, setEditDesc] = useState('');
     const [editLoc, setEditLoc] = useState('');
     const [editDays, setEditDays] = useState<DateOption[]>([]);
-    const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
+    const [editInvitees, setEditInvitees] = useState<User[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
     const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
     const [editEvent, setEditEvent] = useState<EventData | null>(null);
@@ -677,17 +683,16 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { id: friend.id, username: friend.username, email: friend.email, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id, username: friend.username, email: friend.email}]);
         }
     }
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-            const newPart: Participant = {
+            const newPart: User = {
                 id: Math.random().toString(),
                 username: typedInvite.split('@')[0],
                 email: typedInvite,
-                status: 'pending',
             };
             setInvitees([...invitees, newPart]);
         }
@@ -863,17 +868,16 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { id: friend.id, username: friend.username, email: friend.email, status: 'pending' }]);
+            setEditInvitees([...editInvitees, { id: friend.id, username: friend.username, email: friend.email}]);
         }
     }
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
-            const newPart: Participant = {
+            const newPart: User = {
                 id: Math.random().toString(),
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
-                status: 'pending',
             };
             setEditInvitees([...editInvitees, newPart]);
         }
@@ -1371,7 +1375,7 @@ export default function HomeScreen() {
 
                                                                     {/* Summary: Accepted / Declined / Pending */}
                                                                     {(() => {
-                                                                        const participants = selectedEvent?.participants ?? [];
+                                                                        const participants = selectedEvent?.invitations ?? [];
                                                                         const acceptedCount = participants.filter(
                                                                             (p) => p.status.toLowerCase() === 'accepted'
                                                                         ).length;
@@ -1398,7 +1402,7 @@ export default function HomeScreen() {
                                                                         nestedScrollEnabled={true}
                                                                     >
                                                                         {(() => {
-                                                                            const participants = selectedEvent?.participants ?? [];
+                                                                            const participants = selectedEvent?.invitations ?? [];
                                                                             // accepted -> 0, declined -> 1, pending -> 2
                                                                             const order: Record<string, number> = {
                                                                                 accepted: 0,
