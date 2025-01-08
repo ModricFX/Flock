@@ -665,7 +665,10 @@ export default function HomeScreen() {
         }
     }
     function onPickDateChange(sel?: Date) {
-        if (sel) setTempDate(sel);
+        if (sel) {
+            sel.setHours(sel.getHours() + 1);
+            setTempDate(sel);
+        }
     }
     function savePickDate() {
         setPickDateModalVisible(false);
@@ -909,8 +912,12 @@ export default function HomeScreen() {
 
     /* Step2 pick date/time for edit */
     function onPickDateChangeEdit(sel?: Date) {
-        if (sel) setTempDateEdit(sel);
+        if (sel) {
+            sel.setHours(sel.getHours() + 1);
+            setTempDateEdit(sel);
+        }
     }
+    
     function savePickDateEdit() {
         setPickDateModalEditVisible(false);
         setAddDayModalVisibleEdit(true);
