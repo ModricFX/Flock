@@ -1,5 +1,5 @@
 export interface User {
-    id: string;
+    id_user: string;
     username: string;
     email: string;
     pfpUrl: string;

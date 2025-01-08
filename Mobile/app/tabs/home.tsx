@@ -48,6 +48,7 @@ import { Participant } from '../models/Participant';
 import { EventData } from '../models/EventData';
 
 import { SingleDay } from '../models/SingleDay';
+import { date } from 'yup';
 
 /* Mock "current" user 
 const mockCurrentUser: User = {
@@ -59,9 +60,9 @@ const mockCurrentUser: User = {
 
 /* Mock friend list */
 const mockFriends: User[] = [
-    { id: 'u-002', username: 'Alice', email: 'alice@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=23' },
-    { id: 'u-003', username: 'Bob', email: 'bob@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=34' },
-    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
+    { id_user: '7', username: 'Alice', email: 'alice@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=23' },
+    { id_user: '6', username: 'Bob', email: 'bob@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=34' },
+    { id_user: '8', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
 ];
 
 /* Some initial events 
@@ -265,6 +266,7 @@ export default function HomeScreen() {
             try {
                 let user = await authService.getUserData();
                 if (user.success && user.data) {
+                    console.log(user.data);
                     setCurrentUser(user.data);
                 } else {
                     router.replace('/auth/login');
@@ -397,28 +399,30 @@ export default function HomeScreen() {
     /* ------------------------------------------
        Create Flow
     ------------------------------------------*/
+    function transformEvents(events: EventData[]){
+        events.forEach(ev => {
+            if(ev.invitations){
+                ev.participants = ev.invitations.map(inv => {
+                    return {
+                        id: inv.user.id, 
+                        email: inv.user.email, 
+                        username: inv.user.username,
+                        pfpUrl: '',
+                        status: inv.status
+                    };
+                })
+            }
+        });
+
+        return events;
+    }
 
     useEffect(() => {
         const fetchEvents = async () => {
             try {
                 const response = await eventService.getEvents();
 
-                let events = response.data;
-                console.log(events[0].invitations);
-
-                events.forEach(ev => {
-                    if(ev.invitations){
-                        ev.participants = ev.invitations.map(inv => {
-                            return { 
-                                email: inv.user.email, 
-                                username: inv.user.username,
-                                pfpUrl: '',
-                                status: inv.status
-                            };
-                        })
-                    }
-                });
-                
+                let events = transformEvents(response.data);
                 setEvents(events); // Set the fetched data to the state
             } catch (error) {
                 console.error("Error fetching events:", error);
@@ -493,7 +497,7 @@ export default function HomeScreen() {
     }
 
 
-    function finalizeCreateEvent() {
+    async function finalizeCreateEvent() {
         if (!createTitle.trim()) {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
@@ -507,19 +511,23 @@ export default function HomeScreen() {
             return;
         }
 
-        const newEvt: EventData = {
-            id_event: Math.random().toString(),
-            id_user: currentUser?.id || 'unknown',
+        const newEvt = {
             name: createTitle,
             description: createDesc,
             location: createLoc,
-            date_options: createDays,
-            participants: invitees,
             end_voting_date: endVotingDate,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-        setEvents(prev => [...prev, newEvt]);
+            id_user: currentUser?.id_user || 'unknown',
+            date_options: createDays,
+            tag_ids: [],
+            participant_ids: invitees.map(invite => invite.id),
+        }
+        console.log(newEvt);
+
+        let response = await eventService.createEvent(newEvt)
+        console.log(response.data);
+
+        let events = transformEvents([response.data]);
+        setEvents(prev => [...prev, events[0]]);
         closeCreateEvent();
     }
 
@@ -733,7 +741,7 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
         }
     }
 
@@ -741,6 +749,7 @@ export default function HomeScreen() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
             const newPart: Participant = {
+                id: Math.random().toString(),
                 username: typedInvite.split('@')[0],
                 email: typedInvite,
                 pfpUrl: 'https://i.pravatar.cc/100?img=02',
@@ -952,13 +961,14 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
+            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
         }
     }
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
             const newPart: Participant = {
+                id: Math.random().toString(),
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
@@ -1007,8 +1017,8 @@ export default function HomeScreen() {
     }
 
     /* Partition MY vs. OTHERS */
-    const myEvents = events.filter(e => e.id_user === currentUser?.id);
-    const otherEvents = events.filter(e => e.id_user !== currentUser?.id);
+    const myEvents = events.filter(e => e.id_user === currentUser?.id_user);
+    const otherEvents = events.filter(e => e.id_user !== currentUser?.id_user);
 
     if (loading) {
         return (
@@ -1217,7 +1227,7 @@ export default function HomeScreen() {
                                             (() => {
                                                 const eventStatus = getEventStatus(selectedEvent);
                                                 // Check if current user created this event
-                                                const isCreator = selectedEvent.id_user === currentUser?.id;
+                                                const isCreator = selectedEvent.id_user === currentUser?.id_user;
 
                                                 return (
                                                     <>
@@ -1244,8 +1254,8 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {mockFriends.find(friend => friend.id === selectedEvent.id_user)
-                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.email})`
+                                                                        {mockFriends.find(friend => friend.id_user === selectedEvent.id_user)
+                                                                            ? `${mockFriends.find(friend => friend.id_user === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id_user === selectedEvent.id_user)?.email})`
                                                                             : 'Unknown'}
                                                                     </Text>
                                                                 </View>
@@ -1870,7 +1880,7 @@ export default function HomeScreen() {
                                         <ScrollView horizontal style={styles.friendsScrollView}>
                                             {mockFriends.map((f) => (
                                                 <TouchableOpacity
-                                                    key={f.id}
+                                                    key={f.id_user}
                                                     style={styles.inviteChip}
                                                     onPress={() => addFriendInvite(f)}
                                                 >
@@ -2348,7 +2358,7 @@ export default function HomeScreen() {
                                             <ScrollView horizontal style={styles.friendsScrollView}>
                                                 {mockFriends.map((f) => (
                                                     <TouchableOpacity
-                                                        key={f.id}
+                                                        key={f.id_user}
                                                         style={styles.inviteChip}
                                                         onPress={() => addFriendInviteEdit(f)}
                                                     >
