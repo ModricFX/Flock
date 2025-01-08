@@ -1,4 +1,5 @@
-﻿public class User
+﻿namespace flock.Models;
+public class User
 {
     public int Id_user { get; set; }
     public int Id_role { get; set; }

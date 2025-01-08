@@ -50,6 +50,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddSingleton<DapperContext>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IEventRepository, EventRepository>();
 
 builder.Services.AddSwaggerGen(opt =>
 {

@@ -1,23 +1,20 @@
-namespace flock.Models;
+namespace flock.Controllers.Dtos;
 
-public class Event
+public class EventDto
 {
     public int Id_event { get; set; }
     public int Id_user { get; set; }
-    public string Icon_url { get; set; }
+
     public string Name { get; set; }
     public string Description { get; set; }
-    
     public string Location { get; set; }
-    public DateTime Date_created { get; set; }
-    public DateTime Date_updated { get; set; }
     public DateTime End_voting_date { get; set; }
-    
     public DateTime Chosen_date_start { get; set; }
     public DateTime Chosen_date_end { get; set; }
+    
     public int SysRowState { get; set; }
     
-    public List<DateOption> Date_options { get; set; }
-    public List<Tag> Tags { get; set; }
-    public List<Invitation> Invitations { get; set; }
+    public DateOptionDto[] Date_options { get; set; }
+    
+    public int[] Participant_ids { get; set; }
 }
