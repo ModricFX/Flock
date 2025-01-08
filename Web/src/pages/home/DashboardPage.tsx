@@ -1,4 +1,7 @@
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent, useRef,forwardRef,useImperativeHandle } from "react";
+import YourEvents from "./YourEvents";
+import AllEvents from "./AllEvents";
+import Notifications from "./Notifications";
 import InfoIcon from '@mui/icons-material/Info';
 import {
   Avatar,
@@ -37,6 +40,8 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";// Ikona za da
 import AccessTimeIcon from "@mui/icons-material/AccessTime";// Ikona za uro
 import PersonAddIcon from '@mui/icons-material/PersonAdd'; //ikona za dodajanje oseb
 import CloseIcon from '@mui/icons-material/Close';
+import PeopleIcon from '@mui/icons-material/People';//ikona ljudle
+import HowToVoteIcon from '@mui/icons-material/HowToVote';//ikona vote
 
 import { DesktopDateTimePicker } from "@mui/x-date-pickers/DesktopDateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -57,6 +62,7 @@ interface Event {
   DeadlineDate: string,
   DeadlineTime: string,
   days?: { date: string; startTime: string; endTime: string }[]; 
+  deadline?: { date: string; DeadlineTime: string}[]; 
 }
 
 interface Friend {
@@ -64,12 +70,66 @@ interface Friend {
   email: string;
 }
 
-const DashboardPage: React.FC = () => {
+const DashboardPage = forwardRef((props, ref) => {
+
+  //skrolanje
+  const yourEventsRef = useRef<HTMLDivElement | null>(null);
+  const otherEventsRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll functions
+  useImperativeHandle(ref, () => ({
+    scrollToOtherEvents: () => {
+      console.log("Scrolling to other events section");
+      if (otherEventsRef.current) {
+        otherEventsRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    },
+    scrollToYourEvents: () => {
+      console.log("Scrolling to your events section");
+      if (yourEventsRef.current) {
+        yourEventsRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    },
+  }));
+
+
+
+  const [events, setEvents] = useState<Event[]>([]);
+  const [otherEvents, setOtherEvents] = useState<Event[]>([
+    {
+      title: "Other Event 1",
+      startDate: "2025-01-10",
+      startTime: "10:00",
+      endDate: "2025-01-10",
+      endTime: "12:00",
+      description: "An interesting event organized by someone else.",
+      location: "Park",
+      participants: 15,
+      StartHour: 0,
+      StartMinute: 0,
+      DeadlineDate: "",
+      DeadlineTime: ""
+    },
+    {
+      title: "Other Event 2",
+      startDate: "2025-01-12",
+      startTime: "14:00",
+      endDate: "2025-01-12",
+      endTime: "16:00",
+      description: "Another event you might be interested in.",
+      location: "Library",
+      participants: 20,
+      StartHour: 0,
+      StartMinute: 0,
+      DeadlineDate: "",
+      DeadlineTime: ""
+    },
+  ]);
+
 
   const [openDialog, setOpenDialog] = useState(false); // State to manage dialog visibility
   const navigate = useNavigate();
   const [step, setStep] = useState<number>(4);
-  const [events, setEvents] = useState<Event[]>([]);
   const [open, setOpen] = useState<boolean>(false);
   const [votingDate, setVotingDate] = useState<Date | null>(null); 
   const [editEventIndex, setEditEventIndex] = useState<number | null>(null);
@@ -128,6 +188,11 @@ const DashboardPage: React.FC = () => {
     setNewEvent({ ...newEvent, days: updatedDays });
   };
 
+  const handleRemoveDeadline = (index: number) => {
+    const updatedDeadline = newEvent.deadline?.filter((_, i) => i !== index) || [];
+    setNewEvent({ ...newEvent, deadline: updatedDeadline });
+  };
+
   useEffect(() => {
           const homeTypo = document.getElementById("home-typo");
           if(homeTypo != null)
@@ -160,6 +225,7 @@ const DashboardPage: React.FC = () => {
         DeadlineDate: "",
         DeadlineTime: "",
         days: [],
+        deadline: [],
       });
     }
     setOpen(true);
@@ -203,6 +269,8 @@ const DashboardPage: React.FC = () => {
     }
   };*/
 
+  const [addDeadlineDialogOpen, setAddDeadlineDialogOpen] = useState(false); // Manage dialog visibility
+  const [selectedDeadline, setSelectedDeadlineDate] = useState(""); // Track selected date
   const handleSave = (): void => {
     if (
       newEvent.title &&
@@ -231,6 +299,8 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const [DeadlineTime, setDeadlineTime] = useState<string>(""); // Shranjuje deadline čas
+
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
       <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
@@ -242,45 +312,102 @@ const DashboardPage: React.FC = () => {
         </Typography>
       </Paper>
 
-      <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-          Your Events
-        </Typography>
-        {events.length === 0 ? (
-          <Typography>No events yet. Create one by clicking the "+" button!</Typography>
-        ) : (
-          <List>
-            {events.map((event, index) => (
-              <ListItem key={index} sx={{ flexDirection: "column", alignItems: "flex-start" }}>
-                <ListItemText
-                  primary={`${event.title} (${event.startDate} ${event.startTime} - ${event.endDate} ${event.endTime})`}
-                  secondary={
-                    <>
-                      <Typography>
-                        <strong>Location:</strong> {event.location}
-                      </Typography>
-                      <Typography>
-                        <strong>Description:</strong> {event.description}
-                      </Typography>
-                      <Typography>
-                        <strong>Participants:</strong> {event.participants} people
-                      </Typography>
-                    </>
-                  }
-                />
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => handleOpen(index)}
-                  sx={{ marginTop: 2 }}
+       {/* Other Events Section */}
+       <div ref={otherEventsRef}>
+        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+            Other Events
+          </Typography>
+          {otherEvents.length === 0 ? (
+            <Typography>No events available from others.</Typography>
+          ) : (
+            <List>
+              {otherEvents.map((event, index) => (
+                <Paper
+                  key={index}
+                  elevation={3}
+                  sx={{ marginBottom: 2, padding: 2, backgroundColor: "#f5f5f5" }}
                 >
-                  Edit
-                </Button>
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </Paper>
+                  <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                    <ListItemText
+                      primary={`${event.title} (${event.startDate} ${event.startTime} - ${event.endDate} ${event.endTime})`}
+                      secondary={
+                        <Typography component="span">
+                          <Box>
+                            <strong>Location:</strong> {event.location}
+                            <br />
+                            <strong>Description:</strong> {event.description}
+                            <br />
+                            <strong>Participants:</strong> {event.participants}
+                          </Box>
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                </Paper>
+              ))}
+            </List>
+          )}
+        </Paper>
+       </div>
+       
+
+      {/* Your Events Section */}
+      <div ref={yourEventsRef}>
+        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3,}}>
+          <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+            Your Events
+          </Typography>
+          {events.length === 0 ? (
+            <Typography>No events yet. Create one by clicking the "+" button!</Typography>
+          ) : (
+            <List>
+              {events.map((event, index) => (
+                <ListItem key={index} sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                  <ListItemText
+                    primary={`${event.title}`}
+                    secondary={
+                      <>
+                        <Typography>
+                          <strong>Description: </strong> {event.description}
+                        </Typography>
+                        <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <EventIcon sx={{ color: "#4CAF50", marginRight: "8px" }} />
+                          <strong>Voting Ends:  {" "}
+                            {format(new Date(selectedDeadline), "dd.MM.yyyy")} at {DeadlineTime}
+                          </strong>
+                        </Typography>
+                        <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <LocationOnIcon sx={{ color: "#4CAF50", marginRight: "8px" }} />
+                          <strong>Location:{" "}
+                            {event.location}
+                          </strong>
+                        </Typography>
+                        <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                        <PeopleIcon sx={{ color: "#4CAF50", marginRight: "8px" }} />     
+                          <strong>Participants: </strong> {event.participants} Participants
+                        </Typography>
+                        <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <HowToVoteIcon sx={{ color: "#4CAF50", marginRight: "8px" }} />
+                          <strong>Your Vote: </strong>
+                        </Typography>
+                      </>
+                    }
+                  />
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => handleOpen(index)}
+                    sx={{ marginTop: 2 }}
+                  >
+                    Edit
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Paper>
+      </div> 
 
       <Box sx={{ textAlign: "center", marginTop: 3 }}>
         <Button
@@ -605,49 +732,123 @@ const DashboardPage: React.FC = () => {
             <Typography variant="subtitle1">Voting Deadline</Typography>
           </Box>
 
-          <Box display="flex" alignItems="center">
-            <EventIcon style={{ marginRight: 8, color: "#4caf50" }} />
-            <Typography variant="body1" onClick={handleOpenDialog} style={{ cursor: "pointer" }}>
-              Pick deadline
-            </Typography>
-          </Box>
+
+
+
+
+          {/* Display Existing Days */}
+          {newEvent.deadline && newEvent.deadline.length > 0 ? (
+              <List>
+                {newEvent.deadline.map((deadline, index) => (
+                  <ListItem key={index} sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
+                    <ListItemText
+                      primary={`Date: ${deadline.date}`}
+                      secondary={`Start: ${deadline.DeadlineTime}`}
+                    />
+                    <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveDeadline(index)}>
+                    <CloseIcon style={{ color: '#ff6666' }} />
+                  </IconButton>
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body2" sx={{ color: "#9E9E9E", marginBottom: 2 }}>
+                <Box display="flex" alignItems="center">
+                  <EventIcon style={{ marginRight: 8, color: "#4caf50" }} />
+                  <Typography variant="body1" onClick={() => setAddDeadlineDialogOpen(true)} style={{ cursor: "pointer" }}>
+                    Pick deadline
+                  </Typography>
+                </Box>
+              </Typography>
+            )}
 
           {/* Dialog Popup */}
-          <Dialog open={openDialog} onClose={handleCloseDialog}>
+          <Dialog open={addDeadlineDialogOpen} onClose={()=> setAddDeadlineDialogOpen}>
             <DialogTitle>Set Voting Deadline</DialogTitle>
             <DialogContent>
               <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                 <TextField
-                  margin="dense"
-                  label="DeadlineDate"
                   type="date"
-                  fullWidth
-                  InputLabelProps={{
-                    shrink: true,
+                  value={selectedDeadline}
+                  onChange={(e) => setSelectedDeadlineDate(e.target.value)}
+                  sx={{
+                    marginLeft: 2,
+                    flexGrow: 1,
+                    maxWidth: '200px',
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                    },
                   }}
-                  variant="outlined"
-                  value={newEvent.DeadlineDate}
-                  onChange={(e) => handleDateChange(e, "DeadlineDate")}
                 />
                 <TextField
-                  margin="dense"
-                  label="DeadlineTime"
                   type="time"
-                  fullWidth
-                  InputLabelProps={{
-                    shrink: true,
+                  value={DeadlineTime}
+                  onChange={(e) => setDeadlineTime(e.target.value)}
+                  sx={{
+                    marginLeft: 2,
+                    flexGrow: 1,
+                    maxWidth: '200px',
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#4CAF50',
+                      },
+                    },
                   }}
-                  variant="outlined"
-                  value={newEvent.DeadlineTime}
-                  onChange={(e) => handleDateChange(e, "DeadlineTime")}
                 />
               </Box>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseDialog} color="primary">
+              <Button 
+                onClick={() => setAddDeadlineDialogOpen(false)}
+                sx={{
+                  backgroundColor: "#E0E0E0", // Gray button
+                  color: "#000",
+                  textTransform: "none",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  "&:hover": {
+                    backgroundColor: "#BDBDBD",
+                  },
+                }}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleCloseDialog} color="primary">
+              <Button
+                 onClick={() => {
+                  const newDeadline = { date: selectedDeadline, DeadlineTime };
+                  const updatedDeadline = [...(newEvent.deadline || []), newDeadline];
+                  setNewEvent({ ...newEvent, deadline: updatedDeadline }); // Add new day to the event
+                  setAddDeadlineDialogOpen(false); // Close dialog
+                }}
+                sx={{
+                  backgroundColor: "#4CAF50",
+                  color: "#fff",
+                  textTransform: "none",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  "&:hover": {
+                    backgroundColor: "#388E3C",
+                  },
+                  marginLeft: "16px",
+                }}
+              
+              >
                 Save
               </Button>
             </DialogActions>
@@ -681,6 +882,6 @@ const DashboardPage: React.FC = () => {
       </Dialog>
     </Container>
   );
-};
+});
 
 export default DashboardPage;

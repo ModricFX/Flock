@@ -1,4 +1,4 @@
-import React, { useState, useEffect, MouseEvent } from "react";
+import React, { useState, useEffect, MouseEvent, useRef } from "react";
 
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
@@ -63,6 +63,8 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const location = useLocation();
     const [userData, setUserData] = useState(null);
 
+    const dashboardRef = useRef<any>(null); // Create a ref for DashboardPage
+
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [otherEvents] = useState<Event[]>([
         { title: "Community Meetup", startDate: "2024-12-15", location: "City Park" },
@@ -124,6 +126,20 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
+
+    const scrollToOtherEvents = () => {
+        console.log("Scrolling to Other Events");
+        if (dashboardRef.current) {
+          dashboardRef.current.scrollToOtherEvents(); // Call scroll function from DashboardPage
+        }
+      };
+    
+      const scrollToYourEvents = () => {
+        console.log("Scrolling to Your Events");
+        if (dashboardRef.current) {
+          dashboardRef.current.scrollToYourEvents(); // Call scroll function from DashboardPage
+        }
+      };
 
     return (
         <Box sx={{ display: "flex" }}>
@@ -221,22 +237,22 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Box sx={{ overflow: "auto" }}>
                         <List>
                             <ListItem disablePadding>
-                                <ListItemButton component={Link} to="/home/allevents">
-                                    <ListItemIcon sx={{ color: darkMode? "white" : "black", }}>
+                                <ListItemButton onClick={scrollToOtherEvents}>
+                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
                                         <InboxIcon />
                                     </ListItemIcon>
-                                    <ListItemText primary="All Events" />
+                                    <ListItemText primary="Other Events" />
                                 </ListItemButton>
                             </ListItem>
                             <ListItem disablePadding>
-                                <ListItemButton component={Link} to="/home/yourevents">
-                                    <ListItemIcon sx={{ color: darkMode? "white" : "black", }}>
+                                <ListItemButton onClick={scrollToYourEvents}>
+                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
                                         <EventIcon />
                                     </ListItemIcon>
                                     <ListItemText primary="Your Events" />
                                 </ListItemButton>
                             </ListItem>
-                        </List>
+                            </List>
                     </Box>
                 </Drawer>
             )}
