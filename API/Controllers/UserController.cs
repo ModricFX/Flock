@@ -140,7 +140,7 @@ namespace flock.Controllers
         public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){
             try
             {
-                var relationships = _userRepository.GetAllRelationshipsWithStatus(id, status);
+                var relationships = await _userRepository.GetAllRelationshipsWithStatus(id, status);
 
                 return Ok(relationships);
             }
