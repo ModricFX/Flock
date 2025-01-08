@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -1996,17 +1996,6 @@ export default function HomeScreen() {
                                     <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalCreate()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndex !== null && (
-                                        <TouchableOpacity
-                                            style={styles.removeButton}
-                                            onPress={() => {
-                                                removeDayCreate(tempDayIndex);
-                                                closeAddDayModalCreate();
-                                            }}
-                                        >
-                                            <Text style={styles.removeButtonText}>Remove</Text>
-                                        </TouchableOpacity>
-                                    )}
                                     <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayCreate()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
@@ -2485,17 +2474,6 @@ export default function HomeScreen() {
                                     <TouchableOpacity style={styles.cancelButton} onPress={() => closeAddDayModalEdit()}>
                                         <Text style={styles.cancelButtonText}>Cancel</Text>
                                     </TouchableOpacity>
-                                    {tempDayIndexEdit !== null && (
-                                        <TouchableOpacity
-                                            style={styles.removeButton}
-                                            onPress={() => {
-                                                removeDayEdit(tempDayIndexEdit);
-                                                closeAddDayModalEdit();
-                                            }}
-                                        >
-                                            <Text style={styles.removeButtonText}>Remove</Text>
-                                        </TouchableOpacity>
-                                    )}
                                     <TouchableOpacity style={styles.saveButton} onPress={() => handleSaveDayEdit()}>
                                         <Text style={styles.saveButtonText}>Save</Text>
                                     </TouchableOpacity>
