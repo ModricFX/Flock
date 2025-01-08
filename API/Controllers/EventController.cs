@@ -9,7 +9,6 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    [Authorize]
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
@@ -33,7 +32,7 @@ namespace flock.Controllers
                 Event ev = new Event{
                     Name = request.Name,
                     Description = request.Description,
-                    Owner = user,
+                    Id_user = user.Id_user,
                     Location = request.Location,
                     End_voting_date = request.End_voting_date,
                     Date_created = DateTime.UtcNow,
@@ -58,6 +57,11 @@ namespace flock.Controllers
                 foreach (var tagId in request.Tag_ids)
                 {
                     _eventRepository.AddTag(event_id, tagId);
+                }
+                
+                foreach (var user_id in request.Participant_ids)
+                {
+                    _eventRepository.SendInvitation(event_id, user_id);
                 }
 
                 return Ok("Success, event id:" + event_id);
@@ -140,7 +144,10 @@ namespace flock.Controllers
         {
             try
             {
-                return Ok(await _eventRepository.GetEventById(id));
+                Event current_event = await _eventRepository.GetEventById(id);
+                current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                
+                return Ok(current_event);
             }
             catch (Exception e)
             {
@@ -157,7 +164,12 @@ namespace flock.Controllers
         {
             try
             {
-                return Ok(await _eventRepository.GetAllEvents());
+                List<Event> events = await _eventRepository.GetAllEvents();
+                foreach (var ev in events)
+                {
+                    ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                }
+                return Ok(events);
             }
             catch (Exception e)
             {

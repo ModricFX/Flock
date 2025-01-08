@@ -7,10 +7,7 @@ public class Event
     public string Icon_url { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
-
-    public User Owner { get; set; }
-
-    // TODO: Refactor to longitude/latitude representation or a separate Location table
+    
     public string Location { get; set; }
     public DateTime Date_created { get; set; }
     public DateTime Date_updated { get; set; }
@@ -22,4 +19,5 @@ public class Event
     
     public List<DateOption> Date_options { get; set; }
     public List<Tag> Tags { get; set; }
+    public List<Invitation> Invitations { get; set; }
 }

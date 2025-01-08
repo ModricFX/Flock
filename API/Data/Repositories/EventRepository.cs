@@ -88,6 +88,16 @@ public class EventRepository : IEventRepository
         }
     }
 
+    public async Task<List<Invitation>> GetInvitations(int event_id)
+    {
+        var query = "SELECT * FROM `invitation` WHERE `id_event` = @Id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var result = await connection.QueryAsync<Invitation>(query, new { Id = event_id });
+            return result.ToList(); 
+        }
+    }
 
     public async Task<User> GetUserById(int id)
     {
@@ -118,7 +128,7 @@ public class EventRepository : IEventRepository
                 @event.Date_created,
                 @event.Date_updated,
                 @event.End_voting_date,
-                Id_user = @event.Owner.Id_user,
+                Id_user = @event.Id_user,
                 @event.SysRowState,
             };
 
@@ -188,6 +198,24 @@ public class EventRepository : IEventRepository
         using (var connection = _context.CreateConnection())
         {
             await connection.ExecuteAsync(query, new {Id_event = event_id, Id_tag = tag_id});
+        }
+    }
+    
+    public async void SendInvitation(int event_id, int user_id)
+    {
+        var query = "INSERT INTO `invitation` (`id_event`, `id_user`, `status`, `date_invited`) VALUES(@Id_event, @Id_user, @Status, @Date_invited);";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var parameters = new
+            {
+                Id_event = event_id,
+                Id_user = user_id,
+                Status = "pending",
+                Date_invited = DateTime.Now
+            };
+            
+            await connection.ExecuteAsync(query, parameters);
         }
     }
 

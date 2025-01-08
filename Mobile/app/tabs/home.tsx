@@ -16,10 +16,14 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import axios, { AxiosInstance } from 'axios';
 
 /* IMPORT STYLES */
 
 import styles from '../styles/HomePageStyles';
+import { EventService } from '../services/EventService';
+import { apiService } from '../services/ApiService';
+
 
 /* ----------------------------------------
    Mock user, friend list, and data models
@@ -31,16 +35,10 @@ interface User {
 }
 
 interface Participant {
+    id: string;
     username: string;
     email: string;
     status: 'pending' | 'accepted' | 'declined';
-}
-
-/** A single day record with date, times, etc. */
-interface SingleDay {
-    date: Date;       // e.g. 2024-01-15
-    start: string;    // e.g. '08:00 AM'
-    end: string;      // e.g. '10:00 PM'
 }
 
 /**
@@ -48,36 +46,48 @@ interface SingleDay {
  * We store an array of dayTimes, each item = SingleDay
  */
 interface EventData {
-    id: string;
-    createdBy: string;
-    title: string;
+    id_event: string;
+    id_user: string;
+
+    name: string;
     description: string;
     location: string;
+    date_options: DateOption[];
+    tag_ids: number[];
+    sysrowstate: number;
 
-    dayTimes: SingleDay[];       // List of chosen days
+    date_created: Date;
+    date_updated: Date;
+
+    chosen_date_start: Date,
+    chosen_date_end: Date,
+    end_voting_date: Date;
+
     participants: Participant[];
-    endVoting: Date;             // People can vote until this date/time
-    eventDate?: Date;            // Final chosen date/time (if set)
-    createdAt: Date;
-    updatedAt: Date;
-    votes?: Record<string, any>; // optional
+}
+
+interface DateOption{
+    id_date_option: string;
+    id_event: string;
+    dateStart: Date;
+    dateEnd: Date;
 }
 
 /* Mock "current" user */
 const mockCurrentUser: User = {
-    id: 'u-001',
+    id: '6',
     username: 'MyUser',
     email: 'myuser@domain.com',
 };
 
 /* Mock friend list */
 const mockFriends: User[] = [
-    { id: 'u-002', username: 'Alice', email: 'alice@example.com' },
-    { id: 'u-003', username: 'Bob', email: 'bob@example.com' },
-    { id: 'u-004', username: 'Charlie', email: 'charlie@example.com' },
+    { id: '7', username: 'Alice', email: 'alice@example.com' },
+    { id: '8', username: 'Bob', email: 'bob@example.com' },
+    { id: '9', username: 'Charlie', email: 'charlie@example.com' },
 ];
 
-/* Some initial events */
+/* Some initial events 
 const initialEvents: EventData[] = [
     {
         id: 'evt-1',
@@ -204,20 +214,56 @@ const initialEvents: EventData[] = [
         createdAt: new Date(),
         updatedAt: new Date(),
     },
-];
+];*/
+
+const Event_service = new EventService(apiService.getApi());
+const initialEvents: EventData[] = [];
+
+async function getdata() {
+    try {
+        const realEventData = await Event_service.getEvents();
+        //console.log("realEventData");
+        //console.log(realEventData);
+
+        realEventData.forEach((event_data: EventData) => {
+            event_data.end_voting_date = new Date(event_data.end_voting_date);
+            event_data.chosen_date_start = new Date(event_data.chosen_date_start);
+            event_data.chosen_date_end = new Date(event_data.chosen_date_end);
+
+            event_data.date_created = new Date(event_data.date_created);
+            event_data.date_updated = new Date(event_data.date_updated);
+
+            event_data.participants = [];
+
+            console.log(event_data.id_user);
+
+            initialEvents.push(event_data);
+        });
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.error("Axios Error:", error.message);
+            console.error("Config:", error.config);
+            console.error("Request:", error.request);
+        } else {
+            console.error("Error:", error);
+        }
+    }
+}
+getdata();
 
 /* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet, 
    and 'done' if the picked date is in the past. */
 function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
+    console.log(e.end_voting_date);
     const now = Date.now();
 
-    if (e.endVoting && e.endVoting.getTime() > now) {
+    if (e.end_voting_date && e.end_voting_date.getDate() > now) {
         return 'voting';
     }
 
-    if (e.eventDate) {
-        const eventStart = e.eventDate.getTime();
-        const eventEnd = eventStart + 3 * 60 * 60 * 1000; // TODO: get eventEnd from winning day!
+    if (e.chosen_date_start) {
+        const eventStart = e.chosen_date_start.getDate();
+        const eventEnd = e.chosen_date_end.getDate();
 
         if (now >= eventStart && now <= eventEnd) {
             return 'in progress';
@@ -283,11 +329,11 @@ export default function HomeScreen() {
         // Or if you want to detect event ID changes:
         // if (availability.__eventId === selectedEvent.id) return;
 
-        if (selectedEvent.dayTimes) {
+        if (selectedEvent.date_options.length > 0) {
             const mergedAvailability: { [key: string]: any } = {};
 
-            selectedEvent.dayTimes.forEach((dayTime) => {
-                const dayKey = dayTime.date.toISOString();
+            selectedEvent.date_options.forEach((date_option) => {
+                const dayKey = date_option.dateStart.toISOString();
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -296,14 +342,11 @@ export default function HomeScreen() {
                     };
                 } else {
                     // Otherwise, initialize
-                    const [startHours, startMinutes] = dayTime.start.split(':').map(Number);
-                    const [endHours, endMinutes] = dayTime.end.split(':').map(Number);
+                    const startTime = new Date(date_option.dateStart);
+                    startTime.setHours(date_option.dateStart.getHours(), date_option.dateStart.getMinutes(), 0, 0);
 
-                    const startTime = new Date(dayTime.date);
-                    startTime.setHours(startHours, startMinutes, 0, 0);
-
-                    const endTime = new Date(dayTime.date);
-                    endTime.setHours(endHours, endMinutes, 0, 0);
+                    const endTime = new Date(date_option.dateEnd);
+                    endTime.setHours(date_option.dateEnd.getHours(), date_option.dateEnd.getMinutes(), 0, 0);
 
                     mergedAvailability[dayKey] = {
                         startTime,
@@ -332,14 +375,14 @@ export default function HomeScreen() {
 
 
     // Step2
-    const [createDays, setCreateDays] = useState<SingleDay[]>([]);
+    const [createDays, setCreateDays] = useState<DateOption[]>([]);
 
     // AddDay Modal
     const [addDayModalVisible, setAddDayModalVisible] = useState(false);
     const [tempDayIndex, setTempDayIndex] = useState<number | null>(null);
     const [tempDate, setTempDate] = useState(new Date());
-    const [tempStart, setTempStart] = useState('08:00'); // Default start time in 24-hour format
-    const [tempEnd, setTempEnd] = useState('22:00'); // Default end time in 24-hour format
+    const [tempStart, setTempStart] = useState(new Date()); // Default start time in 24-hour format
+    const [tempEnd, setTempEnd] = useState(new Date()); // Default end time in 24-hour format
 
 
     // Additional modals for date/time picking
@@ -367,7 +410,7 @@ export default function HomeScreen() {
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [editLoc, setEditLoc] = useState('');
-    const [editDays, setEditDays] = useState<SingleDay[]>([]);
+    const [editDays, setEditDays] = useState<DateOption[]>([]);
     const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
     const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
@@ -375,9 +418,8 @@ export default function HomeScreen() {
 
     const [addDayModalVisibleEdit, setAddDayModalVisibleEdit] = useState(false);
     const [tempDayIndexEdit, setTempDayIndexEdit] = useState<number | null>(null);
-    const [tempDateEdit, setTempDateEdit] = useState(new Date());
-    const [tempStartEdit, setTempStartEdit] = useState('08:00');
-    const [tempEndEdit, setTempEndEdit] = useState('22:00');
+    const [tempStartEdit, setTempStartEdit] = useState(new Date());
+    const [tempEndEdit, setTempEndEdit] = useState(new Date());
 
 
     // Additional modals for date/time picking (edit)
@@ -461,24 +503,32 @@ export default function HomeScreen() {
     }
 
 
-    function finalizeCreateEvent() {
+    async function finalizeCreateEvent() {
         if (!createTitle.trim()) {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
-        const newEvt: EventData = {
-            id: Math.random().toString(),
-            createdBy: currentUser?.id || 'unknown',
-            title: createTitle,
+        const newEvt = {
+            id_user: currentUser?.id || 'unknown',
+            name: createTitle,
             description: createDesc,
             location: createLoc,
-            dayTimes: createDays,
-            participants: invitees,
-            endVoting: endVotingDate,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            date_options: createDays.map(d => ({ dateStart: d.dateStart.toISOString(), dateEnd: d.dateEnd.toISOString() })),
+            end_voting_date: endVotingDate.toISOString(),
+            date_created: new Date().toISOString(),
+            date_updated: new Date().toISOString(),
+            participant_ids: invitees.map(p => p.id),
+            tag_ids:[]
         };
-        setEvents(prev => [...prev, newEvt]);
+        
+        console.log(newEvt);
+        let response = await Event_service.createEvent(newEvt);
+
+        if (response.success) {
+            
+        }
+
+        console.log(response);
         closeCreateEvent();
     }
 
@@ -488,15 +538,14 @@ export default function HomeScreen() {
             // Editing an existing day
             const existing = createDays[index];
             setTempDayIndex(index);
-            setTempDate(existing.date);
-            setTempStart(existing.start); // Assuming `start` is already in the desired format
-            setTempEnd(existing.end);     // Assuming `end` is already in the desired format
+            setTempStart(existing.dateStart); // Assuming `start` is already in the desired format
+            setTempEnd(existing.dateEnd);     // Assuming `end` is already in the desired format
         } else {
             // Adding a new day
             setTempDayIndex(null);
             setTempDate(new Date());
-            setTempStart('08:00'); // Default start time in 24-hour format
-            setTempEnd('10:00');   // Default end time in 24-hour format
+            setTempStart(new Date()); // Default start time in 24-hour format
+            setTempEnd(new Date());   // Default end time in 24-hour format
         }
 
         // Show the Add Day modal and hide the Create Event modal
@@ -558,7 +607,7 @@ export default function HomeScreen() {
         // 3) (Optional) Update the global events array to reflect changes on the homepage
         setEvents((prevEvents) =>
             prevEvents.map((evt) => {
-                if (evt.id === selectedEvent?.id) {
+                if (evt.id_event === selectedEvent?.id_event) {
                     return {
                         ...evt,
                         participants: evt.participants.map((p) =>
@@ -577,11 +626,11 @@ export default function HomeScreen() {
         if (tempDayIndex !== null) {
             // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { date: tempDate, start: tempStart, end: tempEnd };
+            //copy[tempDayIndex] = { dateStart: tempStart, dateEnd: tempEnd };
             setCreateDays(copy);
         } else {
             // new
-            setCreateDays(prev => [...prev, { date: tempDate, start: tempStart, end: tempEnd }]);
+            setCreateDays(prev => [...prev, { dateStart: tempStart, dateEnd: tempEnd, id_date_option: '', id_event: '' }]);
         }
         closeAddDayModalCreate();
     }
@@ -628,13 +677,14 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id, username: friend.username, email: friend.email, status: 'pending' }]);
         }
     }
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
             const newPart: Participant = {
+                id: Math.random().toString(),
                 username: typedInvite.split('@')[0],
                 email: typedInvite,
                 status: 'pending',
@@ -703,12 +753,12 @@ export default function HomeScreen() {
     function openEdit(e: EventData) {
         setEditEvent(e);
         setEditStep(1);
-        setEditTitle(e.title || '');
+        setEditTitle(e.name || '');
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
-        setEditDays(e.dayTimes ? [...e.dayTimes] : []); // Spread to prevent direct reference issues
+        setEditDays(e.date_options ? [...e.date_options] : []); // Spread to prevent direct reference issues
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
-        setEditEndVoting(e.endVoting || new Date()); // Fallback to current date if endVoting is undefined
+        setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
     }
 
@@ -737,17 +787,17 @@ export default function HomeScreen() {
             Alert.alert('Missing Title', 'Provide a title.');
             return;
         }
-        const updated: EventData = {
+        /*const updated: EventData = {
             ...editEvent,
-            title: editTitle,
+            name: editTitle,
             description: editDesc,
             location: editLoc,
-            dayTimes: editDays,
+            date_options: editDays,
             participants: editInvitees,
             endVoting: editEndVoting,
             updatedAt: new Date(),
         };
-        setEvents(prev => prev.map(evt => evt.id === updated.id ? updated : evt));
+        setEvents(prev => prev.map(evt => evt.id === updated.id ? updated : evt));*/
         closeEditEvent();
     }
 
@@ -757,15 +807,13 @@ export default function HomeScreen() {
             // Editing an existing day
             setTempDayIndexEdit(index);
             const existing = editDays[index];
-            setTempDateEdit(existing.date || new Date());
-            setTempStartEdit(existing.start || '08:00');
-            setTempEndEdit(existing.end || '10:00');
+            setTempStartEdit(existing.dateStart || new Date());
+            setTempEndEdit(existing.dateEnd || new Date());
         } else {
             // Adding a new day
             setTempDayIndexEdit(null);
-            setTempDateEdit(new Date());
-            setTempStartEdit('08:00'); // Default start time in 24-hour format
-            setTempEndEdit('10:00'); // Default end time in 24-hour format
+            setTempStartEdit(new Date()); // Default start time in 24-hour format
+            setTempEndEdit(new Date()); // Default end time in 24-hour format
         }
         setAddDayModalVisibleEdit(true);
         setEditModalVisible(false);
@@ -779,13 +827,14 @@ export default function HomeScreen() {
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
-                date: tempDateEdit,
-                start: tempStartEdit,
-                end: tempEndEdit,
+                dateStart: new Date(tempStartEdit.getTime()), // Create a new Date object with the same time as tempDateEdit,
+                dateEnd: new Date(tempEndEdit.getTime()),
+                id_date_option: copy[tempDayIndexEdit].id_date_option,
+                id_event: copy[tempDayIndexEdit].id_event
             };
             setEditDays(copy);
         } else {
-            setEditDays(prev => [...prev, { date: tempDateEdit, start: tempStartEdit, end: tempEndEdit }]);
+            setEditDays(prev => [...prev, { dateStart: new Date(tempStartEdit.getTime()), dateEnd: new Date(tempEndEdit.getTime()), id_date_option: '', id_event: '' }]);
         }
         closeAddDayModalEdit();
     }
@@ -804,7 +853,7 @@ export default function HomeScreen() {
 
     /* Step2 pick date/time for edit */
     function onPickDateChangeEdit(_ev: DateTimePickerEvent, sel?: Date) {
-        if (sel) setTempDateEdit(sel);
+        if (sel) setTempStartEdit(sel);
     }
     function savePickDateEdit() {
         setPickDateModalEditVisible(false);
@@ -814,13 +863,14 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { username: friend.username, email: friend.email, status: 'pending' }]);
+            setEditInvitees([...editInvitees, { id: friend.id, username: friend.username, email: friend.email, status: 'pending' }]);
         }
     }
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
             const newPart: Participant = {
+                id: Math.random().toString(),
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
@@ -862,8 +912,8 @@ export default function HomeScreen() {
     }
 
     /* Partition MY vs. OTHERS */
-    const myEvents = events.filter(e => e.createdBy === currentUser?.id);
-    const otherEvents = events.filter(e => e.createdBy !== currentUser?.id);
+    const myEvents = events.filter(e => e.id_user == currentUser?.id);
+    const otherEvents = events.filter(e => e.id_user != currentUser?.id);
 
     if (loading) {
         return (
@@ -898,16 +948,16 @@ export default function HomeScreen() {
                             >
                                 {myEvents.map(evt => (
                                     <TouchableOpacity
-                                        key={evt.id}
+                                        key={evt.id_event}
                                         style={styles.eventCard}
                                         onPress={() => openView(evt)}
                                         activeOpacity={0.8}
                                         accessible={true}
-                                        accessibilityLabel={`Edit event ${evt.title}`}
+                                        accessibilityLabel={`Edit event ${evt.name}`}
                                     >
                                         {/* Event Header */}
                                         <View style={styles.eventHeader}>
-                                            <Text style={styles.eventTitle}>{evt.title}</Text>
+                                            <Text style={styles.eventTitle}>{evt.name}</Text>
                                             <View style={[
                                                 styles.statusBadge,
                                                 getStatusStyle(getEventStatus(evt))
@@ -934,14 +984,14 @@ export default function HomeScreen() {
                                             <View style={styles.dateRow}>
                                                 <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                 <Text style={styles.dateText}>
-                                                    Voting Ends: {formatDate(evt.endVoting)}
+                                                    Voting Ends: {formatDate(evt.end_voting_date)}
                                                 </Text>
                                             </View>
-                                            {evt.eventDate && (
+                                            {evt.chosen_date_start && (
                                                 <View style={styles.dateRow}>
                                                     <MaterialIcons name="event" size={20} color="#4CAF50" />
                                                     <Text style={styles.dateText}>
-                                                        Event Date: {formatDate(evt.eventDate)}
+                                                        Event Date: {formatDate(evt.chosen_date_start)}
                                                     </Text>
                                                 </View>
                                             )}
@@ -975,16 +1025,16 @@ export default function HomeScreen() {
                                     const userParticipant = evt.participants.find(p => p.email === currentUser?.email);
                                     return (
                                         <TouchableOpacity
-                                            key={evt.id}
+                                            key={evt.id_event}
                                             style={styles.eventCard}
                                             onPress={() => openView(evt)}
                                             activeOpacity={0.8}
                                             accessible={true}
-                                            accessibilityLabel={`View event ${evt.title}`}
+                                            accessibilityLabel={`View event ${evt.name}`}
                                         >
                                             {/* Event Header */}
                                             <View style={styles.eventHeader}>
-                                                <Text style={styles.eventTitle}>{evt.title}</Text>
+                                                <Text style={styles.eventTitle}>{evt.name}</Text>
                                                 <View style={[
                                                     styles.statusBadge,
                                                     getStatusStyle(eventStatus)
@@ -1012,7 +1062,7 @@ export default function HomeScreen() {
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="today" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
-                                                            Voting Ends: {formatDate(evt.endVoting)}
+                                                            Voting Ends: {formatDate(evt.end_voting_date)}
                                                         </Text>
                                                     </View>
                                                 ) : (
@@ -1023,11 +1073,11 @@ export default function HomeScreen() {
                                                         </Text>
                                                     </View>
                                                 )}
-                                                {eventStatus === 'in progress' && evt.eventDate && (
+                                                {eventStatus === 'in progress' && evt.chosen_date_start && (
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="event" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
-                                                            Event Date: {formatDate(evt.eventDate)}
+                                                            Event Date: {formatDate(evt.chosen_date_start)}
                                                         </Text>
                                                     </View>
                                                 )}
@@ -1072,13 +1122,13 @@ export default function HomeScreen() {
                                             (() => {
                                                 const eventStatus = getEventStatus(selectedEvent);
                                                 // Check if current user created this event
-                                                const isCreator = selectedEvent.createdBy === currentUser?.id;
+                                                const isCreator = selectedEvent.id_user === currentUser?.id;
 
                                                 return (
                                                     <>
                                                         {/* Modal Header */}
                                                         <View style={styles.modalHeader}>
-                                                            <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
+                                                            <Text style={styles.modalTitle}>{selectedEvent.name}</Text>
                                                             <TouchableOpacity
                                                                 onPress={closeView}
                                                                 accessibilityLabel="Close Modal"
@@ -1099,8 +1149,8 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {mockFriends.find(friend => friend.id === selectedEvent.createdBy)
-                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.createdBy)?.email})`
+                                                                        {mockFriends.find(friend => friend.id === selectedEvent.id_user)
+                                                                            ? `${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id === selectedEvent.id_user)?.email})`
                                                                             : 'Unknown'}
                                                                     </Text>
                                                                 </View>
@@ -1116,15 +1166,15 @@ export default function HomeScreen() {
                                                                     <View style={styles.detailRow}>
                                                                         <Text style={styles.detailLabel}>Event Date:</Text>
                                                                         <Text style={styles.detailValue}>
-                                                                            {selectedEvent.eventDate ? formatDate(selectedEvent.eventDate) : 'Not set'}
+                                                                            {selectedEvent.chosen_date_start ? formatDate(selectedEvent.chosen_date_start) : 'Not set'}
                                                                         </Text>
                                                                     </View>
                                                                 )}
-                                                                {selectedEvent.endVoting && eventStatus === 'voting' && (
+                                                                {selectedEvent.end_voting_date && eventStatus === 'voting' && (
                                                                     <View style={styles.detailRow}>
                                                                         <Text style={styles.detailLabel}>Voting Ends:</Text>
                                                                         <Text style={styles.detailValue}>
-                                                                            {formatDate(selectedEvent.endVoting)}
+                                                                            {formatDate(selectedEvent.end_voting_date)}
                                                                         </Text>
                                                                     </View>
                                                                 )}
@@ -1452,7 +1502,7 @@ export default function HomeScreen() {
                                     <View style={styles.votingModalContainer}>
                                         <View style={styles.votingModalHeader}>
                                             <Text style={styles.modalTitle}>
-                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.title || 'Event'}</Text>
+                                                Select Availability For <Text style={styles.eventTitle}>{selectedEvent?.name || 'Event'}</Text>
                                             </Text>
                                             <TouchableOpacity
                                                 onPress={() => { setIsVotingModalVisible(false); setIsOtherEventsModalVisible(true); }}
@@ -1466,21 +1516,21 @@ export default function HomeScreen() {
 
 
                                             {/* Availability Selection for Each Day */}
-                                            {selectedEvent && selectedEvent.dayTimes.map((dayTime, index) => {
-                                                const dayKey = dayTime.date.toISOString();
+                                            {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
+                                                const dayKey = dayTime.dateStart.toISOString();
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 return (
                                                     <View key={index} style={styles.dayContainer}>
                                                         <View style={styles.dayHeader}>
                                                             <Text style={styles.dayTitle}>
-                                                                {dayTime.date.toLocaleDateString('en-US', { weekday: 'long' })},{' '}
-                                                                {dayTime.date.toLocaleDateString()}
+                                                                {dayTime.dateStart.toLocaleDateString('en-US', { weekday: 'long' })},{' '}
+                                                                {dayTime.dateStart.toLocaleDateString()}
                                                             </Text>
                                                             <View style={styles.availableContainer}>
                                                                 <MaterialIcons name="schedule" size={20} color="#4CAF50" />
                                                                 <Text style={styles.availableText}>
-                                                                    {dayTime.start} - {dayTime.end}
+                                                                    {dayTime.dateStart.getDate()} - {dayTime.dateEnd.getDate()}
                                                                 </Text>
                                                             </View>
                                                         </View>
@@ -1642,7 +1692,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalCreate(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(d.dateStart)} | {d.dateStart.getDate()} - {d.dateEnd.getDate()}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -1811,7 +1861,7 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempStart}</Text>
+                                            <Text style={styles.valueText}>{tempStart.toDateString()}</Text>
                                             <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
@@ -1823,7 +1873,7 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempEnd}</Text>
+                                            <Text style={styles.valueText}>{tempEnd.toDateString()}</Text>
                                             <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
@@ -1893,7 +1943,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Set to false for 24-hour format
                                     });
-                                    setTempStart(hhmm); // Update temporary state with selected time
+                                    setTempStart(sel); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -1935,7 +1985,7 @@ export default function HomeScreen() {
                                         minute: '2-digit',
                                         hour12: false, // Ensure 24-hour format
                                     });
-                                    setTempEnd(hhmm); // Update temporary state with selected time
+                                    setTempEnd(sel); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2054,7 +2104,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalEdit(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(d.date)} | {d.start} - {d.end}
+                                                                {formatDay(d.dateStart)} | {d.dateStart.getDate()} - {d.dateEnd.getDate()}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -2216,7 +2266,7 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>Start Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempStart}</Text>
+                                            <Text style={styles.valueText}>{tempStart.toDateString()}</Text>
                                             <TouchableOpacity style={styles.pickerButton} onPress={openPickStartTime}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick Start</Text>
@@ -2228,7 +2278,7 @@ export default function HomeScreen() {
                                     <View style={styles.fieldContainer}>
                                         <Text style={styles.label}>End Time</Text>
                                         <View style={styles.valueButtonRow}>
-                                            <Text style={styles.valueText}>{tempEnd}</Text>
+                                            <Text style={styles.valueText}>{tempEnd.toDateString()}</Text>
                                             <TouchableOpacity style={styles.pickerButton} onPress={openPickEndTime}>
                                                 <MaterialIcons name="access-time" size={20} color="#fff" />
                                                 <Text style={styles.pickerButtonText}>Pick End</Text>
@@ -2268,7 +2318,7 @@ export default function HomeScreen() {
                         <View style={styles.modalContainer}>
                             <Text style={styles.modalTitle}>Pick Date (Edit)</Text>
                             <DateTimePicker
-                                value={tempDateEdit}
+                                value={tempStartEdit}
                                 mode="date"
                                 display="spinner"
                                 onChange={(ev, sel) => onPickDateChangeEdit(ev, sel)}
@@ -2302,12 +2352,8 @@ export default function HomeScreen() {
                                 display="spinner"
                                 onChange={(ev, sel) => {
                                     if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempStartEdit(hhmm); // Update temporary state with selected time
+                                    
+                                    setTempStartEdit(sel); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
@@ -2344,12 +2390,8 @@ export default function HomeScreen() {
                                 display="spinner"
                                 onChange={(ev, sel) => {
                                     if (!sel) return;
-                                    const hhmm = sel.toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        hour12: false, // Ensure 24-hour format
-                                    });
-                                    setTempEndEdit(hhmm); // Update temporary state with selected time
+
+                                    setTempEndEdit(sel); // Update temporary state with selected time
                                 }}
                                 textColor="black" // Set text color to ensure visibility
                             />
