@@ -61,15 +61,35 @@ namespace flock.Controllers
         [Authorize]
         public async Task<IActionResult> GetAuthenticatedUser()
         {
-            // Check if the user is authenticated
-            if (User.Identity == null || !User.Identity.IsAuthenticated)
-                return Unauthorized("User is not authenticated.");
-
             var userEmail = User.Identity.Name; // This should be populated from the token
             if (string.IsNullOrEmpty(userEmail))
                 return Unauthorized("Invalid token.");
 
             var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+            if (user == null)
+                return NotFound("User not found.");
+
+            var userDto = new UserDto
+            {
+                Id_user = user.Id_user,
+                First_name = user.First_name,
+                Last_name = user.Last_name,
+                Username = user.Username,
+                Email = user.Email,
+                Email_verified = user.Email_verified,
+                Date_created = user.Date_created,
+                Date_updated = user.Date_updated
+            };
+
+            return Ok(userDto);
+        }
+        
+        [Route("/api/user/{id}")]
+        [HttpGet()]
+        [Authorize]
+        public async Task<IActionResult> GetUserInfo(int id)
+        {
+            var user = await _userRepository.GetUserById(id);
             if (user == null)
                 return NotFound("User not found.");
 
@@ -94,7 +114,6 @@ namespace flock.Controllers
         public async Task<IActionResult> UpdateUserRelationship(RelationshipDto request){
             try
             {
-                if (User.Identity == null || !User.Identity.IsAuthenticated) return Unauthorized("User is not authenticated.");
                 var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
 
                 var relationship = new Friendship
@@ -115,16 +134,13 @@ namespace flock.Controllers
             }
         }
         
-        [Route("/api/user/relationship")]
+        [Route("/api/user/relationship/{id}")]
         [HttpGet()]
         [Authorize]
-        public async Task<IActionResult> GetAllRelationshipsWithStatus(string status){
+        public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){
             try
             {
-                if (User.Identity == null || !User.Identity.IsAuthenticated) return Unauthorized("User is not authenticated.");
-                var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
-
-                var relationships = _userRepository.GetAllRelationshipsWithStatus(user_data.Id_user, status);
+                var relationships = _userRepository.GetAllRelationshipsWithStatus(id, status);
 
                 return Ok(relationships);
             }

@@ -25,6 +25,16 @@ namespace flock.Data.Repositories
             }
         }
 
+        public async Task<User> GetUserById(int id)
+        {
+            var query = "SELECT * FROM `user` WHERE `id_user` = @Id AND `sysrowstate` = 1";
+
+            using (var connection = _context.CreateConnection())
+            {
+                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Id = id });
+            }
+        }
+
         public async Task<int> CreateUserAsync(User user)
         {
             var query = @"
