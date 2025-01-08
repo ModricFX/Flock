@@ -90,12 +90,25 @@ public class EventRepository : IEventRepository
 
     public async Task<List<Invitation>> GetInvitations(int event_id)
     {
-        var query = "SELECT * FROM `invitation` WHERE `id_event` = @Id";
+        var query = @"
+        SELECT i.*, u.* 
+        FROM `invitation` i
+        JOIN `user` u ON i.`Id_user` = u.`Id_user`
+        WHERE i.`Id_event` = @Id";
 
         using (var connection = _context.CreateConnection())
         {
-            var result = await connection.QueryAsync<Invitation>(query, new { Id = event_id });
-            return result.ToList(); 
+            var result = await connection.QueryAsync<Invitation, User, Invitation>(
+                query,
+                (invitation, user) => 
+                {
+                    invitation.User = user;
+                    return invitation;
+                },
+                new { Id = event_id },
+                splitOn: "Id_user");
+
+            return result.ToList();
         }
     }
 

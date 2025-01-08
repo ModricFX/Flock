@@ -1,5 +1,6 @@
 ﻿// services/EventService.ts
 import { AxiosInstance } from 'axios';
+import { EventData } from '../models/EventData';
 
 export class EventService {
     private api: AxiosInstance;
@@ -16,9 +17,9 @@ export class EventService {
 
     // Add methods for event-related operations
 
-    async getEvents() {
+    async getEvents(): Promise<{ data: EventData[] }> {
        const response = await this.api.get('/event');
-       return response.data;
+       return response;
     }
 
     async getEventById(id: string) {

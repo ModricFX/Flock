@@ -23,6 +23,11 @@ import DateTimePickerComponent from '../../components/DateTimePicker';
 
 import styles from '../styles/HomePageStyles';
 import friendStyles from '../styles/FriendsPageStyles';
+import { authService } from '../services/authservice';
+import { router } from 'expo-router';
+import { EventService } from '../services/EventService';
+import { apiService } from '../services/ApiService';
+import { event } from 'jquery';
 
 
 const isIOS = Platform.OS === 'ios';
@@ -31,53 +36,26 @@ console.log("Running for platform: ", isIOS ? "iOS" : "Android");
 /* ----------------------------------------
    Mock user, friend list, and data models
 ---------------------------------------- */
-interface User {
-    id: string;
-    username: string;
-    email: string;
-    pfpUrl: string;
-}
+import { User } from '../models/User';
 
-interface Participant {
-    username: string;
-    email: string;
-    pfpUrl: string;
-    status: 'pending' | 'accepted' | 'declined';
-}
+import { Participant } from '../models/Participant';
 
 /** A single day record with date, times, etc. */
-interface SingleDay {
-    dateStart: Date;       // 2025-01-08T11:54:15.658Z
-    dateEnd: Date;         // 2025-01-08T11:54:15.658Z
-}
-
 /**
  * "EventData" used for both create and edit flows.
  * We store an array of dayTimes, each item = SingleDay
  */
-interface EventData {
-    id_event: string,
-    name: string,
-    description: string,
-    location: string,
-    end_voting_date: Date;             // People can vote until this date/time
-    id_user: string;                    // ID of the user who created the event,
-    date_options: SingleDay[];       // List of chosen days
-    participants: Participant[];
+import { EventData } from '../models/EventData';
 
-    eventDate?: Date;            // Final chosen date/time (if set)
-    createdAt: Date;
-    updatedAt: Date;
-    votes?: Record<string, any>; // optional
-}
+import { SingleDay } from '../models/SingleDay';
 
-/* Mock "current" user */
+/* Mock "current" user 
 const mockCurrentUser: User = {
     id: 'u-001',
     username: 'MyUser',
     email: 'myuser@domain.com',
     pfpUrl: 'https://i.pravatar.cc/100?img=49',
-};
+};*/
 
 /* Mock friend list */
 const mockFriends: User[] = [
@@ -86,7 +64,7 @@ const mockFriends: User[] = [
     { id: 'u-004', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
 ];
 
-/* Some initial events */
+/* Some initial events 
 const initialEvents: EventData[] = [
     {
         id_event: 'evt-1',
@@ -207,14 +185,16 @@ const initialEvents: EventData[] = [
         createdAt: new Date(),
         updatedAt: new Date(),
     },
-];
+];*/
+
+const eventService = new EventService(apiService.getApi());
 
 /* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet,
    and 'done' if the picked date is in the past. */
 function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
     const now = Date.now();
 
-    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
+    if (e.end_voting_date && e.end_voting_date instanceof Date && e.end_voting_date.getTime() > now) {
         return 'voting';
     }
 
@@ -274,18 +254,30 @@ function getHoursFrom(dateTime: Date) {
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [events, setEvents] = useState<EventData[]>(initialEvents);
+    const [events, setEvents] = useState<EventData[]>([]);
 
     // iOS keyboard offset
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
 
     // Simulate fetch user
     useEffect(() => {
-        setTimeout(() => {
-            setCurrentUser(mockCurrentUser);
-            setLoading(false);
-        }, 800);
+        const fetchUserData = async () => {
+            try {
+                let user = await authService.getUserData();
+                if (user.success && user.data) {
+                    setCurrentUser(user.data);
+                } else {
+                    router.replace('/auth/login');
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                router.replace('/auth/login');
+            }
+        };
+    
+        fetchUserData();
     }, []);
+    
 
     const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
     useEffect(() => {
@@ -405,6 +397,39 @@ export default function HomeScreen() {
     /* ------------------------------------------
        Create Flow
     ------------------------------------------*/
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const response = await eventService.getEvents();
+
+                let events = response.data;
+                console.log(events[0].invitations);
+
+                events.forEach(ev => {
+                    if(ev.invitations){
+                        ev.participants = ev.invitations.map(inv => {
+                            return { 
+                                email: inv.user.email, 
+                                username: inv.user.username,
+                                pfpUrl: '',
+                                status: inv.status
+                            };
+                        })
+                    }
+                });
+                
+                setEvents(events); // Set the fetched data to the state
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            } finally {
+                setLoading(false); // Stop loading once the data is fetched
+            }
+        };
+
+        fetchEvents(); // Call the function to fetch events
+    }, []); 
+
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
         setCreateTitle(''); // Clear the event title
@@ -559,7 +584,7 @@ export default function HomeScreen() {
             const newStatus: "accepted" | "declined" | "pending" = isAvailable ? "accepted" : "declined";
 
             // Update participants while ensuring type correctness
-            const updatedParticipants = prevEvent.participants.map((p) => {
+            const updatedParticipants = prevEvent.participants?.map((p) => {
                 if (p.email === currentUser?.email) {
                     return {
                         ...p,
@@ -575,13 +600,14 @@ export default function HomeScreen() {
             };
         });
 
+
         // 3) (Optional) Update the global events array to reflect changes on the homepage
         setEvents((prevEvents) =>
             prevEvents.map((evt) => {
                 if (evt.id_event === selectedEvent?.id_event) {
                     return {
                         ...evt,
-                        participants: evt.participants.map((p) =>
+                        participants: evt.participants?.map((p) =>
                             p.email === currentUser?.email
                                 ? { ...p, status: isAvailable ? "accepted" : "declined" }
                                 : p
@@ -1070,7 +1096,7 @@ export default function HomeScreen() {
                                         <View style={styles.participants}>
                                             <MaterialIcons name="people" size={20} color="#4CAF50" />
                                             <Text style={styles.participantsText}>
-                                                {evt.participants.length} Participants
+                                                {evt.participants?.length} Participants
                                             </Text>
                                         </View>
                                     </TouchableOpacity>
@@ -1091,7 +1117,7 @@ export default function HomeScreen() {
                             >
                                 {otherEvents.map(evt => {
                                     const eventStatus = getEventStatus(evt);
-                                    const userParticipant = evt.participants.find(p => p.email === currentUser?.email);
+                                    const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
                                     return (
                                         <TouchableOpacity
                                             key={evt.id_event}
@@ -1156,7 +1182,7 @@ export default function HomeScreen() {
                                             <View style={styles.participants}>
                                                 <MaterialIcons name="people" size={20} color="#4CAF50" />
                                                 <Text style={styles.participantsText}>
-                                                    {evt.participants.length} Participants
+                                                    {evt.participants?.length} Participants
                                                 </Text>
                                             </View>
 
@@ -1255,7 +1281,7 @@ export default function HomeScreen() {
                                                                 <View style={styles.participantsPreviewRow}>
                                                                     <MaterialIcons name="people" size={20} color="#4CAF50" />
                                                                     <Text style={styles.participantsPreviewText}>
-                                                                        {selectedEvent.participants.length} total
+                                                                        {selectedEvent.participants?.length} total
                                                                     </Text>
                                                                 </View>
                                                                 <TouchableOpacity
