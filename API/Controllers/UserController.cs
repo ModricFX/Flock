@@ -149,7 +149,7 @@ namespace flock.Controllers
             }
         }
         
-        [Route("/api/user/relationship/{id}")]
+        [Route("/api/user/relationship/{id}/{status}")]
         [HttpGet()]
         [Authorize]
         public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){

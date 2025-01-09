@@ -49,146 +49,12 @@ import { EventData } from '../models/EventData';
 
 import { SingleDay } from '../models/SingleDay';
 import { date } from 'yup';
+import { FriendService } from '../services/FriendService';
 
-/* Mock "current" user 
-const mockCurrentUser: User = {
-    id: 'u-001',
-    username: 'MyUser',
-    email: 'myuser@domain.com',
-    pfpUrl: 'https://i.pravatar.cc/100?img=49',
-};*/
+const api = apiService.getApi();
 
-/* Mock friend list */
-const mockFriends: User[] = [
-    { id_user: '7', username: 'Alice', email: 'alice@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=23' },
-    { id_user: '6', username: 'Bob', email: 'bob@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=34' },
-    { id_user: '8', username: 'Charlie', email: 'charlie@example.com', pfpUrl: 'https://i.pravatar.cc/100?img=45' },
-];
-
-/* Some initial events 
-const initialEvents: EventData[] = [
-    {
-        id_event: 'evt-1',
-        id_user: mockCurrentUser.id,
-        name: 'My Birthday Party',
-        description: 'Pizza and cake!',
-        location: 'My House',
-        date_options: [
-            {
-                date_start: new Date(2024, 0, 15, 8, 0),
-                date_end: new Date(2024, 0, 15, 11, 0),
-            },
-        ],
-        participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=12' },
-            { username: 'Alice', email: 'alice@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
-            { username: 'Bob', email: 'bob@example.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
-        ],
-        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id_event: 'evt-2',
-        id_user: 'u-004', // belongs to Charlie
-        name: 'Yoga Retreat',
-        description: 'Relaxing yoga for all levels',
-        location: 'Health & Wellness Center',
-        date_options: [
-            {
-                date_start: new Date(2024, 1, 5, 9, 0),
-                date_end: new Date(2024, 1, 5, 12, 0),
-            },
-        ],
-        participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=36' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=28' },
-        ],
-        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 2), // ended 2 hours ago
-        eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id_event: 'evt-3',
-        id_user: 'u-004', // belongs to Charlie
-        name: 'Test event',
-        description: 'Testing the events',
-        location: 'Home alone',
-        date_options: [
-            {
-                date_start: new Date(2024, 1, 5, 9, 0),
-                date_end: new Date(2024, 1, 5, 13, 0),
-            },
-            {
-                date_start: new Date(2024, 1, 6, 15, 0),
-                date_end: new Date(2024, 1, 6, 20, 0),
-            }
-        ],
-        participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=11' },
-            { username: 'Charlie', email: 'charlie@example.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=10' },
-            { username: 'Bob1', email: 'bob@gmail.com', status: 'declined', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
-            { username: 'Bob2', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
-            { username: 'Bob3', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
-            { username: 'Bob4', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08'},
-            { username: 'Bob5', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-            { username: 'Bob6', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-            { username: 'Bob7', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-            { username: 'Bob8', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-            { username: 'Bob9', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-            { username: 'Bob10', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=08' },
-        ],
-        end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
-        eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id_event: 'evt-4',
-        id_user: 'u-003', // belongs to Bob
-        name: 'Beach Day',
-        description: 'Fun in the sun!',
-        location: 'Sunny Beach',
-        date_options: [
-            {
-                date_start: new Date(2024, 1, 5, 9, 0),
-                date_end: new Date(2024, 1, 5, 12, 0),
-            },
-        ],
-        participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=07' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=06' },
-        ],
-        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-        eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-    {
-        id_event: 'evt-5',
-        id_user: 'u-002', // belongs to Alice
-        name: 'Neki Day',
-        description: 'Fun',
-        location: 'House apartment',
-        date_options: [
-            {
-                date_start: new Date(2024, 1, 5, 9, 0),
-                date_end: new Date(2024, 1, 5, 12, 0),
-            },
-        ],
-        participants: [
-            { username: 'MyUser', email: 'myuser@domain.com', status: 'pending', pfpUrl: 'https://i.pravatar.cc/100?img=05' },
-            { username: 'Bob', email: 'bob@gmail.com', status: 'accepted', pfpUrl: 'https://i.pravatar.cc/100?img=04' },
-        ],
-        end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-        eventDate: new Date(Date.now() - 500 * 60),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    },
-];*/
-
-const eventService = new EventService(apiService.getApi());
+const friendService = new FriendService(api);
+const eventService = new EventService(api);
 
 /* Returns 'voting' if now < endVoting, 'finished' if voting has ended but the event hasn't occurred yet,
    and 'done' if the picked date is in the past. */
@@ -255,6 +121,7 @@ function getHoursFrom(dateTime: Date) {
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [friends, setFriends] = useState<User[]>();
     const [events, setEvents] = useState<EventData[]>([]);
 
     // iOS keyboard offset
@@ -267,6 +134,28 @@ export default function HomeScreen() {
                 if (user.success && user.data) {
                     console.log(user.data);
                     setCurrentUser(user.data);
+                    
+                    if (user.data?.id_user) {
+                        const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
+                        let friends: User[] = [];
+    
+                        for (const rel of relationships) {
+                            let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
+                            let friend = await friendService.getFriendData(id);
+                            
+                            console.log(id, friend);
+                            if (friend) {
+                                friends.push({
+                                    id_user: friend.id_user,
+                                    username: friend.username,
+                                    email: friend.email,
+                                    pfpUrl: ''
+                                });
+                            }
+                        }
+    
+                        setFriends(friends);
+                    }
                 } else {
                     router.replace('/auth/login');
                 }
@@ -1306,8 +1195,8 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {mockFriends.find(friend => friend.id_user === selectedEvent.id_user)
-                                                                            ? `${mockFriends.find(friend => friend.id_user === selectedEvent.id_user)?.username} (${mockFriends.find(friend => friend.id_user === selectedEvent.id_user)?.email})`
+                                                                        {friends?.find(friend => friend.id_user === selectedEvent.id_user)
+                                                                            ? `${friends.find(friend => friend.id_user === selectedEvent.id_user)?.username} (${friends.find(friend => friend.id_user === selectedEvent.id_user)?.email})`
                                                                             : 'Unknown'}
                                                                     </Text>
                                                                 </View>
@@ -1930,7 +1819,7 @@ export default function HomeScreen() {
 
                                         {/* Friends List */}
                                         <ScrollView horizontal style={styles.friendsScrollView}>
-                                            {mockFriends.map((f) => (
+                                            {friends?.map((f) => (
                                                 <TouchableOpacity
                                                     key={f.id_user}
                                                     style={styles.inviteChip}
@@ -2408,7 +2297,7 @@ export default function HomeScreen() {
                                             </View>
                                             {/* Friends List */}
                                             <ScrollView horizontal style={styles.friendsScrollView}>
-                                                {mockFriends.map((f) => (
+                                                {friends?.map((f) => (
                                                     <TouchableOpacity
                                                         key={f.id_user}
                                                         style={styles.inviteChip}
