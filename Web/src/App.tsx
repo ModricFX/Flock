@@ -35,7 +35,7 @@ import DashboardPage from "./pages/home/DashboardPage.tsx";
 import { authService } from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 import AboutPage from "./pages/home/AboutPage.tsx";
-
+import { AppNotification } from "./types"; 
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
@@ -43,6 +43,7 @@ import EventIcon from "@mui/icons-material/Event";
 const drawerWidth = 240;
 
 interface Notification {
+    id: string;
     sender: string;
     message: string;
     time: string;
@@ -63,6 +64,11 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [userData, setUserData] = useState(null);
+
+    const handleNavigateToNotifications = () => {
+        navigate("/notifications");
+    };
+
 
     const dashboardRef = useRef<any>(null); // Create a ref for DashboardPage
 
@@ -87,9 +93,9 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         checkUserData();
     }, [navigate]);
 
-    const [notifications, setNotifications] = useState<Notification[]>([
-        { sender: "Admin", message: "Your event was approved!", time: "2 hours ago" },
-        { sender: "Community", message: "Reminder: Meetup tomorrow!", time: "1 day ago" },
+    const [notifications, setNotifications] = useState<AppNotification[]>([
+        { id: 1, sender: "Admin", message: "Your event was approved!", time: "2 hours ago", unread: true },
+        { id: 2, sender: "Community", message: "Reminder: Meetup tomorrow!", time: "1 day ago", unread: true },
     ]);
 
     const [readNotifications, setReadNotifications] = useState<Set<number>>(new Set());
@@ -153,6 +159,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/dashboard", { state: { scrollTo: "otherEvents" } });
     };
 
+    console.log("Notifications:", notifications);
     return (
         <Box sx={{ display: "flex" }}>
             <ToastContainer />
@@ -202,7 +209,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                         color="inherit"
                                         sx={{ marginRight: 2 }}
                                         component={Link}
-                                        to="/home/notifications"
+                                        to="/notifications"
                                         onClick={handleNotificationClick}
                                     >
                                         <Badge badgeContent={unreadNotificationsCount} color="error">
@@ -265,6 +272,14 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                     <ListItemText primary="Other Events" />
                                 </ListItemButton>
                             </ListItem>
+                            <ListItem disablePadding>
+                                <ListItemButton  onClick={handleNavigateToNotifications} >
+                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
+                                        <NotificationsIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Notifications" />
+                                </ListItemButton>
+                            </ListItem>
                         </List>
                     </Box>
                 </Drawer>
@@ -295,15 +310,22 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         <Route
                             path="yourevents"
                             element={<YourEvents events={userEvents} setEvents={setUserEvents} />}
-                        />
-                        <Route
-                            path="notifications"
-                            element={<Notifications notifications={notifications} />}
-                        />
+                        />                        
                     </Route>
+                    <Route
+                             path="notifications"
+                             element={
+                               <Notifications
+                                 notifications={notifications.map((n) => ({
+                                   ...n,
+                                   id: n.id.toString(), // Pretvori id iz number v string
+                                 }))}
+                               />
+                             }
+                        />
 
                     {/* Fallback for any unknown route */}
-                    <Route path="*" element={<Navigate to="/auth/login" />} />
+                    {/*<Route path="*" element={<Navigate to="/auth/login" />} />*/}
                 </Routes>
             </Box>
 
