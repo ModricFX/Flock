@@ -11,7 +11,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
-import AppWriteService from '../services/appwriteservice';
+import { settingsService } from '../services/settingsservice';
+import { authService } from '../services/authservice';
 
 
 /* IMPORT STYLES */
@@ -21,7 +22,6 @@ import styles from '../styles/ProfilePageStyles';
 
 export default function Profile() {
   const router = useRouter();
-  const appwriteService = new AppWriteService();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -53,14 +53,7 @@ export default function Profile() {
       return;
     }
     try {
-      if (username) {
-        console.log('Updating username:', username);
-        // call your service or function
-      }
-      if (email) {
-        console.log('Updating email:', email);
-        // call your service or function
-      }
+      await authService.updateProfile(username, email);
       Alert.alert('Success', 'Profile information updated successfully!');
     } catch (error) {
       console.error('Profile update failed:', error);
@@ -76,7 +69,7 @@ export default function Profile() {
     }
     try {
       console.log('Changing password:', { currentPassword, newPassword });
-      // call your service or function
+      await authService.updatePassword(currentPassword, newPassword);
       Alert.alert('Success', 'Password updated successfully!');
     } catch (error) {
       console.error('Password change failed:', error);
@@ -88,7 +81,7 @@ export default function Profile() {
   const handleLogout = async () => {
     try {
       console.log('Logging out user...');
-      await appwriteService.logout();
+      await authService.logout();
       router.replace('/auth/login');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -112,6 +105,7 @@ export default function Profile() {
           onPress: async () => {
             try {
               console.log('Deleting user account...');
+              authService.deleteAccount();
               // call your service or function
               Alert.alert('Success', 'Your account has been deleted.');
               router.replace('/auth/login');
