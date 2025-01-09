@@ -44,6 +44,11 @@ import VotingIcon from "@mui/icons-material/PlayArrow";
 import InProgressIcon from "@mui/icons-material/Autorenew";
 import UpcomingIcon from "@mui/icons-material/AccessTime";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { toast } from "react-toastify";
+
+
 interface Participant {
   username: string;
   email: string;
@@ -514,16 +519,53 @@ const DashboardPage = forwardRef((_props, _ref) => {
   };
 
   const handleSave = (): void => {
-    if (newEvent.title && newEvent.description && newEvent.location) {
-      if (editEventIndex !== null) {
-        const updated = [...myEvents];
-        updated[editEventIndex] = newEvent;
-        setMyEvents(updated);
-      } else {
-        setMyEvents([...myEvents, newEvent]);
-      }
-      handleClose();
+    // 1. Check if Title, Description, and Location are filled
+    if (!newEvent.title || !newEvent.description || !newEvent.location) {
+      toast.error("Please fill out all basic info (Title, Description, Location).", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      return;
     }
+
+    // 2. Check if there is at least one day
+    if (!newEvent.days || newEvent.days.length === 0) {
+      toast.error("Please add at least one day.", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    // 3. Check if there is at least one deadline
+    // (Only if your logic requires the user to have a deadline)
+    if (!newEvent.deadline || newEvent.deadline.length === 0) {
+      toast.error("Please add the voting deadline.", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+      return;
+    }
+
+    // If all checks pass, either edit or add the event
+    if (editEventIndex !== null) {
+      const updated = [...myEvents];
+      updated[editEventIndex] = newEvent;
+      setMyEvents(updated);
+      toast.success("Event saved successfully!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    } else {
+      setMyEvents([...myEvents, newEvent]);
+      toast.success("Event created successfully!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+    }
+    
+    // Close the dialog
+    handleClose();
   };
 
   const handleRemoveDay = (index: number) => {
@@ -982,6 +1024,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   No days added yet.
                 </Typography>
               )}
+
               <Box sx={{ display: "flex", justifyContent: "center", marginTop: "16px" }}>
                 <Button
                   variant="contained"
@@ -1001,6 +1044,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   + Add Day
                 </Button>
               </Box>
+
               <Dialog
                 open={addDayDialogOpen}
                 onClose={() => setAddDayDialogOpen(false)}
@@ -1011,7 +1055,12 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   Add Day
                 </DialogTitle>
                 <DialogContent sx={{ padding: "24px" }}>
-                  <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    marginBottom={3}
+                  >
                     <Typography>Date</Typography>
                     <TextField
                       type="date"
@@ -1029,7 +1078,13 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       }}
                     />
                   </Box>
-                  <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    marginBottom={3}
+                  >
                     <Typography>Start Time</Typography>
                     <TextField
                       type="time"
@@ -1047,7 +1102,13 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       }}
                     />
                   </Box>
-                  <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom={3}>
+
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    marginBottom={3}
+                  >
                     <Typography>End Time</Typography>
                     <TextField
                       type="time"
@@ -1066,6 +1127,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                     />
                   </Box>
                 </DialogContent>
+
                 <DialogActions
                   sx={{
                     justifyContent: "space-between",
@@ -1090,8 +1152,44 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   >
                     Cancel
                   </Button>
+
                   <Button
                     onClick={() => {
+                      // 1. Check if any field is empty
+                      if (!selectedDate || !startTime || !endTime) {
+                        toast.error("Please fill in all fields before saving.", {
+                          position: "top-center",
+                          autoClose: 2000, // in ms
+                        });
+                        return;
+                      }
+
+                      // 2. Make sure selectedDate is not in the past
+                      const today = new Date();
+                      const chosenDate = new Date(selectedDate);
+                      // Compare only dates, ignoring time
+                      chosenDate.setHours(0, 0, 0, 0);
+                      today.setHours(0, 0, 0, 0);
+                      if (chosenDate < today) {
+                        toast.error("Date cannot be in the past.", {
+                          position: "top-center",
+                          autoClose: 3000,
+                        });
+                        return;
+                      }
+
+                      // 3. Check that startTime < endTime
+                      const [startH, startM] = startTime.split(":").map(Number);
+                      const [endH, endM] = endTime.split(":").map(Number);
+                      if (startH > endH || (startH === endH && startM >= endM)) {
+                        toast.error("Start time must be before end time.", {
+                          position: "top-center",
+                          autoClose: 3000,
+                        });
+                        return;
+                      }
+
+                      // If all checks pass, add the new day
                       const newDay = {
                         date: selectedDate,
                         startTime,
@@ -1100,6 +1198,12 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       const updatedDays = [...(newEvent.days || []), newDay];
                       setNewEvent({ ...newEvent, days: updatedDays });
                       setAddDayDialogOpen(false);
+
+                      // Optional success toast
+                      toast.success("Day added successfully!", {
+                        position: "top-center",
+                        autoClose: 2000,
+                      });
                     }}
                     sx={{
                       backgroundColor: "#4CAF50",
@@ -1116,9 +1220,11 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   >
                     Save
                   </Button>
+
                 </DialogActions>
               </Dialog>
             </Box>
+
           )}
           {step === 3 && (
             <>
@@ -1284,7 +1390,10 @@ const DashboardPage = forwardRef((_props, _ref) => {
                 </Box>
               )}
 
-              <Dialog open={addDeadlineDialogOpen} onClose={() => setAddDeadlineDialogOpen(false)}>
+              <Dialog
+                open={addDeadlineDialogOpen}
+                onClose={() => setAddDeadlineDialogOpen(false)}
+              >
                 <DialogTitle>Set Voting Deadline</DialogTitle>
                 <DialogContent>
                   <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
@@ -1339,10 +1448,35 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   </Button>
                   <Button
                     onClick={() => {
+                      // 1) Check if date/time fields are empty
+                      if (!selectedDeadline || !DeadlineTime) {
+                        toast.error("Please select both a date and a time.", {
+                          position: "top-center",
+                          autoClose: 2000,
+                        });
+                        return;
+                      }
+
+                      // 2) Check if the selected date/time is in the past
+                      const selectedDateTime = new Date(`${selectedDeadline}T${DeadlineTime}:00`);
+                      const now = new Date();
+                      if (selectedDateTime < now) {
+                        toast.error("Deadline cannot be in the past.", {
+                          position: "top-center",
+                          autoClose: 2000,
+                        });
+                        return;
+                      }
+
+                      // If validations pass, save the new deadline
                       const dl = { date: selectedDeadline, DeadlineTime };
                       const updated = [...(newEvent.deadline || []), dl];
                       setNewEvent({ ...newEvent, deadline: updated });
                       setAddDeadlineDialogOpen(false);
+                      toast.success("Voting deadline added successfully!", {
+                        position: "top-center",
+                        autoClose: 2000,
+                      });
                     }}
                     sx={{
                       backgroundColor: "#4CAF50",
@@ -1361,6 +1495,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   </Button>
                 </DialogActions>
               </Dialog>
+
             </div>
 
 

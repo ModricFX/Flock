@@ -1,5 +1,6 @@
 import React, { useState, useEffect, MouseEvent, useRef } from "react";
-
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
     AppBar,
@@ -154,6 +155,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
 
     return (
         <Box sx={{ display: "flex" }}>
+            <ToastContainer />
             <CssBaseline />
             {!hideHeader && (
                 <>
