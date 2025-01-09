@@ -67,6 +67,7 @@ namespace flock.Controllers
 
                 ev = await _eventRepository.GetEventById(event_id);
                 ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
                 
                 return Ok(ev);
             }
@@ -87,6 +88,7 @@ namespace flock.Controllers
             {
                 Event current_event = await _eventRepository.GetEventById(request.Id_event);
                 current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                current_event.Votes = await _eventRepository.GetVotes(current_event.Id_event);
 
                 if (current_event.Id_user != request.Id_user)
                 {
@@ -149,6 +151,7 @@ namespace flock.Controllers
                 
                 Event newev = await _eventRepository.GetEventById(current_event.Id_event); 
                 newev.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                newev.Votes = await _eventRepository.GetVotes(newev.Id_event);
                 
                 return Ok(newev);
             }
@@ -169,6 +172,7 @@ namespace flock.Controllers
             {
                 Event current_event = await _eventRepository.GetEventById(id);
                 current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
+                current_event.Votes = await _eventRepository.GetVotes(current_event.Id_event);
                 
                 return Ok(current_event);
             }
@@ -191,6 +195,7 @@ namespace flock.Controllers
                 foreach (var ev in events)
                 {
                     ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                    ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
                 }
                 return Ok(events);
             }

@@ -17,7 +17,9 @@ public class Event
     public DateTime Chosen_date_end { get; set; }
     public int SysRowState { get; set; }
     
-    public List<DateOption> Date_options { get; set; }
-    public List<Tag> Tags { get; set; }
-    public List<Invitation> Invitations { get; set; }
+    public List<DateOption>? Date_options { get; set; }
+    public List<Tag>? Tags { get; set; }
+    public List<Invitation>? Invitations { get; set; }
+    
+    public List<Chose>? Votes { get; set; }
 }

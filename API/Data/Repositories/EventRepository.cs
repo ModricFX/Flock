@@ -88,7 +88,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<List<Invitation>> GetInvitations(int event_id)
+    public async Task<List<Invitation>?> GetInvitations(int event_id)
     {
         var query = @"
         SELECT i.*, u.* 
@@ -109,6 +109,41 @@ public class EventRepository : IEventRepository
                 splitOn: "Id_user");
 
             return result.ToList();
+        }
+    }
+
+    public async Task<List<Chose>?> GetVotes(int event_id)
+    {
+        var query = @"
+        SELECT c.id_user, c.id_date_option
+        FROM chose c INNER JOIN db.date_option d on c.id_date_option = d.id_date_option INNER JOIN event e ON d.id_event = e.id_event
+        WHERE d.id_event = @Event_id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var result = await connection.QueryAsync<Chose>(query, new { Event_id = event_id });
+
+            return result.ToList();
+        }
+    }
+
+    public async void DeleteVote(Chose chose)
+    {
+        var query = "DELETE FROM chose WHERE id_user = @Id_user AND id_date_option = @Id_date_option;";
+        
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, chose);
+        }
+    }
+
+    public async void CastVote(Chose chose)
+    {
+        var query = "INSERT INTO chose (id_user, id_date_option) VALUES (@Id_user, @Id_date_option);";
+        
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, chose);
         }
     }
 

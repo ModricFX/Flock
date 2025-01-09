@@ -6,7 +6,10 @@ public interface IEventRepository
 {
     Task<Event> GetEventById(int id);
     Task<List<Event>> GetAllEvents();
-    Task<List<Invitation>> GetInvitations(int event_id);
+    Task<List<Invitation>?> GetInvitations(int event_id);
+    Task<List<Chose>?> GetVotes(int event_id);
+    void DeleteVote(Chose chose);
+    void CastVote(Chose chose);
     Task<User> GetUserById(int id);
     Task<int> CreateEvent(Event user);
     Task<int> CreateDateOption(DateOption opt);

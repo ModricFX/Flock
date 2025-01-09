@@ -132,7 +132,6 @@ export default function HomeScreen() {
             try {
                 let user = await authService.getUserData();
                 if (user.success && user.data) {
-                    console.log(user.data);
                     setCurrentUser(user.data);
                     
                     if (user.data?.id_user) {
@@ -143,7 +142,6 @@ export default function HomeScreen() {
                             let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
                             let friend = await friendService.getFriendData(id);
                             
-                            console.log(id, friend);
                             if (friend) {
                                 friends.push({
                                     id_user: friend.id_user,
@@ -343,15 +341,16 @@ export default function HomeScreen() {
                 const response = await eventService.getEvents();
                 
                 let events = transformEvents(response.data);
-                setEvents(events); // Set the fetched data to the state
+                
+                setEvents(events);
             } catch (error) {
                 console.error("Error fetching events:", error);
             } finally {
-                setLoading(false); // Stop loading once the data is fetched
+                setLoading(false);
             }
         };
 
-        fetchEvents(); // Call the function to fetch events
+        fetchEvents();
     }, []); 
 
     function startCreateEvent() {
@@ -446,7 +445,6 @@ export default function HomeScreen() {
             tag_ids: [],
             participant_ids: invitees.map(invite => invite.id),
         }
-        console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
 
@@ -802,8 +800,6 @@ export default function HomeScreen() {
             })),
             participant_ids: editInvitees.map(invite => invite.id),
         }
-
-        console.log(UpdatedEvent);
 
         let response = await eventService.updateEvent(UpdatedEvent);
         let updated = transformEvents([response.data]);
@@ -1476,7 +1472,11 @@ export default function HomeScreen() {
                                                                                             {/*    color="#4CAF50"*/}
                                                                                             {/*    style={{ marginRight: 8 }}*/}
                                                                                             {/*/>*/}
-                                                                                            <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
+                                                                                            <Image source={
+                                                                                                p.pfpUrl.startsWith('http') 
+                                                                                                    ? { uri: p.pfpUrl } 
+                                                                                                    : require('../../assets/images/default_profile.png')
+                                                                                                } style={friendStyles.friendPfp} />
                                                                                             <View style={{ flex: 1 }}>
                                                                                                 <Text style={styles.participantName}>{p.username}</Text>
                                                                                                 <Text style={styles.participantEmail}>{p.email}</Text>
@@ -1517,7 +1517,11 @@ export default function HomeScreen() {
                                                                                         {/*    color="#4CAF50"*/}
                                                                                         {/*    style={{ marginRight: 8 }}*/}
                                                                                         {/*/>*/}
-                                                                                        <Image source={{ uri: p.pfpUrl }} style={friendStyles.friendPfp} />
+                                                                                        <Image source={
+                                                                                                p.pfpUrl.startsWith('http') 
+                                                                                                    ? { uri: p.pfpUrl } 
+                                                                                                    : require('../../assets/images/default_profile.png')
+                                                                                                } style={friendStyles.friendPfp} />
                                                                                         <View style={{ flex: 1 }}>
                                                                                             <Text style={styles.participantName}>{p.username}</Text>
                                                                                             <Text style={styles.participantEmail}>{p.email}</Text>
