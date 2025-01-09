@@ -27,13 +27,11 @@ import { format } from "date-fns";
 import { authService } from "../../services/authservice";
 
 import InfoIcon from "@mui/icons-material/Info";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import TimerIcon from "@mui/icons-material/Timer";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
 import PeopleIcon from "@mui/icons-material/People";
@@ -44,10 +42,7 @@ import VotingIcon from "@mui/icons-material/PlayArrow";
 import InProgressIcon from "@mui/icons-material/Autorenew";
 import UpcomingIcon from "@mui/icons-material/AccessTime";
 
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { toast } from "react-toastify";
-
 
 interface Participant {
   username: string;
@@ -444,7 +439,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
   const [step, setStep] = useState<number>(1);
   const [editEventIndex, setEditEventIndex] = useState<number | null>(null);
 
-  const [openDialog, setOpenDialog] = useState(false);
   const [addDayDialogOpen, setAddDayDialogOpen] = useState(false);
   const [addDeadlineDialogOpen, setAddDeadlineDialogOpen] = useState(false);
 
@@ -476,7 +470,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
       homeTypo.style.opacity = "1";
     }
     const checkUserData = async () => {
-      const result = await authService.getUserData();
+      await authService.getUserData();
     };
     checkUserData();
   }, [navigate]);
@@ -484,8 +478,34 @@ const DashboardPage = forwardRef((_props, _ref) => {
   const handleOpen = (eventIndex: number | null = null): void => {
     if (eventIndex !== null) {
       setEditEventIndex(eventIndex);
-      setNewEvent(myEvents[eventIndex]);
+      const eventToEdit = myEvents[eventIndex];
+      setNewEvent({
+        title: eventToEdit.name,
+        description: eventToEdit.description,
+        location: eventToEdit.location,
+        days: eventToEdit.date_options.map((opt) => ({
+          date: opt.dateStart.toISOString().slice(0, 10),
+          startTime: getHoursFrom(opt.dateStart),
+          endTime: getHoursFrom(opt.dateEnd),
+        })),
+        deadline: [
+          {
+            date: eventToEdit.end_voting_date.toISOString().slice(0, 10),
+            DeadlineTime: getHoursFrom(eventToEdit.end_voting_date),
+          },
+        ],
+      });
+      setInvitedUsers(
+        eventToEdit.participants.map((p) => ({
+          name: p.username,
+          email: p.email,
+        }))
+      );
     } else {
+      setInvitedUsers([]);
+      setSelectedDate("");
+      setStartTime("");
+      setEndTime("");
       setNewEvent({
         title: "",
         description: "",
@@ -493,6 +513,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
         days: [],
         deadline: [],
       });
+      setEditEventIndex(null);
     }
     setStep(1);
     setOpen(true);
@@ -518,8 +539,18 @@ const DashboardPage = forwardRef((_props, _ref) => {
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
+  function parseTimeToDate(dateString: string, timeString: string): Date | null {
+    if (!dateString || !timeString) {
+      console.warn("Invalid date or time:", { dateString, timeString });
+      return null;
+    }
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const date = new Date(dateString);
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
   const handleSave = (): void => {
-    // 1. Check if Title, Description, and Location are filled
     if (!newEvent.title || !newEvent.description || !newEvent.location) {
       toast.error("Please fill out all basic info (Title, Description, Location).", {
         position: "top-center",
@@ -528,7 +559,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
       return;
     }
 
-    // 2. Check if there is at least one day
     if (!newEvent.days || newEvent.days.length === 0) {
       toast.error("Please add at least one day.", {
         position: "top-center",
@@ -537,8 +567,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
       return;
     }
 
-    // 3. Check if there is at least one deadline
-    // (Only if your logic requires the user to have a deadline)
     if (!newEvent.deadline || newEvent.deadline.length === 0) {
       toast.error("Please add the voting deadline.", {
         position: "top-center",
@@ -547,24 +575,50 @@ const DashboardPage = forwardRef((_props, _ref) => {
       return;
     }
 
-    // If all checks pass, either edit or add the event
+    const endVotingDate =
+      parseTimeToDate(newEvent.deadline[0].date, newEvent.deadline[0].DeadlineTime) || new Date();
+    const firstEventDate =
+      parseTimeToDate(newEvent.days[0].date, newEvent.days[0].startTime) || new Date();
+
+    const transformedEvent: EventData = {
+      id_event: editEventIndex !== null ? myEvents[editEventIndex].id_event : `evt-${Date.now()}`,
+      id_user: "u-001",
+      name: newEvent.title,
+      description: newEvent.description,
+      location: newEvent.location,
+      date_options: newEvent.days.map((day: typeof newEvent.days[0]) => ({
+        dateStart: parseTimeToDate(day.date, day.startTime) || new Date(),
+        dateEnd: parseTimeToDate(day.date, day.endTime) || new Date(),
+      })),
+      participants: invitedUsers.map((friend) => ({
+        username: friend.name,
+        email: friend.email,
+        status: "pending",
+        pfpUrl: "https://i.pravatar.cc/100?img=1",
+      })),
+      end_voting_date: endVotingDate,
+      eventDate: firstEventDate,
+      createdAt:
+        editEventIndex !== null ? myEvents[editEventIndex].createdAt : new Date(),
+      updatedAt: new Date(),
+    };
+
     if (editEventIndex !== null) {
       const updated = [...myEvents];
-      updated[editEventIndex] = newEvent;
+      updated[editEventIndex] = transformedEvent;
       setMyEvents(updated);
       toast.success("Event saved successfully!", {
         position: "top-center",
         autoClose: 2000,
       });
     } else {
-      setMyEvents([...myEvents, newEvent]);
+      setMyEvents([...myEvents, transformedEvent]);
       toast.success("Event created successfully!", {
         position: "top-center",
         autoClose: 2000,
       });
     }
-    
-    // Close the dialog
+
     handleClose();
   };
 
@@ -612,7 +666,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
     if (e.eventDate) {
       const eventStart = e.eventDate.getTime();
       const eventEnd = eventStart + 3 * 60 * 60 * 1000;
-
       if (now >= eventStart && now <= eventEnd) {
         return "in progress";
       }
@@ -647,7 +700,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
         </Typography>
       </Paper>
 
-      <div ref={yourEventsRef}>
+      <div ref={yourEventsRef} style={{ cursor: "pointer" }}>
         <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
             Your Events
@@ -671,6 +724,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       backgroundColor: "#f9f9f9",
                       position: "relative",
                     }}
+                    onClick={() => handleOpen(index)}
                   >
                     <Box
                       sx={{
@@ -748,7 +802,8 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong> {evt.participants ? evt.participants.length : 0}
+                              <strong>Participants:&nbsp;</strong>{" "}
+                              {evt.participants ? evt.participants.length : 0}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -891,7 +946,8 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong> {evt.participants ? evt.participants.length : 0}
+                              <strong>Participants:&nbsp;</strong>{" "}
+                              {evt.participants ? evt.participants.length : 0}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -1000,24 +1056,33 @@ const DashboardPage = forwardRef((_props, _ref) => {
               </Box>
               {newEvent.days && newEvent.days.length > 0 ? (
                 <List>
-                  {newEvent.days.map((day: any, index: number) => (
-                    <ListItem
-                      key={index}
-                      sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}
-                    >
-                      <ListItemText
-                        primary={`Date: ${day.date}`}
-                        secondary={`Start: ${day.startTime} | End: ${day.endTime}`}
-                      />
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleRemoveDay(index)}
+                  {newEvent.days.map((day: any, index: number) => {
+                    const date = new Date(day.date);
+                    const formattedDate = date.toLocaleDateString("en-GB", {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    });
+                    return (
+                      <ListItem
+                        key={index}
+                        sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}
                       >
-                        <CloseIcon style={{ color: "#ff6666" }} />
-                      </IconButton>
-                    </ListItem>
-                  ))}
+                        <ListItemText
+                          primary={`Date: ${formattedDate}`}
+                          secondary={`Start: ${day.startTime} | End: ${day.endTime}`}
+                        />
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => handleRemoveDay(index)}
+                        >
+                          <CloseIcon style={{ color: "#ff6666" }} />
+                        </IconButton>
+                      </ListItem>
+                    );
+                  })}
                 </List>
               ) : (
                 <Typography variant="body2" sx={{ color: "#9E9E9E", marginBottom: 2 }}>
@@ -1028,7 +1093,12 @@ const DashboardPage = forwardRef((_props, _ref) => {
               <Box sx={{ display: "flex", justifyContent: "center", marginTop: "16px" }}>
                 <Button
                   variant="contained"
-                  onClick={() => setAddDayDialogOpen(true)}
+                  onClick={() => {
+                    setAddDayDialogOpen(true);
+                    setSelectedDate("");
+                    setStartTime("");
+                    setEndTime("");
+                  }}
                   sx={{
                     backgroundColor: "#4CAF50",
                     color: "#fff",
@@ -1155,19 +1225,16 @@ const DashboardPage = forwardRef((_props, _ref) => {
 
                   <Button
                     onClick={() => {
-                      // 1. Check if any field is empty
                       if (!selectedDate || !startTime || !endTime) {
                         toast.error("Please fill in all fields before saving.", {
                           position: "top-center",
-                          autoClose: 2000, // in ms
+                          autoClose: 2000,
                         });
                         return;
                       }
 
-                      // 2. Make sure selectedDate is not in the past
                       const today = new Date();
                       const chosenDate = new Date(selectedDate);
-                      // Compare only dates, ignoring time
                       chosenDate.setHours(0, 0, 0, 0);
                       today.setHours(0, 0, 0, 0);
                       if (chosenDate < today) {
@@ -1178,7 +1245,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         return;
                       }
 
-                      // 3. Check that startTime < endTime
                       const [startH, startM] = startTime.split(":").map(Number);
                       const [endH, endM] = endTime.split(":").map(Number);
                       if (startH > endH || (startH === endH && startM >= endM)) {
@@ -1189,7 +1255,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         return;
                       }
 
-                      // If all checks pass, add the new day
                       const newDay = {
                         date: selectedDate,
                         startTime,
@@ -1198,8 +1263,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       const updatedDays = [...(newEvent.days || []), newDay];
                       setNewEvent({ ...newEvent, days: updatedDays });
                       setAddDayDialogOpen(false);
-
-                      // Optional success toast
                       toast.success("Day added successfully!", {
                         position: "top-center",
                         autoClose: 2000,
@@ -1220,11 +1283,9 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   >
                     Save
                   </Button>
-
                 </DialogActions>
               </Dialog>
             </Box>
-
           )}
           {step === 3 && (
             <>
@@ -1282,17 +1343,17 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   padding: 1,
                   borderRadius: 1,
                   "&::-webkit-scrollbar": {
-                    width: "8px", // Width of the scrollbar
+                    width: "8px",
                   },
                   "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: "#b0b0b0", // Color of the scrollbar thumb
-                    borderRadius: "4px", // Round edges
+                    backgroundColor: "#b0b0b0",
+                    borderRadius: "4px",
                   },
                   "&::-webkit-scrollbar-thumb:hover": {
-                    backgroundColor: "#888", // Thumb color on hover
+                    backgroundColor: "#888",
                   },
                   "&::-webkit-scrollbar-track": {
-                    backgroundColor: "#f0f0f0", // Track color
+                    backgroundColor: "#f0f0f0",
                   },
                 }}
               >
@@ -1314,7 +1375,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                 ))}
               </Box>
             </>
-
           )}
           {step === 4 && (
             <div>
@@ -1344,7 +1404,17 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       <ListItemText
                         primary={
                           <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                            Date: {dl.date} at {dl.DeadlineTime}
+                            Date:{" "}
+                            {new Date(dl.date).toLocaleDateString("en-GB", {
+                              weekday: "long",
+                            })}
+                            ,{" "}
+                            {new Date(dl.date).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}{" "}
+                            at {dl.DeadlineTime}
                           </Typography>
                         }
                       />
@@ -1383,7 +1453,11 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         backgroundColor: "#e0e0e0",
                       },
                     }}
-                    onClick={() => setAddDeadlineDialogOpen(true)}
+                    onClick={() => {
+                      setAddDeadlineDialogOpen(true);
+                      setDeadlineTime("");
+                      setSelectedDeadlineDate("");
+                    }}
                   >
                     Select voting deadline
                   </Typography>
@@ -1448,7 +1522,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   </Button>
                   <Button
                     onClick={() => {
-                      // 1) Check if date/time fields are empty
                       if (!selectedDeadline || !DeadlineTime) {
                         toast.error("Please select both a date and a time.", {
                           position: "top-center",
@@ -1457,7 +1530,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         return;
                       }
 
-                      // 2) Check if the selected date/time is in the past
                       const selectedDateTime = new Date(`${selectedDeadline}T${DeadlineTime}:00`);
                       const now = new Date();
                       if (selectedDateTime < now) {
@@ -1468,7 +1540,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         return;
                       }
 
-                      // If validations pass, save the new deadline
                       const dl = { date: selectedDeadline, DeadlineTime };
                       const updated = [...(newEvent.deadline || []), dl];
                       setNewEvent({ ...newEvent, deadline: updated });
@@ -1495,10 +1566,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                   </Button>
                 </DialogActions>
               </Dialog>
-
             </div>
-
-
           )}
         </DialogContent>
         <DialogActions>
@@ -1583,7 +1651,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
               Finish
             </Button>
           )}
-
         </DialogActions>
       </Dialog>
     </Container>
