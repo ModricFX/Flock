@@ -28,6 +28,15 @@ class ApiService {
             }
             return config;
         });
+
+        this.api.interceptors.response.use(
+            (response) => {
+                return response;
+            },
+            (error) => {
+                return error.response;
+            }
+        );
     }
 
     get(endpoint: string, config?: object) {
