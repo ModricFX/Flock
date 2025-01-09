@@ -10,8 +10,9 @@ export interface EventData {
     date_options: SingleDay[];
     participants?: Participant[];
     invitations?: any[];
-    eventDate?: Date;
-    createdAt: Date;
-    updatedAt: Date;
+    chosen_date_start?: Date;
+    chosen_date_end?: Date;
+    date_created: Date;
+    date_updated: Date;
     votes?: Record<string, any>;
 }

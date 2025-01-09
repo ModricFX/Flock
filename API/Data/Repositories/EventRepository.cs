@@ -154,7 +154,7 @@ public class EventRepository : IEventRepository
     {
         var query = @"
             INSERT INTO `date_option` (`id_event`, `date_start`, `date_end`)
-            VALUES (@Id_event, @DateStart, @DateEnd);
+            VALUES (@Id_event, @Date_start, @Date_end);
             SELECT LAST_INSERT_ID();
         ";
         
@@ -193,8 +193,8 @@ public class EventRepository : IEventRepository
         var query = @"
             UPDATE `date_option`
             SET 
-                `date_start` = @DateStart, 
-                `date_end` = @DateEnd 
+                `date_start` = @Date_start, 
+                `date_end` = @Date_end 
             WHERE `id_date_option` = @Id_date_option;
         ";
 

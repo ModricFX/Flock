@@ -9,7 +9,7 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    [Authorize]
+    
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
@@ -48,8 +48,8 @@ namespace flock.Controllers
                     DateOption opt = new DateOption
                     {
                         Id_event = event_id,
-                        DateStart = dateOption.DateStart,
-                        DateEnd = dateOption.DateEnd,
+                        Date_end = dateOption.Date_start,
+                        Date_start = dateOption.Date_end,
                     };
                     
                     _ = await _eventRepository.CreateDateOption(opt);
@@ -118,8 +118,8 @@ namespace flock.Controllers
                     {
                         Id_date_option = dateOption.Id_date_option,
                         Id_event = current_event.Id_event,
-                        DateStart = dateOption.DateStart,
-                        DateEnd = dateOption.DateEnd,
+                        Date_start = dateOption.Date_start,
+                        Date_end = dateOption.Date_end,
                     };
 
                     if (dateOption.Id_date_option == 0)

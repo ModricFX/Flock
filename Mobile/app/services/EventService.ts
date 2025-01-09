@@ -31,4 +31,9 @@ export class EventService {
         const response = await this.api.post('/event', event);
         return response;
     }
+
+    async updateEvent(event: any): Promise<{ data: EventData }> {
+        const response = await this.api.put('/event', event);
+        return response;
+    }
 }

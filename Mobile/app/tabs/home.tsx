@@ -75,8 +75,8 @@ const initialEvents: EventData[] = [
         location: 'My House',
         date_options: [
             {
-                dateStart: new Date(2024, 0, 15, 8, 0),
-                dateEnd: new Date(2024, 0, 15, 11, 0),
+                date_start: new Date(2024, 0, 15, 8, 0),
+                date_end: new Date(2024, 0, 15, 11, 0),
             },
         ],
         participants: [
@@ -96,8 +96,8 @@ const initialEvents: EventData[] = [
         location: 'Health & Wellness Center',
         date_options: [
             {
-                dateStart: new Date(2024, 1, 5, 9, 0),
-                dateEnd: new Date(2024, 1, 5, 12, 0),
+                date_start: new Date(2024, 1, 5, 9, 0),
+                date_end: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
@@ -117,12 +117,12 @@ const initialEvents: EventData[] = [
         location: 'Home alone',
         date_options: [
             {
-                dateStart: new Date(2024, 1, 5, 9, 0),
-                dateEnd: new Date(2024, 1, 5, 13, 0),
+                date_start: new Date(2024, 1, 5, 9, 0),
+                date_end: new Date(2024, 1, 5, 13, 0),
             },
             {
-                dateStart: new Date(2024, 1, 6, 15, 0),
-                dateEnd: new Date(2024, 1, 6, 20, 0),
+                date_start: new Date(2024, 1, 6, 15, 0),
+                date_end: new Date(2024, 1, 6, 20, 0),
             }
         ],
         participants: [
@@ -152,8 +152,8 @@ const initialEvents: EventData[] = [
         location: 'Sunny Beach',
         date_options: [
             {
-                dateStart: new Date(2024, 1, 5, 9, 0),
-                dateEnd: new Date(2024, 1, 5, 12, 0),
+                date_start: new Date(2024, 1, 5, 9, 0),
+                date_end: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
@@ -173,8 +173,8 @@ const initialEvents: EventData[] = [
         location: 'House apartment',
         date_options: [
             {
-                dateStart: new Date(2024, 1, 5, 9, 0),
-                dateEnd: new Date(2024, 1, 5, 12, 0),
+                date_start: new Date(2024, 1, 5, 9, 0),
+                date_end: new Date(2024, 1, 5, 12, 0),
             },
         ],
         participants: [
@@ -199,8 +199,8 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
         return 'voting';
     }
 
-    if (e.eventDate) {
-        const eventStart = e.eventDate.getTime();
+    if (e.chosen_date_start) {
+        const eventStart = e.chosen_date_start.getTime();
         const eventEnd = eventStart + 3 * 60 * 60 * 1000; // TODO: get eventEnd from winning day!
 
         if (now >= eventStart && now <= eventEnd) {
@@ -240,8 +240,8 @@ function formatDay(date: Date) {
     return `${dayName}, ${dd}.${mm}.${yyyy}`;
 }
 
-function getDateFrom(dateStart: Date) {
-    return new Date(dateStart.getFullYear(), dateStart.getMonth(), dateStart.getDate());
+function getDateFrom(date_start: Date) {
+    return new Date(date_start.getFullYear(), date_start.getMonth(), date_start.getDate());
 }
 
 function getHoursFrom(dateTime: Date) {
@@ -260,7 +260,6 @@ export default function HomeScreen() {
     // iOS keyboard offset
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
 
-    // Simulate fetch user
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -293,7 +292,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const date = getDateFrom(date_option.dateStart);
+                const date = getDateFrom(date_option.date_start);
                 const dayKey = date.toISOString();
 
                 // If we already have availability for dayKey, preserve it
@@ -303,10 +302,10 @@ export default function HomeScreen() {
                     };
                 } else {
                     // Otherwise, initialize
-                    const startTime = new Date(date_option.dateStart);
+                    const startTime = new Date(date_option.date_start);
                     startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
 
-                    const endTime = new Date(date_option.dateEnd);
+                    const endTime = new Date(date_option.date_end);
                     endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
                     mergedAvailability[dayKey] = {
@@ -368,6 +367,7 @@ export default function HomeScreen() {
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [editStep, setEditStep] = useState(1);
 
+    const [editEventId, setEditEventId] = useState('');
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [editLoc, setEditLoc] = useState('');
@@ -375,6 +375,9 @@ export default function HomeScreen() {
     const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
     const [editTypedInvite, setEditTypedInvite] = useState('');
     const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
+    const [editChosenDateStart, setEditChosenDateStart] = useState<Date>();
+    const [editChosenDateEnd, setEditChosenDateEnd] = useState<Date>();
+
     const [editEvent, setEditEvent] = useState<EventData | null>(null);
 
     const [addDayModalVisibleEdit, setAddDayModalVisibleEdit] = useState(false);
@@ -401,6 +404,25 @@ export default function HomeScreen() {
     ------------------------------------------*/
     function transformEvents(events: EventData[]){
         events.forEach(ev => {
+            ev.date_created = new Date(ev.date_created);
+            ev.date_updated = new Date(ev.date_updated);
+            ev.end_voting_date = new Date(ev.end_voting_date);
+
+            if(ev.chosen_date_end){
+                ev.chosen_date_end = new Date(ev.chosen_date_end);
+
+                if(ev.chosen_date_end.getUTCFullYear() < 2000)
+                    ev.chosen_date_end = undefined;
+            }
+                
+
+            if(ev.chosen_date_start){
+                ev.chosen_date_start = new Date(ev.chosen_date_start);
+
+                if(ev.chosen_date_start.getUTCFullYear() < 2000)
+                    ev.chosen_date_start = undefined;
+            }
+
             if(ev.invitations){
                 ev.participants = ev.invitations.map(inv => {
                     return {
@@ -412,6 +434,15 @@ export default function HomeScreen() {
                     };
                 })
             }
+
+            ev.date_options = ev.date_options.map(dateOption => {
+                return {
+                    id_date_option: dateOption.id_date_option? dateOption.id_date_option : 0,
+                    id_event: dateOption.id_event? dateOption.id_event : 0,
+                    date_start: new Date(dateOption.date_start),
+                    date_end: new Date(dateOption.date_end)
+                }
+            });
         });
 
         return events;
@@ -421,7 +452,7 @@ export default function HomeScreen() {
         const fetchEvents = async () => {
             try {
                 const response = await eventService.getEvents();
-
+                
                 let events = transformEvents(response.data);
                 setEvents(events); // Set the fetched data to the state
             } catch (error) {
@@ -515,16 +546,20 @@ export default function HomeScreen() {
             name: createTitle,
             description: createDesc,
             location: createLoc,
-            end_voting_date: endVotingDate,
+            end_voting_date: endVotingDate.toISOString(),
             id_user: currentUser?.id_user || 'unknown',
-            date_options: createDays,
+            date_options: createDays.map(day => {
+                return {
+                    date_start: day.date_start.toISOString(),
+                    date_end: day.date_end.toISOString()
+                }   
+            }),
             tag_ids: [],
             participant_ids: invitees.map(invite => invite.id),
         }
         console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
-        console.log(response.data);
 
         let events = transformEvents([response.data]);
         setEvents(prev => [...prev, events[0]]);
@@ -537,9 +572,9 @@ export default function HomeScreen() {
             // Editing an existing day
             const existing = createDays[index];
             setTempDayIndex(index);
-            setTempDate(getDateFrom(existing.dateStart));
-            setTempStart(getHoursFrom(existing.dateStart));
-            setTempEnd(getHoursFrom(existing.dateEnd));
+            setTempDate(getDateFrom(existing.date_start));
+            setTempStart(getHoursFrom(existing.date_start));
+            setTempEnd(getHoursFrom(existing.date_end));
         } else {
             // Adding a new day
             setTempDayIndex(null);
@@ -646,8 +681,8 @@ export default function HomeScreen() {
             // edit
             const copy = [...createDays];
             copy[tempDayIndex] = {
-                dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
-                dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+                date_start: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                date_end: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
             };
 
             setCreateDays(copy);
@@ -656,8 +691,8 @@ export default function HomeScreen() {
             setCreateDays(prev => [
                 ...prev,
                 {
-                    dateStart: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
-                    dateEnd: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
+                    date_start: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
+                    date_end: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
                 }
             ]);
 
@@ -820,6 +855,9 @@ export default function HomeScreen() {
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
         setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
+        setEditChosenDateStart(e.chosen_date_start);
+        setEditChosenDateEnd(e.chosen_date_end);
+        setEditEventId(e.id_event);
     }
 
     function closeEditEvent() {
@@ -841,7 +879,7 @@ export default function HomeScreen() {
             setEditStep(prev => prev - 1);
         }
     }
-    function finalizeEditEvent() {
+    async function finalizeEditEvent() {
         if (!editEvent) return;
         if (!editTitle.trim()) {
             Alert.alert('Missing Title', 'Provide a title.');
@@ -857,17 +895,31 @@ export default function HomeScreen() {
             return;
         }
 
-        const updated: EventData = {
-            ...editEvent,
+        const UpdatedEvent = {
+            id_event: editEventId,
+            id_user: currentUser?.id_user || 'unknown',
             name: editTitle,
             description: editDesc,
             location: editLoc,
-            date_options: editDays,
-            participants: editInvitees,
-            end_voting_date: editEndVoting,
-            updatedAt: new Date(),
-        };
-        setEvents(prev => prev.map(evt => evt.id_event === updated.id_event ? updated : evt));
+            end_voting_date: editEndVoting.toISOString(),
+            chosen_date_start: editChosenDateStart? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
+            chosen_date_end: editChosenDateEnd? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
+            sysrowstate: 1,
+            date_options: editDays.map(day => ({
+                date_start: day.date_start.toISOString(),
+                date_end: day.date_end.toISOString(),
+                id_date_option: day.id_date_option,
+                id_event: day.id_event
+            })),
+            participant_ids: editInvitees.map(invite => invite.id),
+        }
+
+        console.log(UpdatedEvent);
+
+        let response = await eventService.updateEvent(UpdatedEvent);
+        let updated = transformEvents([response.data]);
+
+        setEvents(prev => prev.map(evt => evt.id_event === updated[0].id_event ? updated[0] : evt));
         closeEditEvent();
     }
 
@@ -877,9 +929,9 @@ export default function HomeScreen() {
             // Editing an existing day
             setTempDayIndexEdit(index);
             const existing = editDays[index];
-            setTempDateEdit(existing.dateStart ? getDateFrom(existing.dateStart) : new Date());
-            setTempStartEdit(existing.dateStart ? getHoursFrom(existing.dateStart) : '08:00');
-            setTempEndEdit(existing.dateEnd ? getHoursFrom(existing.dateEnd) : '10:00');
+            setTempDateEdit(existing.date_start ? getDateFrom(existing.date_start) : new Date());
+            setTempStartEdit(existing.date_start ? getHoursFrom(existing.date_start) : '08:00');
+            setTempEndEdit(existing.date_end ? getHoursFrom(existing.date_end) : '10:00');
         } else {
             // Adding a new day
             setTempDayIndexEdit(null);
@@ -914,16 +966,16 @@ export default function HomeScreen() {
         if (tempDayIndexEdit !== null) {
             const copy = [...editDays];
             copy[tempDayIndexEdit] = {
-                dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
-                dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
+                date_start: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                date_end: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
             };
             setEditDays(copy);
         } else {
             setEditDays((prev) => [
                 ...prev,
                 {
-                    dateStart: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
-                    dateEnd: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
+                    date_start: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
+                    date_end: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
                 },
             ]);
         }
@@ -1092,11 +1144,11 @@ export default function HomeScreen() {
                                                     Voting Ends: {formatDate(evt.end_voting_date)}
                                                 </Text>
                                             </View>
-                                            {evt.eventDate && (
+                                            {evt.chosen_date_start && (
                                                 <View style={styles.dateRow}>
                                                     <MaterialIcons name="event" size={20} color="#4CAF50" />
                                                     <Text style={styles.dateText}>
-                                                        Event Date: {formatDate(evt.eventDate)}
+                                                        Event Date: {formatDate(evt.chosen_date_start)}
                                                     </Text>
                                                 </View>
                                             )}
@@ -1178,11 +1230,11 @@ export default function HomeScreen() {
                                                         </Text>
                                                     </View>
                                                 )}
-                                                {eventStatus === 'in progress' && evt.eventDate && (
+                                                {eventStatus === 'in progress' && evt.chosen_date_start && (
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="event" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
-                                                            Event Date: {formatDate(evt.eventDate)}
+                                                            Event Date: {formatDate(evt.chosen_date_start)}
                                                         </Text>
                                                     </View>
                                                 )}
@@ -1271,7 +1323,7 @@ export default function HomeScreen() {
                                                                     <View style={styles.detailRow}>
                                                                         <Text style={styles.detailLabel}>Event Date:</Text>
                                                                         <Text style={styles.detailValue}>
-                                                                            {selectedEvent.eventDate ? formatDate(selectedEvent.eventDate) : 'Not set'}
+                                                                            {selectedEvent.chosen_date_start ? formatDate(selectedEvent.chosen_date_start) : 'Not set'}
                                                                         </Text>
                                                                     </View>
                                                                 )}
@@ -1671,20 +1723,20 @@ export default function HomeScreen() {
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
-                                                const dayKey = getDateFrom(dayTime.dateStart).toISOString();
+                                                const dayKey = getDateFrom(dayTime.date_start).toISOString();
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 return (
                                                     <View key={index} style={styles.dayContainer}>
                                                         <View style={styles.dayHeader}>
                                                             <Text style={styles.dayTitle}>
-                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString('en-US', { weekday: 'long' })},{' '}
-                                                                {getDateFrom(dayTime.dateStart).toLocaleDateString()}
+                                                                {getDateFrom(dayTime.date_start).toLocaleDateString('en-US', { weekday: 'long' })},{' '}
+                                                                {getDateFrom(dayTime.date_start).toLocaleDateString()}
                                                             </Text>
                                                             <View style={styles.availableContainer}>
                                                                 <MaterialIcons name="schedule" size={20} color="#4CAF50" />
                                                                 <Text style={styles.availableText}>
-                                                                    {getHoursFrom(dayTime.dateStart)} - {getHoursFrom(dayTime.dateEnd)}
+                                                                    {getHoursFrom(dayTime.date_start)} - {getHoursFrom(dayTime.date_end)}
                                                                 </Text>
                                                             </View>
                                                         </View>
@@ -1842,7 +1894,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalCreate(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
+                                                                {formatDay(getDateFrom(d.date_start))} | {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
@@ -2323,7 +2375,7 @@ export default function HomeScreen() {
                                                             onPress={() => openAddDayModalEdit(i)}
                                                         >
                                                             <Text style={styles.dayText}>
-                                                                {formatDay(getDateFrom(d.dateStart))} | {getHoursFrom(d.dateStart)} - {getHoursFrom(d.dateEnd)}
+                                                                {formatDay(getDateFrom(d.date_start))} | {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)}
                                                             </Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity
