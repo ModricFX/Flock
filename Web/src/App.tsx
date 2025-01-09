@@ -35,10 +35,13 @@ import DashboardPage from "./pages/home/DashboardPage.tsx";
 import { authService } from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 import AboutPage from "./pages/home/AboutPage.tsx";
+import logo from '/flock-logo-bel.svg';
 
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import FriendsPage from "./pages/home/FriendsPage.tsx";
 
 const drawerWidth = 240;
 
@@ -153,6 +156,11 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/dashboard", { state: { scrollTo: "otherEvents" } });
     };
 
+    const handleFriendsPage = () => {
+        // Similarly for "friends"
+        navigate("/friends");
+    }
+
     return (
         <Box sx={{ display: "flex" }}>
             <ToastContainer />
@@ -180,7 +188,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                     color: "inherit",
                                 }}
                             >
-                                {location.pathname === "/homepage" ? "" : "FLOCK"}
+                                {location.pathname === "/homepage" ? "" : <img src={logo} alt="Flock Logo" style={{ width: '150px', height: 'auto', marginTop: '10px' }} />}
                             </Typography>
                             {userData ? (
                                 <>
@@ -265,6 +273,15 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                     <ListItemText primary="Other Events" />
                                 </ListItemButton>
                             </ListItem>
+                            <Divider sx={{ backgroundColor: darkMode ? "white" : "black", marginTop: "10px", marginBottom: "10px" }} />
+                            <ListItem disablePadding>
+                                <ListItemButton onClick={handleFriendsPage}>
+                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
+                                        <PeopleAltIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Friends" />
+                                </ListItemButton>
+                            </ListItem>                       
                         </List>
                     </Box>
                 </Drawer>
@@ -280,6 +297,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Route path="/auth/login" element={<Login darkMode={darkMode} />} />
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
                     <Route path="/about" element={<AboutPage />} />
+                    <Route path="/friends" element={<FriendsPage />} />
 
                     <Route path="/dashboard" element={<DashboardPage />}>
                         <Route
