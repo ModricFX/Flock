@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, {useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
-import { settingsService } from '../services/settingsservice';
 import { authService } from '../services/authservice';
 
 
@@ -28,6 +27,21 @@ export default function Profile() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = await authService.getUserData();
+        setUsername(userData.data.username);
+        setEmail(userData.data.email);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        Alert.alert('Error', 'Failed to fetch user data. Please try again.');
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   // Dropdown states for Language
   const [openLang, setOpenLang] = useState(false);
