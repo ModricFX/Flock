@@ -39,6 +39,8 @@ public class AuthTokenController : ControllerBase
             return Unauthorized("No user with this email or username");
 
         var isValid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
+        if (user.SysRowState != 1)
+            return Unauthorized("User is not active.");
         if (!isValid)
             return Unauthorized("Invalid credentials.");
 
@@ -107,6 +109,30 @@ public class AuthTokenController : ControllerBase
         // If unchanged, generate a new token
         var newToken = GenerateJwtToken(user);
         return Ok(new { Token = newToken });
+    }
+    
+    [SwaggerOperation(
+        Summary = "Logout user",
+        Description = "Logs out the user by updating the Date_updated field, invalidating any existing tokens."
+    )]
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var userId = User.FindFirst("ID_user")?.Value;
+        if (userId == null)
+            return Unauthorized("Invalid token.");
+
+        var userEmail = User.Identity.Name;
+        var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+        if (user == null)
+            return Unauthorized("User not found.");
+
+        // Update the Date_updated field to the current time
+        user.Date_updated = DateTime.UtcNow;
+        await _userRepository.UpdateUserAsync(user);
+
+        return Ok("User logged out successfully.");
     }
 
 }

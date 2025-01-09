@@ -168,5 +168,138 @@ namespace flock.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        
+        /// <summary>
+        /// Posodobi geslo trenutno prijavljenega uporabnika,
+        /// če se ujema staro geslo.
+        /// </summary>
+        [SwaggerOperation(
+            Summary = "Update user's password",
+            Description = "Updates the current user's password if the old password is correct."
+        )]
+        [HttpPut("password")]
+        [Authorize]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordDto request)
+        {
+            try
+            {
+                // 1. Preverimo, ali je uporabnik avtenticiran
+                if (!User.Identity.IsAuthenticated)
+                    return Unauthorized("User is not authenticated.");
+
+                // 2. Dobimo email iz tokena (Name = email iz claims)
+                var userEmail = User.Identity.Name;
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized("Invalid token.");
+
+                // 3. Dobimo user objekt iz baze
+                var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                // 4. Preverimo, ali se staro geslo ujema z BCrypt hashom v bazi
+                bool isValidOldPassword = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.Password);
+                if (!isValidOldPassword)
+                {
+                    return BadRequest("Old password is incorrect.");
+                }
+
+                // 5. Hashiramo novo geslo in ga shranimo
+                user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                user.Date_updated = DateTime.UtcNow; // posodobi "zadnjič posodobljeno"
+
+                // 6. Shranimo spremembe v bazo
+                await _userRepository.UpdateUserAsync(user);
+
+                return Ok("Password updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Posodobi profilne podatke (username, email) trenutno prijavljenega uporabnika.
+        /// </summary>
+        [SwaggerOperation(
+            Summary = "Update user's profile",
+            Description = "Updates the current user's profile data (username, email)."
+        )]
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request)
+        {
+            try
+            {
+                // 1. Preverimo avtentikacijo
+                if (!User.Identity.IsAuthenticated)
+                    return Unauthorized("User is not authenticated.");
+
+                var userEmail = User.Identity.Name;
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized("Invalid token.");
+
+                // 2. Dobimo user iz baze
+                var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                // 3. Posodobimo podatke (če so v requestu izpolnjeni)
+                if (!string.IsNullOrEmpty(request.Username))
+                    user.Username = request.Username;
+
+                if (!string.IsNullOrEmpty(request.Email))
+                    user.Email = request.Email;
+
+                user.Date_updated = DateTime.UtcNow;
+
+                // 4. Shranimo spremembe
+                await _userRepository.UpdateUserAsync(user);
+
+                return Ok("Profile updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Izbriše račun trenutno prijavljenega uporabnika (hard-delete ali soft-delete).
+        /// </summary>
+        [SwaggerOperation(
+            Summary = "Delete the current user's account",
+            Description = "Deletes the current user's account from the system."
+        )]
+        [HttpDelete("me")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            try
+            {
+                // 1. Preverimo avtentikacijo
+                if (!User.Identity.IsAuthenticated)
+                    return Unauthorized("User is not authenticated.");
+
+                var userEmail = User.Identity.Name;
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized("Invalid token.");
+
+                // 2. Dobimo user iz baze
+                var user = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                // 3. Dejanska brisanje (ali "soft delete", če to zahtevaš)
+                await _userRepository.DeleteUserAsync(user.Id_user);
+
+                return Ok("Account deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

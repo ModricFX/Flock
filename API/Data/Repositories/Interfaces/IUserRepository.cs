@@ -11,7 +11,6 @@ public interface IUserRepository
     void UpdateUserRelationship(Friendship friendship);
     
     Task<List<Friendship>> GetAllRelationshipsWithStatus(int user_id, string status);
-    
-    
-    // Include other methods related to User if needed
+    Task UpdateUserAsync(User user);
+    Task DeleteUserAsync(int userIdUser);
 }
