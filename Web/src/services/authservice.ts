@@ -92,7 +92,7 @@ class AuthService {
                     Authorization: token
                 },
             });
-        } catch (error: any) {
+        } catch (error: any) { //  pointless comment
             throw new Error(error.message || 'Failed to update password.');
         }
     }
