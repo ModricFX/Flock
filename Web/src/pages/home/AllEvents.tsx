@@ -24,7 +24,7 @@ const AllEvents: React.FC<AllEventsProps> = ({ userEvents, otherEvents, setNotif
   const handleNewMessage = (): void => {
     setNotifications((prevNotifications) => [
       ...prevNotifications,
-      { sender: "System", message: "You have a new message!", time: "Just now" },
+      { id: prevNotifications.length + 1, sender: "System", message: "You have a new message!", time: "Just now", unread: true,},
     ]);
 
     toast.info("You have a new message!", {

@@ -12,7 +12,9 @@ export interface Event {
   
 
 export interface AppNotification {
+    id: number;
     sender: string;
     message: string;
     time: string;
+    unread: boolean;
 }
