@@ -60,7 +60,7 @@ export default function Friends() {
                                             id: friend.id_user,
                                             username: friend.username,
                                             email: friend.email,
-                                            pfp: '../assets/images/default_profile.png',
+                                            pfp: '',
                                             status: rel.status
                                         });
                                     }
@@ -74,7 +74,7 @@ export default function Friends() {
                                                 id: friend.id_user,
                                                 username: friend.username,
                                                 email: friend.email,
-                                                pfp: '../assets/images/default_profile.png',
+                                                pfp: '',
                                                 status: rel.status
                                             });
                                         }
@@ -189,7 +189,11 @@ export default function Friends() {
                             style={styles.friendCard}
                             onPress={() => handleOpenFriendDetails(friend)}
                         >
-                            <Image source={{ uri: friend.pfp }} style={styles.friendPfp} />
+                            <Image source={
+                                            friend.pfp.startsWith('http') 
+                                                ? { uri: friend.pfp } 
+                                                : require('../../assets/images/default_profile.png')
+                                            } style={styles.friendPfp} />
                             <View style={styles.friendInfo}>
                                 <Text style={styles.friendUsername}>{friend.username}</Text>
                                 {/* If status is pending, show "Pending", else show the email */}
@@ -230,7 +234,11 @@ export default function Friends() {
                                 {selectedFriend && (
                                     <>
                                         <Image
-                                            source={{ uri: selectedFriend.pfp }}
+                                            source={
+                                                selectedFriend.pfp.startsWith('http') 
+                                                    ? { uri: selectedFriend.pfp } 
+                                                    : require('../../assets/images/default_profile.png')
+                                            }
                                             style={styles.modalPfp}
                                         />
                                         <Text style={styles.modalUsername}>
