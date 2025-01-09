@@ -31,7 +31,7 @@ import Notifications from "./pages/home/Notifications";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import DashboardPage from "./pages/home/DashboardPage.tsx";
-import {authService} from "./services/authservice.ts";
+import { authService } from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 import AboutPage from "./pages/home/AboutPage.tsx";
 
@@ -122,7 +122,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
-    const routesWithoutSidebar = ["/auth/login", "/auth/register","/homepage", "/about"];
+    const routesWithoutSidebar = ["/auth/login", "/auth/register", "/homepage", "/about"];
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
@@ -130,16 +130,27 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const scrollToOtherEvents = () => {
         console.log("Scrolling to Other Events");
         if (dashboardRef.current) {
-          dashboardRef.current.scrollToOtherEvents(); // Call scroll function from DashboardPage
+            dashboardRef.current.scrollToOtherEvents(); // Call scroll function from DashboardPage
         }
-      };
-    
-      const scrollToYourEvents = () => {
+    };
+
+    const scrollToYourEvents = () => {
         console.log("Scrolling to Your Events");
         if (dashboardRef.current) {
-          dashboardRef.current.scrollToYourEvents(); // Call scroll function from DashboardPage
+            dashboardRef.current.scrollToYourEvents(); // Call scroll function from DashboardPage
         }
-      };
+    };
+
+    const handleScrollToYourEvents = () => {
+        // Programmatically navigate to /dashboard
+        // with a piece of state: { scrollTo: "yourEvents" }
+        navigate("/dashboard", { state: { scrollTo: "yourEvents" } });
+    };
+
+    const handleScrollToOtherEvents = () => {
+        // Similarly for "otherEvents"
+        navigate("/dashboard", { state: { scrollTo: "otherEvents" } });
+    };
 
     return (
         <Box sx={{ display: "flex" }}>
@@ -148,43 +159,43 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 <>
                     <AppBar
                         position="fixed"
-                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)", backgroundImage:"none" }}
+                        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "#4CAF50", boxShadow: location.pathname === "/homepage" ? "none" : "var(--Paper-shadow)", backgroundImage: "none" }}
                     >
                         <Toolbar>
-                        <Typography
-                            id={ "home-typo" }
-                            variant="h4"
-                            noWrap
-                            sx={{
-                                flexGrow: 1,
-                                cursor: "pointer",
-                                opacity: location.pathname === "/homepage" ? "0" : "1",
-                            }}
-                            component={Link}
-                            to="/homepage"
-                            style={{
-                                textDecoration: "none",
-                                color: "inherit",
-                            }}
-                        >
-                            {location.pathname === "/homepage" ? "" : "FLOCK"}
-                        </Typography>
+                            <Typography
+                                id={"home-typo"}
+                                variant="h4"
+                                noWrap
+                                sx={{
+                                    flexGrow: 1,
+                                    cursor: "pointer",
+                                    opacity: location.pathname === "/homepage" ? "0" : "1",
+                                }}
+                                component={Link}
+                                to="/homepage"
+                                style={{
+                                    textDecoration: "none",
+                                    color: "inherit",
+                                }}
+                            >
+                                {location.pathname === "/homepage" ? "" : "FLOCK"}
+                            </Typography>
                             {userData ? (
                                 <>
                                     <Box sx={{ mr: 2 }}>
-                                    <Link
-                                        to="/dashboard"
-                                        style={{
-                                            textDecoration: "none",
-                                            color: "inherit",
-                                            fontSize: "16px",
-                                            fontWeight: "bold",
-                                        }}
-                                    >
-                                        Dashboard
-                                    </Link>
+                                        <Link
+                                            to="/dashboard"
+                                            style={{
+                                                textDecoration: "none",
+                                                color: "inherit",
+                                                fontSize: "16px",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            Dashboard
+                                        </Link>
                                     </Box>
-                                    
+
                                     <IconButton
                                         color="inherit"
                                         sx={{ marginRight: 2 }}
@@ -220,7 +231,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 </>
             )}
             {!hideSidebar && (
-            <Drawer
+                <Drawer
                     variant="permanent"
                     sx={{
                         width: drawerWidth,
@@ -228,8 +239,8 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                         [`& .MuiDrawer-paper`]: {
                             width: drawerWidth,
                             boxSizing: "border-box",
-                            bgcolor: darkMode? "#" : "f9f9f9",
-                            color: darkMode? "white" : "black",
+                            bgcolor: darkMode ? "#" : "f9f9f9",
+                            color: darkMode ? "white" : "black",
                             mt: "60px",
                         },
                     }}
@@ -237,53 +248,59 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Box sx={{ overflow: "auto" }}>
                         <List>
                             <ListItem disablePadding>
-                                <ListItemButton onClick={scrollToOtherEvents}>
-                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
-                                        <InboxIcon />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Other Events" />
-                                </ListItemButton>
-                            </ListItem>
-                            <ListItem disablePadding>
-                                <ListItemButton onClick={scrollToYourEvents}>
+                                <ListItemButton onClick={handleScrollToYourEvents}>
                                     <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
                                         <EventIcon />
                                     </ListItemIcon>
                                     <ListItemText primary="Your Events" />
                                 </ListItemButton>
                             </ListItem>
-                            </List>
+                            <ListItem disablePadding>
+                                <ListItemButton onClick={handleScrollToOtherEvents}>
+                                    <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
+                                        <InboxIcon />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Other Events" />
+                                </ListItemButton>
+                            </ListItem>
+                        </List>
                     </Box>
                 </Drawer>
             )}
 
             <Box component="main" sx={{ flexGrow: 1, pt: 3, mt: 4 }}>
                 <Routes>
+                    {/* Redirect root to homepage */}
                     <Route path="/" element={<Navigate to="/homepage" />} />
-                    
+
+                    {/* Public Pages */}
                     <Route path="/homepage" element={<HomePage />} />
                     <Route path="/auth/login" element={<Login darkMode={darkMode} />} />
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
                     <Route path="/about" element={<AboutPage />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route
-                        path="/home/allevents"
-                        element={
-                            <AllEvents
-                                userEvents={userEvents}
-                                otherEvents={otherEvents}
-                                setNotifications={setNotifications}
-                            />
-                        }
-                    />
-                    <Route
-                        path="/home/yourevents"
-                        element={<YourEvents events={userEvents} setEvents={setUserEvents} />}
-                    />
-                    <Route
-                        path="/home/notifications"
-                        element={<Notifications notifications={notifications} />}
-                    />
+
+                    <Route path="/dashboard" element={<DashboardPage />}>
+                        <Route
+                            path="allevents"
+                            element={
+                                <AllEvents
+                                    userEvents={userEvents}
+                                    otherEvents={otherEvents}
+                                    setNotifications={setNotifications}
+                                />
+                            }
+                        />
+                        <Route
+                            path="yourevents"
+                            element={<YourEvents events={userEvents} setEvents={setUserEvents} />}
+                        />
+                        <Route
+                            path="notifications"
+                            element={<Notifications notifications={notifications} />}
+                        />
+                    </Route>
+
+                    {/* Fallback for any unknown route */}
                     <Route path="*" element={<Navigate to="/auth/login" />} />
                 </Routes>
             </Box>
