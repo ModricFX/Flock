@@ -16,87 +16,106 @@ public class EventRepository : IEventRepository
     public async Task<Event> GetEventById(int id)
     {
         var query = @"
-        SELECT e.*, d.*
-        FROM `event` e
-        LEFT JOIN `date_option` d ON e.id_event = d.id_event
-        WHERE e.`id_event` = @Id";
+        SELECT *
+        FROM `event`
+        WHERE `id_event` = @Id";
 
         using (var connection = _context.CreateConnection())
         {
-            var eventDictionary = new Dictionary<int, Event>();
-
-            var eventWithDateOptions = await connection.QueryAsync<Event, DateOption, Event>(
-                query,
-                (eventObj, dateOption) =>
-                {
-                    if (!eventDictionary.TryGetValue(eventObj.Id_event, out var eventEntry))
-                    {
-                        eventEntry = eventObj;
-                        eventEntry.Date_options = new List<DateOption>();
-                        eventDictionary.Add(eventEntry.Id_event, eventEntry);
-                    }
-
-                    if (dateOption != null)
-                    {
-                        eventEntry.Date_options.Add(dateOption);
-                    }
-
-                    return eventEntry;
-                },
-                new { Id = id },
-                splitOn: "Id_date_option"
-            );
-
-            return eventWithDateOptions.FirstOrDefault();
+            return await connection.QueryFirstOrDefaultAsync<Event>(query, new { Id = id });
         }
     }
 
     public async Task<List<Event>> GetAllEvents()
     {
         var query = @"
-        SELECT e.*, d.*
-        FROM `event` e
-        LEFT JOIN `date_option` d ON e.id_event = d.id_event
-        WHERE e.`sysrowstate` = 1";
+        SELECT *
+        FROM `event`
+        WHERE `sysrowstate` = 1";
 
         using (var connection = _context.CreateConnection())
         {
-            var eventDictionary = new Dictionary<int, Event>();
-
-            var events = await connection.QueryAsync<Event, DateOption, Event>(
-                query,
-                (eventObj, dateOption) =>
-                {
-                    if (!eventDictionary.TryGetValue(eventObj.Id_event, out var eventEntry))
-                    {
-                        eventEntry = eventObj;
-                        eventEntry.Date_options = new List<DateOption>();
-                        eventDictionary.Add(eventEntry.Id_event, eventEntry);
-                    }
-
-                    if (dateOption != null)
-                    {
-                        eventEntry.Date_options.Add(dateOption);
-                    }
-
-                    return eventEntry;
-                },
-                splitOn: "Id_date_option"
-            );
-
-            return events.Distinct().ToList();
+            var events = await connection.QueryAsync<Event>(query);
+            return events.ToList();
         }
     }
 
-    public async Task<List<Invitation>> GetInvitations(int event_id)
+    public async Task<List<Invitation>?> GetInvitations(int event_id)
     {
-        var query = "SELECT * FROM `invitation` WHERE `id_event` = @Id";
+        var query = @"
+        SELECT i.*, u.* 
+        FROM `invitation` i
+        JOIN `user` u ON i.`Id_user` = u.`Id_user`
+        WHERE `Id_event` = @Id";
 
         using (var connection = _context.CreateConnection())
         {
-            var result = await connection.QueryAsync<Invitation>(query, new { Id = event_id });
-            return result.ToList(); 
+            var result = await connection.QueryAsync<Invitation, User, Invitation>(
+                query,
+                (invitation, user) => 
+                {
+                    invitation.User = user;
+                    return invitation;
+                },
+                new { Id = event_id },
+                splitOn: "Id_user");
+
+            return result.ToList();
         }
+    }
+
+    public async Task<List<Chose>?> GetVotes(int event_id)
+    {
+        var query = @"
+        SELECT c.id_user, c.id_date_option
+        FROM chose c INNER JOIN db.date_option d on c.id_date_option = d.id_date_option INNER JOIN event e ON d.id_event = e.id_event
+        WHERE d.id_event = @Event_id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var result = await connection.QueryAsync<Chose>(query, new { Event_id = event_id });
+
+            return result.ToList();
+        }
+    }
+
+    public async Task<List<DateOption>?> GetDateOptions(int event_id)
+    {
+        var query = @"
+        SELECT *
+        FROM date_option
+        WHERE id_event = @Event_id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var result = await connection.QueryAsync<DateOption>(query, new { Event_id = event_id });
+
+            return result.ToList();
+        }
+    }
+
+    public async Task<bool> DeleteVote(Chose chose)
+    {
+        var query = "DELETE FROM chose WHERE id_user = @Id_user AND id_date_option = @Id_date_option;";
+        
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, chose);
+        }
+        
+        return true;
+    }
+
+    public async Task<Chose> CastVote(Chose chose)
+    {
+        var query = "INSERT INTO chose (id_user, id_date_option) VALUES (@Id_user, @Id_date_option);";
+        
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, chose);
+        }
+
+        return chose;
     }
 
     public async Task<User> GetUserById(int id)
@@ -137,51 +156,52 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<int> CreateDateOption(DateOption option)
+    public async Task<DateOption> CreateDateOption(DateOption option)
     {
         var query = @"
             INSERT INTO `date_option` (`id_event`, `date_start`, `date_end`)
-            VALUES (@Id_event, @DateStart, @DateEnd);
-            SELECT LAST_INSERT_ID();
+            VALUES (@Id_event, @Date_start, @Date_end);
+            SELECT * FROM `date_option` WHERE `id_date_option` = LAST_INSERT_ID();
         ";
         
         using (var connection = _context.CreateConnection())
         {
-            var ret_id = await connection.QuerySingleAsync<int>(query, option);
-            return ret_id;
+            return await connection.QuerySingleAsync<DateOption>(query, option);
         }
     }
 
 
-    public async void UpdateEvent(Event @event)
+    public async Task<bool> UpdateEvent(Event @event)
     {
         var query = @"
-            UPDATE `event`
-            SET 
-                `name` = @Name, 
-                `description` = @Description, 
-                `location` = @Location, 
-                `end_voting_date` = @End_voting_date, 
-                `chosen_date_start` = @Chosen_date_start, 
-                `chosen_date_end` = @Chosen_date_end, 
-                `date_updated` = @Date_updated,
-                `sysrowstate` = @SysRowState
-            WHERE `id_event` = @Id_event;
-        ";
+        UPDATE `event`
+        SET 
+            `name` = @Name, 
+            `description` = @Description, 
+            `location` = @Location, 
+            `end_voting_date` = @End_voting_date, 
+            `chosen_date_start` = @Chosen_date_start, 
+            `chosen_date_end` = @Chosen_date_end, 
+            `date_updated` = @Date_updated,
+            `sysrowstate` = @SysRowState
+        WHERE `id_event` = @Id_event";
 
         using (var connection = _context.CreateConnection())
         {
             await connection.ExecuteAsync(query, @event);
+
+            return true;
         }
     }
 
-    public async void UpdateDateOption(DateOption option)
+
+    public async Task<DateOption> UpdateDateOption(DateOption option)
     {
         var query = @"
             UPDATE `date_option`
             SET 
-                `date_start` = @DateStart, 
-                `date_end` = @DateEnd 
+                `date_start` = @Date_start, 
+                `date_end` = @Date_end 
             WHERE `id_date_option` = @Id_date_option;
         ";
 
@@ -189,9 +209,11 @@ public class EventRepository : IEventRepository
         {
             await connection.ExecuteAsync(query, option);
         }
+        
+        return option;
     }
 
-    public async void AddTag(int event_id, int tag_id)
+    public async Task<bool> AddTag(int event_id, int tag_id)
     {
         var query = "INSERT INTO `categorizes_as` (`id_event`, `id_tag`) VALUES(@Id_event, @Id_tag);";
 
@@ -199,27 +221,23 @@ public class EventRepository : IEventRepository
         {
             await connection.ExecuteAsync(query, new {Id_event = event_id, Id_tag = tag_id});
         }
+
+        return true;
     }
     
-    public async void SendInvitation(int event_id, int user_id)
+    public async Task<Invitation> SendInvitation(Invitation invitation)
     {
         var query = "INSERT INTO `invitation` (`id_event`, `id_user`, `status`, `date_invited`) VALUES(@Id_event, @Id_user, @Status, @Date_invited);";
 
         using (var connection = _context.CreateConnection())
         {
-            var parameters = new
-            {
-                Id_event = event_id,
-                Id_user = user_id,
-                Status = "pending",
-                Date_invited = DateTime.Now
-            };
-            
-            await connection.ExecuteAsync(query, parameters);
+            await connection.ExecuteAsync(query, invitation);
         }
+
+        return invitation;
     }
     
-    public async void DeleteInvitation(int event_id, int user_id)
+    public async Task<bool> DeleteInvitation(int event_id, int user_id)
     {
         var query = "DELETE FROM `invitation` WHERE `id_event` = @Id_event AND `id_user` = @Id_user;";
 
@@ -233,9 +251,11 @@ public class EventRepository : IEventRepository
             
             await connection.ExecuteAsync(query, parameters);
         }
+
+        return true;
     }
 
-    public async void DeleteEvent(int id)
+    public async Task<bool> DeleteEvent(int id)
     {
         var query = "DELETE FROM `event` WHERE `id_event` = @Id";
 
@@ -243,9 +263,11 @@ public class EventRepository : IEventRepository
         {
             await connection.ExecuteAsync(query, new { Id = id });
         }
+
+        return true;
     }
     
-    public async void DeleteDateOption(int id)
+    public async Task<bool> DeleteDateOption(int id)
     {
         var query = "DELETE FROM `date_option` WHERE `id_date_option` = @Id";
 
@@ -253,6 +275,8 @@ public class EventRepository : IEventRepository
         {
             await connection.ExecuteAsync(query, new { Id = id });
         }
+        
+        return true;
     }
     
 }

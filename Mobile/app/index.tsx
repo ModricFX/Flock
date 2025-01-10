@@ -14,7 +14,8 @@ export default function HomePage() {
         const checkLoginStatus = async () => {
             try {
                 const user = await authService.getUserData();
-                setIsLoggedIn(!!user);
+                console.log(user);
+                setIsLoggedIn(user.success);
             } catch (error) {
                 console.log('Error fetching user xxxxx:', error);
                 setIsLoggedIn(false);
@@ -31,7 +32,7 @@ export default function HomePage() {
             if (isLoggedIn) {
                 router.replace("/tabs/home");
             } else {
-                router.push('/tabs/home'); // Redirect to login page for not-logged-in users
+                router.replace('/auth/login'); // Redirect to login page for not-logged-in users
             }
         }
     }, [loading, isLoggedIn]);
