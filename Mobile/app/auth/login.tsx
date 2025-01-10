@@ -7,7 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Alert, Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {WebTokenStorage} from "@/app/storage/WebTokenStorage";
@@ -45,7 +45,6 @@ export default function LoginScreen() {
       Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
     }
   };
-
 
 
   return (
@@ -93,7 +92,11 @@ export default function LoginScreen() {
           Don't have an account?{' '}
           <Text
             style={styles.link}
-            onPress={() => router.push('/auth/register')}
+            onPress={() => {
+              router.push('/auth/register');
+              setIsFocused(false);
+              Keyboard.dismiss();
+            }}
           >
             Register Now
           </Text>
