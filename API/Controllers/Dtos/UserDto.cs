@@ -10,5 +10,6 @@ public class UserDto
     public bool Email_verified { get; set; }
     public DateTime Date_created { get; set; }
     public DateTime Date_updated { get; set; }
+    public string Pfp_url { get; set; }
 }
 

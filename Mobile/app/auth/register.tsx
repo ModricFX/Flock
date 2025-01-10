@@ -7,7 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Alert, Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authService } from '../services/authservice';
@@ -54,6 +54,8 @@ export default function RegisterScreen() {
           `Account created for ${name} ${surname} with username "${username}".`
       );
       router.push('/auth/login');
+      setIsFocused(false);
+      Keyboard.dismiss();
     } catch (error) {
       // @ts-ignore
       Alert.alert('Registration Error', error.message || 'An error occurred during registration.');
@@ -147,7 +149,11 @@ export default function RegisterScreen() {
         {/* Footer Link */}
         <Text style={styles.footerText}>
           Already have an account?{' '}
-          <Text style={styles.link} onPress={() => router.push('/auth/login')}>
+          <Text style={styles.link} onPress={() => {
+            router.push('/auth/login');
+            setIsFocused(false);
+            Keyboard.dismiss();
+          }}>
             Login here
           </Text>
         </Text>

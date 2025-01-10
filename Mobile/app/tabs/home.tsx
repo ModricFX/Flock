@@ -131,9 +131,10 @@ export default function HomeScreen() {
         const fetchData = async () => {
             try {
                 await fetchUserData();
-                await fetchEvents();
             } catch (error) {
                 console.error('Error fetching data:', error);
+            } finally{
+                setLoading(false);
             }
         };
         
@@ -145,7 +146,7 @@ export default function HomeScreen() {
                     
                     if (user.data?.id_user) {
                         const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
-                        let friends = [];
+                        let friends: User[] = [];
         
                         for (const rel of relationships) {
                             let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
@@ -156,12 +157,21 @@ export default function HomeScreen() {
                                     id_user: friend.id_user,
                                     username: friend.username,
                                     email: friend.email,
-                                    pfpUrl: ''
+                                    pfp_url: ''
                                 });
                             }
                         }
         
                         setFriends(friends);
+
+                        const eventResponse = await eventService.getMyEvents(user.data.id_user);
+            
+                        if (eventResponse.success && eventResponse.data) {
+                            let events = transformEvents(eventResponse.data);
+                            setEvents(events);
+                        } else {
+                            console.log(eventResponse.error);
+                        }
                     }
                 } else {
                     router.replace('/auth/login');
@@ -169,23 +179,6 @@ export default function HomeScreen() {
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 router.replace('/auth/login');
-            }
-        };
-        
-        const fetchEvents = async () => {
-            try {
-                const response = await eventService.getEvents();
-        
-                if (response.success && response.data) {
-                    let events = transformEvents(response.data);
-                    setEvents(events);
-                } else {
-                    console.log(response.error);
-                }
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            } finally {
-                setLoading(false);
             }
         };
         
@@ -684,7 +677,7 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfp_url, status: 'pending' }]);
         }
     }
 
@@ -925,7 +918,7 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
+            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfp_url }]);
         }
     }
     function addTypedInviteEdit() {

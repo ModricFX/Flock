@@ -17,12 +17,17 @@ export class EventService {
 
     // Add methods for event-related operations
 
-    async getEvents(): Promise<{ success:boolean, data?: EventData[], error?: string }> {
-       const response = await this.api.get('/event');
+    async getMyEvents(id: string): Promise<{ success:boolean, data?: EventData[], error?: any }> {
+       const response = await this.api.get('/event/user/'+id);
 
-       if(!response || response.status != 200){
-        return { success: false, error: "error fetching events" }
+       if(!response){
+        return { success: false, error: "no response from server" }
        }
+       if(response.status != 200){
+        return { success: false, error: response}
+       }
+
+       
        return { success: true, data: response.data };
     }
 

@@ -5,7 +5,8 @@ namespace flock.Data.Repositories.Interfaces;
 public interface IEventRepository
 {
     Task<Event> GetEventById(int id);
-    Task<List<Event>> GetAllEvents();
+    Task<List<Event>?> GetAllEvents();
+    Task<List<Event>?> GetAllMyEvents(int user_id);
     Task<List<Invitation>?> GetInvitations(int event_id);
     Task<List<Chose>?> GetVotes(int event_id);
     Task<List<DateOption>?> GetDateOptions(int event_id);
