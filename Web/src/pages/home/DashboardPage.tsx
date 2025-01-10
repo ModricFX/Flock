@@ -1516,12 +1516,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                       fontSize: "1.1rem",
                       marginLeft: 1,
                       padding: "10px 15px",
-                      backgroundColor: "#f0f0f0",
+                      backgroundColor: darkMode ? "#555" : "f0f0f0",
+                      color: darkMode ? "#fff" : "#000",
                       borderRadius: "5px",
-                      border: "1px solid #ccc",
+                      border: darkMode ?  "1px solid #777" : "1px solid #ccc",
                       textAlign: "center",
                       "&:hover": {
-                        backgroundColor: "#e0e0e0",
+                        backgroundColor: darkMode ? "#666" : "#e0e0e0",
                       },
                     }}
                     onClick={() => {
