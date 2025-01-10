@@ -220,13 +220,6 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        // Start the data fetching process
-        fetchData();
-    }, []);
-
-
-    useEffect(() => {
-        fetchData();
         fetchUserData();
 
         // Start the data fetching process
