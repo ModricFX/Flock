@@ -13,9 +13,6 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { useRouter } from 'expo-router';
 import { authService } from '../services/authservice';
 
-
-/* IMPORT STYLES */
-
 import styles from '../styles/ProfilePageStyles';
 
 
@@ -35,6 +32,9 @@ export default function Profile() {
         const userData = await authService.getUserData();
         setUsername(userData.data.username);
         setEmail(userData.data.email);
+        if (userData.data.profileImage) {
+          setProfileImage(userData.data.profileImage);
+        }
         console.log('User data from profile get data:', userData);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
