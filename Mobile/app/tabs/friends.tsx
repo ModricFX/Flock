@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -17,40 +17,85 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 /* IMPORT STYLES */
 import styles from '../styles/FriendsPageStyles';
+import { apiService } from '../services/ApiService';
+import { FriendService } from '../services/FriendService';
+import { router } from 'expo-router';
+import { User } from '../models/User';
+import { authService } from '../services/authservice';
 
 interface Friend {
-    id: string;
+    id: number;
     username: string;
     pfp: string;
     email: string;
     status: 'accepted' | 'pending';
 }
 
+const api = apiService.getApi();
+
+const friendService = new FriendService(api);
+
 export default function Friends() {
     // Sample friend data
-    const [friends, setFriends] = useState<Friend[]>([
-        {
-            id: '1',
-            username: 'JohnDoe',
-            pfp: 'https://i.pravatar.cc/100?img=12',
-            email: 'johndoe@gmail.com',
-            status: 'accepted',
-        },
-        {
-            id: '2',
-            username: 'JaneSmith',
-            pfp: 'https://i.pravatar.cc/100?img=28',
-            email: 'janesmith@gmail.com',
-            status: 'accepted',
-        },
-        {
-            id: '3',
-            username: 'ModricFX',
-            pfp: 'https://i.pravatar.cc/100?img=36',
-            email: 'modricfx@gmail.com',
-            status: 'pending',
-        },
-    ]);
+    const [friends, setFriends] = useState<Friend[]>([]);
+
+    useEffect(() => {
+            const fetchUserData = async () => {
+                try {
+                    let user = await authService.getUserData();
+                    if (user.success && user.data) {
+                    
+                        if (user.data?.id_user) {
+                            const relationships = await friendService.getFriends(user.data.id_user, 'all');
+                            let friends: Friend[] = [];
+        
+                            for (const rel of relationships) {
+                                if(rel.status == 'accepted' || rel.status == 'blocked') {
+                                    let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
+
+                                    let friend = await friendService.getFriendData(id);
+                                    
+                                    if (friend && rel.status != 'blocked') {
+                                        friends.push({
+                                            id: friend.id_user,
+                                            username: friend.username,
+                                            email: friend.email,
+                                            pfp: '',
+                                            status: rel.status
+                                        });
+                                    }
+                                }
+                                else {
+                                    if(rel.use_id_user == user.data.id_user) {
+                                        let friend = await friendService.getFriendData(rel.id_user);
+                                    
+                                        if (friend) {
+                                            friends.push({
+                                                id: friend.id_user,
+                                                username: friend.username,
+                                                email: friend.email,
+                                                pfp: '',
+                                                status: rel.status
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+        
+                            setFriends(friends);
+                        }
+                    } else {
+                        router.replace('/auth/login');
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data:', error);
+                    router.replace('/auth/login');
+                }
+            };
+        
+            fetchUserData();
+        }, []);
+        
 
     // Modal for showing friend details
     const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
@@ -65,42 +110,60 @@ export default function Friends() {
     };
 
     // Handle removing a friend
-    const handleRemoveFriend = (friendId: string) => {
-        setFriends((prev) => prev.filter((f) => f.id !== friendId));
+    const handleRemoveFriend = async (friendId: number) => {
+        let response = await friendService.updateRelationshipStatus(friendId, 'blocked');
+
+        if(response.status == 200) {
+            setFriends((prev) => prev.filter((f) => f.id !== friendId));
+        } else {
+            console.log("failed");
+        }
+        
         setSelectedFriend(null);
     };
 
     // Handle ACCEPT (change status to 'accepted')
-    const handleAcceptFriend = (friendId: string) => {
-        setFriends((prev) =>
-            prev.map((f) =>
-                f.id === friendId ? { ...f, status: 'accepted' } : f
-            )
-        );
+    const handleAcceptFriend = async (friendId: number) => {
+        let response = await friendService.updateRelationshipStatus(friendId, 'accepted');
+
+        if(response.status == 200) {
+            setFriends((prev) => prev.map((f) => (f.id === friendId ? { ...f, status: 'accepted' } : f)));
+        } else {
+            console.log("failed");
+        }
         setSelectedFriend(null);
     };
 
     // Handle DENY (remove from list)
-    const handleDenyFriend = (friendId: string) => {
-        setFriends((prev) => prev.filter((f) => f.id !== friendId));
+    const handleDenyFriend = async (friendId: number) => {
+        let response = await friendService.updateRelationshipStatus(friendId, 'rejected');
+
+        if(response.status == 200) {
+            setFriends((prev) => prev.filter((f) => f.id !== friendId));
+        } else {
+            console.log("failed");
+        }
         setSelectedFriend(null);
     };
 
     // Handle adding a friend -> new friends start in "pending"
-    const handleAddFriend = () => {
+    const [alertModalVisible, setAlertModalVisible] = useState(false);
+    const [alertText, setAlertText] = useState("");
+
+    const handleAddFriend = async () => {
         if (!newFriendUsername.trim()) return;
-
-        const newFriend: Friend = {
-            id: Math.random().toString(),
-            username: newFriendUsername,
-            pfp: 'https://i.pravatar.cc/100?img=60', // Or some default image
-            email: newFriendUsername + '@gmail.com', // Or some default email
-            status: 'pending', // newly added friend is pending
-        };
-
-        setFriends((prev) => [newFriend, ...prev]);
-        setNewFriendUsername('');
         setIsAddModalVisible(false);
+        let response = await friendService.sendFriendRequest(newFriendUsername);
+
+        if (response.success) {
+            setAlertText("Friend request sent successfully!");
+            setAlertModalVisible(true);
+        } else {
+            setAlertText(response.error? response.error : 'Falied to send friend request' );
+            setAlertModalVisible(true);
+        }
+
+        setNewFriendUsername('');
     };
 
     // Sort friends so 'accepted' are on top and 'pending' at the bottom
@@ -126,7 +189,11 @@ export default function Friends() {
                             style={styles.friendCard}
                             onPress={() => handleOpenFriendDetails(friend)}
                         >
-                            <Image source={{ uri: friend.pfp }} style={styles.friendPfp} />
+                            <Image source={
+                                            friend.pfp.startsWith('http') 
+                                                ? { uri: friend.pfp } 
+                                                : require('../../assets/images/default_profile.png')
+                                            } style={styles.friendPfp} />
                             <View style={styles.friendInfo}>
                                 <Text style={styles.friendUsername}>{friend.username}</Text>
                                 {/* If status is pending, show "Pending", else show the email */}
@@ -167,7 +234,11 @@ export default function Friends() {
                                 {selectedFriend && (
                                     <>
                                         <Image
-                                            source={{ uri: selectedFriend.pfp }}
+                                            source={
+                                                selectedFriend.pfp.startsWith('http') 
+                                                    ? { uri: selectedFriend.pfp } 
+                                                    : require('../../assets/images/default_profile.png')
+                                            }
                                             style={styles.modalPfp}
                                         />
                                         <Text style={styles.modalUsername}>
@@ -216,6 +287,24 @@ export default function Friends() {
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
+                </Modal>
+
+                {/* Alert Modal */}
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={alertModalVisible}
+                    onRequestClose={() => setAlertModalVisible(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                            <Text style={styles.addFriendTitle}>{alertText}</Text>
+                            <Button
+                                title="Ok"
+                                onPress={() => setAlertModalVisible(false)}
+                            />
+                        </View>
+                    </View>
                 </Modal>
 
                 {/* Add Friend Modal */}

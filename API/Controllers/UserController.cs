@@ -129,11 +129,15 @@ namespace flock.Controllers
                     return Unauthorized();
                 }
                 
-                var user_data = await _userRepository.GetUserByEmailOrUsernameAsync(User.Identity.Name);
+                var userEmail = User.Identity.Name; // This should be populated from the token
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized("Invalid token.");
+                
+                var userData = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
 
                 var relationship = new Friendship
                 {
-                    Id_user = user_data.Id_user,
+                    Id_user = userData.Id_user,
                     Use_id_user = request.related_user_id,
                     Status = request.status,
                     Date_updated = DateTime.UtcNow,
@@ -149,7 +153,60 @@ namespace flock.Controllers
             }
         }
         
-        [Route("/api/user/relationship/{id}")]
+        [Route("/api/user/relationship/{text}")]
+        [HttpPost()]
+        [Authorize]
+        public async Task<IActionResult> SendFriendRequest(string text){
+            try
+            {
+                if (User?.Identity?.IsAuthenticated == false)
+                {
+                    return Unauthorized();
+                }
+                
+                var userEmail = User.Identity.Name; // This should be populated from the token
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized("Invalid token.");
+                
+                var userData = await _userRepository.GetUserByEmailOrUsernameAsync(userEmail);
+                if (userData == null)
+                {
+                    return NotFound("User not found.");
+                }
+                
+                var relatedUserData = await _userRepository.GetUserByEmailOrUsernameAsync(text);
+
+                if (relatedUserData == null)
+                {
+                    return BadRequest("not found");
+                }
+                
+                var existingRelationships = await _userRepository.GetUserRelationships(userData.Id_user, relatedUserData.Id_user);
+
+                if (relatedUserData.Id_user == userData.Id_user || existingRelationships != null)
+                {
+                    return BadRequest("already exists");
+                }
+
+                var relationship = new Friendship
+                {
+                    Id_user = userData.Id_user,
+                    Use_id_user = relatedUserData.Id_user,
+                    Status = "pending",
+                    Date_updated = DateTime.UtcNow,
+                };
+
+                _userRepository.UpdateUserRelationship(relationship);
+                
+                return Ok("success");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        
+        [Route("/api/user/relationship/{id}/{status}")]
         [HttpGet()]
         [Authorize]
         public async Task<IActionResult> GetAllRelationshipsWithStatus(int id, string status){

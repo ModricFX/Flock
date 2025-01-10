@@ -2,6 +2,6 @@ namespace flock.Controllers.Dtos;
 
 public class CreateDateOptionDto
 {
-    public DateTime DateStart { get; set; }
-    public DateTime DateEnd { get; set; }
+    public DateTime Date_start { get; set; }
+    public DateTime Date_end { get; set; }
 }

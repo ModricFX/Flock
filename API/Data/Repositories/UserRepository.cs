@@ -15,23 +15,35 @@ namespace flock.Data.Repositories
             _context = context;
         }
 
-        public async Task<User> GetUserByEmailOrUsernameAsync(string text)
+        public async Task<User?> GetUserByEmailOrUsernameAsync(string text)
         {
-            var query = "SELECT * FROM `user` WHERE `email` = @Text OR `username` = @Text AND `sysrowstate` = 1";
-
-            using (var connection = _context.CreateConnection())
+            try
             {
-                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Text = text });
+                var query = @"
+                        SELECT * 
+                        FROM `user` 
+                        WHERE (`email` = @Text OR `username` = @Text) 
+                        AND `sysrowstate` = 1";
+
+                using (var connection = _context.CreateConnection())
+                {
+                    return await connection.QueryFirstAsync<User>(query, new { Text = text });
+                }
+            }
+            catch (Exception ex)
+            {
+                return null;
             }
         }
 
-        public async Task<User> GetUserById(int id)
+
+        public async Task<User?> GetUserById(int id)
         {
             var query = "SELECT * FROM `user` WHERE `id_user` = @Id AND `sysrowstate` = 1";
 
             using (var connection = _context.CreateConnection())
             {
-                return await connection.QueryFirstOrDefaultAsync<User>(query, new { Id = id });
+                return await connection.QueryFirstAsync<User>(query, new { Id = id });
             }
         }
 
@@ -50,9 +62,27 @@ namespace flock.Data.Repositories
             }
         }
 
+        public async Task<Friendship?> GetUserRelationships(int user_id, int use_user_id)
+        {
+            try
+            {
+                var query =
+                    "SELECT * FROM friendship WHERE (id_user = @Id_User AND use_id_user = @Use_id_user) OR (id_user = @Use_id_User AND use_id_user = @Id_User);";
+                
+                using (var connection = _context.CreateConnection())
+                {
+                    return await connection.QueryFirstAsync<Friendship>(query, new {Id_user = user_id, Use_id_user = use_user_id});
+                }
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         public async void UpdateUserRelationship(Friendship friendship)
         {
-            var query = "REPLACE INTO friendship (id_user, use_id_user, status, date_updated) VALUES (@User_id ,@Related_user_id, @Status, @Date_updated);";
+            var query = "DELETE FROM friendship WHERE (id_user = @Id_User AND use_id_user = @Use_id_user) OR (id_user = @Use_id_User AND use_id_user = @Id_User); INSERT INTO friendship (id_user, use_id_user, status, date_updated) VALUES (@Id_user ,@Use_id_user, @Status, @Date_updated);";
             
             
             using (var connection = _context.CreateConnection())
@@ -64,6 +94,9 @@ namespace flock.Data.Repositories
         public async Task<List<Friendship>> GetAllRelationshipsWithStatus(int user_id, string status)
         {
             var query = "SELECT * FROM `friendship` WHERE `status` = @Status AND (`id_user` = @User_id OR `use_id_user` = @User_id);";
+
+            if(status.ToLower() == "all")
+                query = "SELECT * FROM `friendship` WHERE (`id_user` = @User_id OR `use_id_user` = @User_id);";
             
             using (var connection = _context.CreateConnection())
             {
