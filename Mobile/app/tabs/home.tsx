@@ -313,7 +313,7 @@ export default function HomeScreen() {
             if(ev.invitations){
                 ev.participants = ev.invitations.map(inv => {
                     return {
-                        id: inv.user.id, 
+                        id: inv.user.id_user, 
                         email: inv.user.email, 
                         username: inv.user.username,
                         pfpUrl: '',
@@ -443,7 +443,7 @@ export default function HomeScreen() {
                 }   
             }),
             tag_ids: [],
-            participant_ids: invitees.map(invite => invite.id),
+            participant_ids: editInvitees.map(invite => invite.id? invite.id : null).filter(id => id !== null),
         }
 
         let response = await eventService.createEvent(newEvt)
@@ -670,14 +670,7 @@ export default function HomeScreen() {
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-            const newPart: Participant = {
-                id: Math.random().toString(),
-                username: typedInvite.split('@')[0],
-                email: typedInvite,
-                pfpUrl: 'https://i.pravatar.cc/100?img=02',
-                status: 'pending',
-            };
-            setInvitees([...invitees, newPart]);
+            
         }
         setTypedInvite('');
     }
@@ -739,6 +732,8 @@ export default function HomeScreen() {
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
         setEditDays(e.date_options ? [...e.date_options] : []); // Spread to prevent direct reference issues
+
+        //console.log(e.participants);
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
         setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
@@ -798,13 +793,40 @@ export default function HomeScreen() {
                 id_date_option: day.id_date_option,
                 id_event: day.id_event
             })),
-            participant_ids: editInvitees.map(invite => invite.id),
+            participant_ids: editInvitees.map(invite => invite.id || null).filter(id => id !== null)
         }
 
+        //console.log(UpdatedEvent);
         let response = await eventService.updateEvent(UpdatedEvent);
+
         let updated = transformEvents([response.data]);
 
-        setEvents(prev => prev.map(evt => evt.id_event === updated[0].id_event ? updated[0] : evt));
+        /*let newEvents: EventData[] = [];
+        events.forEach(ev => {
+            if (ev.id_event == updated[0].id_event) {
+                ev.name = updated[0].name;
+                ev.description = updated[0].description;
+                ev.location = updated[0].location;
+                ev.end_voting_date = updated[0].end_voting_date;
+                ev.chosen_date_start = updated[0].chosen_date_start;
+                ev.chosen_date_end = updated[0].chosen_date_end;
+                ev.date_options = updated[0].date_options;
+                ev.participants = updated[0].participants;
+                ev.invitations = updated[0].invitations;
+                ev.date_created = updated[0].date_created;
+                ev.date_updated = updated[0].date_updated;
+                ev.votes = updated[0].votes;
+
+                console.log(ev);
+            }
+
+            newEvents.push(ev);
+        });*/
+
+        setEvents(events.map(ev => 
+            ev.id_event == updated[0].id_event ? updated[0] : ev
+        ));
+        
         closeEditEvent();
     }
 
