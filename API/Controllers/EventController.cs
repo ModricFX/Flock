@@ -10,7 +10,7 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    
+    [Authorize]
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
