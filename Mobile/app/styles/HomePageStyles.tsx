@@ -274,6 +274,9 @@ const styles = StyleSheet.create({
         color: '#555',
         marginBottom: 5,
     },
+    deleteButton: {
+        backgroundColor: '#e74c3c',
+    },
 
     /* ============================================= */
     /* ===============  INPUTS  ==================== */

@@ -126,67 +126,113 @@ export default function HomeScreen() {
     // iOS keyboard offset
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                await fetchUserData();
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            } finally{
-                setLoading(false);
-            }
-        };
-        
-        const fetchUserData = async () => {
-            try {
-                let user = await authService.getUserData();
-                if (user.success && user.data) {
-                    setCurrentUser(user.data);
-                    
-                    if (user.data?.id_user) {
-                        const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
-                        let friends: User[] = [];
-        
-                        for (const rel of relationships) {
-                            let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
-                            let friend = await friendService.getFriendData(id);
-                            
-                            if (friend) {
-                                friends.push({
-                                    id_user: friend.id_user,
-                                    username: friend.username,
-                                    email: friend.email,
-                                    pfp_url: ''
-                                });
-                            }
-                        }
-        
-                        setFriends(friends);
+    function deleteEvent(event: EventData, currentUserId: number) {
+        Alert.alert('Delete Event', 'Are you sure?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        const id_event = typeof event.id_event === 'string' ? parseInt(event.id_event, 10) : event.id_event;
 
-                        const eventResponse = await eventService.getMyEvents(user.data.id_user);
-                        //console.log(eventResponse);
-            
-                        if (eventResponse.success && eventResponse.data) {
-                            let events = transformEvents(eventResponse.data);
-                            setEvents(events);
+                        if (isNaN(id_event)) {
+                            alert('Invalid event ID. Please try again.');
+                            return;
+                        }
+
+                        const response = await eventService.deleteEvent(id_event, currentUserId);
+
+                        if (response.success) {
+                            alert('Event deleted successfully');
+                            closeView(); // Close the modal if it's open
+                            // Fetch the updated events list from the server
+                            await fetchData();
                         } else {
-                            console.log(eventResponse.error);
+                            console.error('Error deleting event:', response.error);
+                            alert('Failed to delete event. Please try again.');
+                        }
+                    } catch (error) {
+                        let errorMessage = 'An unexpected error occurred';
+                        if (error instanceof Error) {
+                            errorMessage = error.message;
+                        }
+                        console.error('Error deleting event:', error);
+                        alert(errorMessage);
+                    }
+                }
+            }
+        ]);
+    }
+
+    const fetchData = async () => {
+        try {
+            await fetchUserData();
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUserData = async () => {
+        try {
+            const user = await authService.getUserData();
+            if (user.success && user.data) {
+                setCurrentUser(user.data);
+
+                if (user.data?.id_user) {
+                    const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
+                    const friends: User[] = [];
+
+                    for (const rel of relationships) {
+                        const id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
+                        const friend = await friendService.getFriendData(id);
+
+                        if (friend) {
+                            friends.push({
+                                id_user: friend.id_user,
+                                username: friend.username,
+                                email: friend.email,
+                                pfp_url: ''
+                            });
                         }
                     }
-                } else {
-                    router.replace('/auth/login');
+
+                    setFriends(friends);
+
+                    const eventResponse = await eventService.getMyEvents(user.data.id_user);
+
+                    if (eventResponse.success && eventResponse.data) {
+                        const events = transformEvents(eventResponse.data);
+                        setEvents(events);
+                    } else {
+                        console.error('Error fetching events:', eventResponse.error);
+                    }
                 }
-            } catch (error) {
-                console.error('Error fetching user data:', error);
+            } else {
                 router.replace('/auth/login');
             }
-        };
-        
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            router.replace('/auth/login');
+        }
+    };
+
+    useEffect(() => {
         // Start the data fetching process
         fetchData();
-        
     }, []);
-    
+
+
+    useEffect(() => {
+        fetchData();
+        fetchUserData();
+
+        // Start the data fetching process
+        fetchData();
+    }, []);
+
 
     const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
     useEffect(() => {
@@ -310,35 +356,35 @@ export default function HomeScreen() {
     /* ------------------------------------------
        Create Flow
     ------------------------------------------*/
-    function transformEvents(events: EventData[]){
+    function transformEvents(events: EventData[]) {
         events.forEach(ev => {
             ev.date_created = new Date(ev.date_created);
             ev.date_updated = new Date(ev.date_updated);
             ev.end_voting_date = new Date(ev.end_voting_date);
 
-            if(ev.chosen_date_end){
+            if (ev.chosen_date_end) {
                 ev.chosen_date_end = new Date(ev.chosen_date_end);
 
-                if(ev.chosen_date_end.getUTCFullYear() < 2000)
+                if (ev.chosen_date_end.getUTCFullYear() < 2000)
                     ev.chosen_date_end = undefined;
             }
-                
 
-            if(ev.chosen_date_start){
+
+            if (ev.chosen_date_start) {
                 ev.chosen_date_start = new Date(ev.chosen_date_start);
 
-                if(ev.chosen_date_start.getUTCFullYear() < 2000)
+                if (ev.chosen_date_start.getUTCFullYear() < 2000)
                     ev.chosen_date_start = undefined;
             }
 
-            if(ev.invitations){
+            if (ev.invitations) {
                 ev.participants = ev.invitations.map(inv => {
                     let invitedFriend = inv.user;
 
                     return {
-                        id: invitedFriend? invitedFriend.id_user : '', 
-                        email: invitedFriend? invitedFriend.email : '', 
-                        username: invitedFriend? invitedFriend.username : '', 
+                        id: invitedFriend ? invitedFriend.id_user : '',
+                        email: invitedFriend ? invitedFriend.email : '',
+                        username: invitedFriend ? invitedFriend.username : '',
                         pfp_url: '',
                         status: inv.status
                     };
@@ -347,8 +393,8 @@ export default function HomeScreen() {
 
             ev.date_options = ev.date_options.map(dateOption => {
                 return {
-                    id_date_option: dateOption.id_date_option? dateOption.id_date_option : 0,
-                    id_event: dateOption.id_event? dateOption.id_event : 0,
+                    id_date_option: dateOption.id_date_option ? dateOption.id_date_option : 0,
+                    id_event: dateOption.id_event ? dateOption.id_event : 0,
                     date_start: new Date(dateOption.date_start),
                     date_end: new Date(dateOption.date_end)
                 }
@@ -357,6 +403,7 @@ export default function HomeScreen() {
 
         return events;
     }
+
 
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
@@ -445,26 +492,26 @@ export default function HomeScreen() {
                 return {
                     date_start: day.date_start.toISOString(),
                     date_end: day.date_end.toISOString()
-                }   
+                }
             }),
             tag_ids: [],
             participant_ids: invitees
-            .filter(invite => invite.id)
-            .map(invite => invite.id)
+                .filter(invite => invite.id)
+                .map(invite => invite.id)
         }
         //console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
 
-        if(response.success && response.data){
+        if (response.success && response.data) {
             let events = transformEvents([response.data]);
-        
+
             setEvents(prev => [...prev, events[0]]);
         }
-        else{
+        else {
             console.log(response.error);
         }
-        
+
         closeCreateEvent();
     }
 
@@ -678,14 +725,14 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
         }
     }
 
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-            
+
         }
         setTypedInvite('');
     }
@@ -797,35 +844,35 @@ export default function HomeScreen() {
             description: editDesc,
             location: editLoc,
             end_voting_date: editEndVoting.toISOString(),
-            chosen_date_start: editChosenDateStart? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
-            chosen_date_end: editChosenDateEnd? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
+            chosen_date_start: editChosenDateStart ? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
+            chosen_date_end: editChosenDateEnd ? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
             sysrowstate: 1,
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
                 date_end: day.date_end.toISOString(),
-                id_date_option: day.id_date_option? day.id_date_option : 0,
-                id_event: day.id_event? day.id_event : 0
+                id_date_option: day.id_date_option ? day.id_date_option : 0,
+                id_event: day.id_event ? day.id_event : 0
             })),
             participant_ids: editInvitees
-            .filter(invite => invite.id)
-            .map(invite => invite.id)
+                .filter(invite => invite.id)
+                .map(invite => invite.id)
         }
 
         //console.log(UpdatedEvent);
-        
+
         let response = await eventService.updateEvent(UpdatedEvent);
 
-        if(response.success && response.data){
+        if (response.success && response.data) {
             let updated = transformEvents([response.data]);
 
             setEvents(events.map(ev => {
-                    return ev.id_event == updated[0].id_event ? updated[0] : ev
-                }
+                return ev.id_event == updated[0].id_event ? updated[0] : ev
+            }
             ));
         } else {
             console.log(response.error)
         }
-        
+
         closeEditEvent();
     }
 
@@ -910,7 +957,7 @@ export default function HomeScreen() {
             setTempDateEdit(sel);
         }
     }
-    
+
     function savePickDateEdit() {
         setPickDateModalEditVisible(false);
         setAddDayModalVisibleEdit(true);
@@ -1212,15 +1259,33 @@ export default function HomeScreen() {
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Creator:</Text>
                                                                     <Text style={styles.detailValue}>
-                                                                        {friends?.find(friend => friend.id_user === selectedEvent.id_user)
-                                                                            ? `${friends.find(friend => friend.id_user === selectedEvent.id_user)?.username} (${friends.find(friend => friend.id_user === selectedEvent.id_user)?.email})`
-                                                                            : 'Unknown'}
+                                                                        {(() => {
+                                                                            // If current user is the creator
+                                                                            if (selectedEvent.id_user === currentUser?.id_user) {
+                                                                                return `${currentUser?.username} (${currentUser?.email})`;
+                                                                            }
+
+                                                                            // Otherwise, look for them in `friends`
+                                                                            const creatorInFriends = friends?.find(
+                                                                                (friend) => friend.id_user === selectedEvent.id_user
+                                                                            );
+                                                                            if (creatorInFriends) {
+                                                                                return `${creatorInFriends.username} (${creatorInFriends.email})`;
+                                                                            }
+
+                                                                            // Fallback to 'Unknown'
+                                                                            if (selectedEvent.id_user) {
+                                                                                return "User id: " + selectedEvent.id_user;
+                                                                            }
+                                                                            return 'Unknown';
+                                                                        })()}
                                                                     </Text>
                                                                 </View>
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Description:</Text>
                                                                     <Text style={styles.detailValue}>{selectedEvent.description}</Text>
                                                                 </View>
+
                                                                 <View style={styles.detailRow}>
                                                                     <Text style={styles.detailLabel}>Location:</Text>
                                                                     <Text style={styles.detailValue}>{selectedEvent.location}</Text>
@@ -1407,6 +1472,19 @@ export default function HomeScreen() {
                                                                 <MaterialIcons name="close" size={20} color="#fff" />
                                                                 <Text style={styles.buttonText}>Close</Text>
                                                             </TouchableOpacity>
+
+                                                            {/* If currentUser is the creator, show an "Edit" button. */}
+                                                            {isCreator && (
+                                                                <TouchableOpacity
+                                                                    style={[styles.actionButton, styles.deleteButton]}
+                                                                    onPress={() => {
+                                                                        deleteEvent(selectedEvent, Number(currentUser?.id_user));
+                                                                    }}
+                                                                >
+                                                                    <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                    <Text style={styles.buttonText}>Delete</Text>
+                                                                </TouchableOpacity>
+                                                            )}
                                                         </View>
 
                                                         {/* Participants Modal */}
@@ -1497,7 +1575,7 @@ export default function HomeScreen() {
                                                                                                 p.pfp_url.startsWith('http')
                                                                                                     ? { uri: p.pfp_url }
                                                                                                     : require('../../assets/images/default_profile.png')
-                                                                                                } style={friendStyles.friendPfp} />
+                                                                                            } style={friendStyles.friendPfp} />
                                                                                             <View style={{ flex: 1 }}>
                                                                                                 <Text style={styles.participantName}>{p.username}</Text>
                                                                                                 <Text style={styles.participantEmail}>{p.email}</Text>
@@ -1539,10 +1617,10 @@ export default function HomeScreen() {
                                                                                         {/*    style={{ marginRight: 8 }}*/}
                                                                                         {/*/>*/}
                                                                                         <Image source={
-                                                                                                p.pfp_url.startsWith('http')
-                                                                                                    ? { uri: p.pfp_url }
-                                                                                                    : require('../../assets/images/default_profile.png')
-                                                                                                } style={friendStyles.friendPfp} />
+                                                                                            p.pfp_url.startsWith('http')
+                                                                                                ? { uri: p.pfp_url }
+                                                                                                : require('../../assets/images/default_profile.png')
+                                                                                        } style={friendStyles.friendPfp} />
                                                                                         <View style={{ flex: 1 }}>
                                                                                             <Text style={styles.participantName}>{p.username}</Text>
                                                                                             <Text style={styles.participantEmail}>{p.email}</Text>
@@ -2695,4 +2773,4 @@ export default function HomeScreen() {
             </View>
         </TouchableWithoutFeedback>
     );
-}
+};
