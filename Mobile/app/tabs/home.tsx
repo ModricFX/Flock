@@ -677,7 +677,7 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfpUrl, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfp_url, status: 'pending' }]);
         }
     }
 
@@ -918,7 +918,7 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfpUrl }]);
+            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfp_url }]);
         }
     }
     function addTypedInviteEdit() {
