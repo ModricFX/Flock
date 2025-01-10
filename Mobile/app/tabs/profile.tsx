@@ -240,10 +240,10 @@ export default function Profile() {
       </View>
 
       {/* Appearance Settings Card */}
-      <View style={[styles.card, { zIndex: 9999, position: 'relative' }]}>
+      {/* <View style={[styles.card, { zIndex: 9999, position: 'relative' }]}>
         <Text style={styles.cardTitle}>Appearance</Text>
 
-        {/* LANGUAGE DROPDOWN
+        {/* LANGUAGE DROPDOWN 
         <View style={[styles.fieldGroup, { zIndex: 9999 }]}>
           <Text style={styles.label}>Language</Text>
           <DropDownPicker
@@ -260,9 +260,9 @@ export default function Profile() {
             zIndex={9999}
             zIndexInverse={4000}
           />
-        </View> */}
+        </View> 
 
-        {/* THEME DROPDOWN */}
+        {/* THEME DROPDOWN 
         <View style={[styles.fieldGroup, { zIndex: 9998 }]}>
           <Text style={styles.label}>Theme</Text>
           <DropDownPicker
@@ -280,7 +280,7 @@ export default function Profile() {
             zIndexInverse={4000}
           />
         </View>
-      </View>
+      </View> */}
 
       {/* Danger Zone Card (lower zIndex) */}
       <View style={[styles.card, styles.dangerZoneCard, { zIndex: 1 }]}>
