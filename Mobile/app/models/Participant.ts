@@ -2,6 +2,6 @@ export interface Participant {
     id: string;
     username: string;
     email: string;
-    pfpUrl: string;
+    pfp_url: string;
     status: 'pending' | 'accepted' | 'declined';
 }

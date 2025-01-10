@@ -339,7 +339,7 @@ export default function HomeScreen() {
                         id: invitedFriend? invitedFriend.id_user : '', 
                         email: invitedFriend? invitedFriend.email : '', 
                         username: invitedFriend? invitedFriend.username : '', 
-                        pfpUrl: '',
+                        pfp_url: '',
                         status: inv.status
                     };
                 })
@@ -677,7 +677,7 @@ export default function HomeScreen() {
     /* Step3 create -> invites */
     function addFriendInvite(friend: User) {
         if (!invitees.find(i => i.email === friend.email)) {
-            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfpUrl: friend.pfp_url, status: 'pending' }]);
+            setInvitees([...invitees, { id: friend.id_user,username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
         }
     }
 
@@ -918,7 +918,7 @@ export default function HomeScreen() {
     /* Step3 (edit): invites */
     function addFriendInviteEdit(friend: User) {
         if (!editInvitees.find(i => i.email === friend.email)) {
-            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfpUrl: friend.pfp_url }]);
+            setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfp_url: friend.pfp_url }]);
         }
     }
     function addTypedInviteEdit() {
@@ -929,7 +929,7 @@ export default function HomeScreen() {
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
-                pfpUrl: 'https://i.pravatar.cc/100?img=50'
+                pfp_url: 'https://i.pravatar.cc/100?img=50'
             };
             setEditInvitees([...editInvitees, newPart]);
         }
@@ -1493,8 +1493,8 @@ export default function HomeScreen() {
                                                                                             {/*    style={{ marginRight: 8 }}*/}
                                                                                             {/*/>*/}
                                                                                             <Image source={
-                                                                                                p.pfpUrl.startsWith('http') 
-                                                                                                    ? { uri: p.pfpUrl } 
+                                                                                                p.pfp_url.startsWith('http')
+                                                                                                    ? { uri: p.pfp_url }
                                                                                                     : require('../../assets/images/default_profile.png')
                                                                                                 } style={friendStyles.friendPfp} />
                                                                                             <View style={{ flex: 1 }}>
@@ -1538,8 +1538,8 @@ export default function HomeScreen() {
                                                                                         {/*    style={{ marginRight: 8 }}*/}
                                                                                         {/*/>*/}
                                                                                         <Image source={
-                                                                                                p.pfpUrl.startsWith('http') 
-                                                                                                    ? { uri: p.pfpUrl } 
+                                                                                                p.pfp_url.startsWith('http')
+                                                                                                    ? { uri: p.pfp_url }
                                                                                                     : require('../../assets/images/default_profile.png')
                                                                                                 } style={friendStyles.friendPfp} />
                                                                                         <View style={{ flex: 1 }}>
