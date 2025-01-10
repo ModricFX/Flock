@@ -10,7 +10,7 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    [Authorize]
+    
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
@@ -251,11 +251,14 @@ namespace flock.Controllers
             try
             {
                 List<Event> events = await _eventRepository.GetAllEvents();
-                foreach (var ev in events)
+                if (events != null)
                 {
-                    ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
-                    ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
-                    ev.Date_options = await _eventRepository.GetDateOptions(ev.Id_event);
+                    foreach (var ev in events)
+                    {
+                        ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                        ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
+                        ev.Date_options = await _eventRepository.GetDateOptions(ev.Id_event);
+                    }
                 }
                 return Ok(events);
             }
@@ -264,6 +267,36 @@ namespace flock.Controllers
                 return BadRequest(e.Message);
             }
         }
+        
+        [SwaggerOperation(
+            Summary = "List events belonging to user",
+            Description = "Returns existing event resources"
+        )]
+        [HttpGet()]
+        [Route("/api/event/user/{id}")]
+        public async Task<IActionResult> ListMyEvents(int id)
+        {
+            try
+            {
+                List<Event>? events = await _eventRepository.GetAllMyEvents(id);
+                if (events != null)
+                {
+                    foreach (var ev in events)
+                    {
+                        ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
+                        ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
+                        ev.Date_options = await _eventRepository.GetDateOptions(ev.Id_event);
+                    }
+                }
+                return Ok(events);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+        
+        
 
         [SwaggerOperation(
             Summary = "Delete event",

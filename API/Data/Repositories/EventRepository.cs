@@ -26,7 +26,7 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<List<Event>> GetAllEvents()
+    public async Task<List<Event>?> GetAllEvents()
     {
         var query = @"
         SELECT *
@@ -36,6 +36,20 @@ public class EventRepository : IEventRepository
         using (var connection = _context.CreateConnection())
         {
             var events = await connection.QueryAsync<Event>(query);
+            return events.ToList();
+        }
+    }
+
+    public async Task<List<Event>?> GetAllMyEvents(int user_id)
+    {
+        var query = @"
+        SELECT DISTINCT e.*
+        FROM event e INNER JOIN invitation i ON e.id_event = i.id_event
+        WHERE (e.id_user = @Id_user OR i.id_user = @Id_user) AND e.sysrowstate = 1";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var events = await connection.QueryAsync<Event>(query, new {Id_user = user_id});
             return events.ToList();
         }
     }

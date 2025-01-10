@@ -17,8 +17,8 @@ export class EventService {
 
     // Add methods for event-related operations
 
-    async getEvents(): Promise<{ success:boolean, data?: EventData[], error?: any }> {
-       const response = await this.api.get('/event');
+    async getMyEvents(id: string): Promise<{ success:boolean, data?: EventData[], error?: any }> {
+       const response = await this.api.get('/event/user/'+id);
 
        if(!response){
         return { success: false, error: "no response from server" }

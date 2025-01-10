@@ -131,9 +131,10 @@ export default function HomeScreen() {
         const fetchData = async () => {
             try {
                 await fetchUserData();
-                await fetchEvents();
             } catch (error) {
                 console.error('Error fetching data:', error);
+            } finally{
+                setLoading(false);
             }
         };
         
@@ -162,6 +163,15 @@ export default function HomeScreen() {
                         }
         
                         setFriends(friends);
+
+                        const eventResponse = await eventService.getMyEvents(user.data.id_user);
+            
+                        if (eventResponse.success && eventResponse.data) {
+                            let events = transformEvents(eventResponse.data);
+                            setEvents(events);
+                        } else {
+                            console.log(eventResponse.error);
+                        }
                     }
                 } else {
                     router.replace('/auth/login');
@@ -169,23 +179,6 @@ export default function HomeScreen() {
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 router.replace('/auth/login');
-            }
-        };
-        
-        const fetchEvents = async () => {
-            try {
-                const response = await eventService.getEvents();
-        
-                if (response.success && response.data) {
-                    let events = transformEvents(response.data);
-                    setEvents(events);
-                } else {
-                    console.log(response.error);
-                }
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            } finally {
-                setLoading(false);
             }
         };
         
