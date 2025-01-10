@@ -312,9 +312,9 @@ console.log("Notifications:", notifications);
                     <Route path="/auth/login" element={<Login darkMode={darkMode} />} />
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
                     <Route path="/about" element={<AboutPage />} />
-                    <Route path="/friends" element={<FriendsPage />} />
+                    <Route path="/friends" element={<FriendsPage darkMode={darkMode} />} />
 
-                    <Route path="/dashboard" element={<DashboardPage />}>
+                    <Route path="/dashboard" element={<DashboardPage darkMode={darkMode}/>}>
                         <Route
                             path="allevents"
                             element={

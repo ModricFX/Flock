@@ -71,6 +71,10 @@ interface EventData {
   votes?: Record<string, any>;
 }
 
+interface DashboardPageProps {
+  darkMode: boolean;
+}
+
 const initialOtherEvents: EventData[] = [
   {
     id_event: "evt-1",
@@ -303,7 +307,7 @@ interface Friend {
   email: string;
 }
 
-const DashboardPage = forwardRef((_props, _ref) => {
+const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -772,15 +776,162 @@ const DashboardPage = forwardRef((_props, _ref) => {
       </Paper>
 
       <div ref={yourEventsRef} style={{ cursor: "pointer" }}>
-        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
+      <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
+        <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+          Your Events
+        </Typography>
+        {myEvents.length === 0 ? (
+          <Typography>No events yet. Create one by clicking the "+" button!</Typography>
+        ) : (
+          <List>
+            {myEvents.map((evt, index) => {
+              const status = getEventStatus(evt);
+              const icon = getStatusIcon(status);
+              return (
+                <Paper
+                  key={index}
+                  elevation={3}
+                  sx={{
+                    border: "1px solid rgb(116, 117, 116)",
+                    borderRadius: "8px",
+                    padding: 2,
+                    marginBottom: 2,
+                    backgroundColor: darkMode ? '#444' : '#f9f9f9',
+                    color: darkMode ? '#fff' : '#000',
+                    position: "relative",
+                  }}
+                  onClick={() => openEventDetails(evt, true)}
+                >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      display: "flex",
+                      alignItems: "center",
+                      backgroundColor: getStatusColor(status),
+                      borderRadius: "4px",
+                      paddingX: 1,
+                      paddingY: 0.5,
+                    }}
+                  >
+                    {React.cloneElement(icon, { style: { color: "#fff" } })}
+                    <Typography variant="body2" sx={{ color: "#fff", marginLeft: 0.5 }}>
+                      {status.toUpperCase()}
+                    </Typography>
+                  </Box>
+
+                  <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="h6" sx={{ color: darkMode ? '#fff' : '#000' }}>
+                          {evt.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <>
+                          <Typography sx={{ display: "flex", alignItems: "center" }}>
+                            {evt.description}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              marginTop: 1,
+                            }}
+                          >
+                            <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                            <strong>Location:&nbsp;</strong>
+                            <Typography component="span">{evt.location}</Typography>
+                          </Typography>
+                          <Box sx={{ marginTop: 1 }}>
+                            <Typography
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginBottom: 1,
+                              }}
+                            >
+                              <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                              <strong>Days:</strong>
+                            </Typography>
+                            <ul>
+                              {evt.date_options && evt.date_options.length > 0 ? (
+                                evt.date_options.map((d, i) => (
+                                  <Typography key={i}>
+                                    <li>
+                                      {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
+                                      {getHoursFrom(d.dateEnd)})
+                                    </li>
+                                  </Typography>
+                                ))
+                              ) : (
+                                <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
+                              )}
+                            </ul>
+                          </Box>
+                          <Typography
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              marginTop: 1,
+                            }}
+                          >
+                            <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                            <strong>Participants:&nbsp;</strong> {evt.participants.length}
+                          </Typography>
+                          {status === "voting" && (
+                            <Typography
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginTop: 1,
+                              }}
+                            >
+                              <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                              <strong>Voting Ends:&nbsp;</strong>{" "}
+                              {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
+                              {getHoursFrom(evt.end_voting_date)}
+                            </Typography>
+                          )}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                </Paper>
+              );
+            })}
+          </List>
+        )}
+      </Paper>
+    </div>
+
+      <Box sx={{ textAlign: "center", paddingBottom: 6 }}>
+        <Button
+          variant="contained"
+          sx={{
+            fontSize: 24,
+            padding: "10px 20px",
+            borderRadius: "50%",
+            backgroundColor: "#4CAF50",
+            color: "#fff",
+          }}
+          onClick={() => handleOpen()}
+        >
+          +
+        </Button>
+      </Box>
+
+      <div ref={otherEventsRef} style={{ cursor: "pointer" }}>
+        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
           <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-            Your Events
+            Other Events
           </Typography>
-          {myEvents.length === 0 ? (
-            <Typography>No events yet. Create one by clicking the "+" button!</Typography>
+          {others.length === 0 ? (
+            <Typography>No other events available.</Typography>
           ) : (
             <List>
-              {myEvents.map((evt, index) => {
+              {others.map((evt, index) => {
                 const status = getEventStatus(evt);
                 const icon = getStatusIcon(status);
                 return (
@@ -792,10 +943,11 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       borderRadius: "8px",
                       padding: 2,
                       marginBottom: 2,
-                      backgroundColor: "#f9f9f9",
+                      backgroundColor: darkMode ? '#444' : '#f9f9f9',
+                      color: darkMode ? '#fff' : '#000',
                       position: "relative",
                     }}
-                    onClick={() => openEventDetails(evt, true)}
+                    onClick={() => openEventDetails(evt, false)}
                   >
                     <Box
                       sx={{
@@ -819,7 +971,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                     <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
                       <ListItemText
                         primary={
-                          <Typography variant="h6" sx={{ color: "#000" }}>
+                          <Typography variant="h6" sx={{ color: darkMode ? '#fff' : '#000' }}>
                             {evt.name}
                           </Typography>
                         }
@@ -849,151 +1001,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               >
                                 <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                                 <strong>Days:</strong>
-                              </Typography>
-                              <ul>
-                                {evt.date_options && evt.date_options.length > 0 ? (
-                                  evt.date_options.map((d, i) => (
-                                    <Typography key={i}>
-                                      <li>
-                                        {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
-                                        {getHoursFrom(d.dateEnd)})
-                                      </li>
-                                    </Typography>
-                                  ))
-                                ) : (
-                                  <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
-                                )}
-                              </ul>
-                            </Box>
-                            <Typography
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginTop: 1,
-                              }}
-                            >
-                              <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
-                            </Typography>
-                            {status === "voting" && (
-                              <Typography
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  marginTop: 1,
-                                }}
-                              >
-                                <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                                <strong>Voting Ends:&nbsp;</strong>{" "}
-                                {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
-                                {getHoursFrom(evt.end_voting_date)}
-                              </Typography>
-                            )}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  </Paper>
-                );
-              })}
-            </List>
-          )}
-        </Paper>
-      </div>
-
-      <Box sx={{ textAlign: "center", paddingBottom: 6 }}>
-        <Button
-          variant="contained"
-          sx={{
-            fontSize: 24,
-            padding: "10px 20px",
-            borderRadius: "50%",
-            backgroundColor: "#4CAF50",
-            color: "#fff",
-          }}
-          onClick={() => handleOpen()}
-        >
-          +
-        </Button>
-      </Box>
-
-      <div ref={otherEventsRef}>
-        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-            Other Events
-          </Typography>
-          {others.length === 0 ? (
-            <Typography>No events available from others.</Typography>
-          ) : (
-            <List>
-              {others.map((evt, index) => {
-                const status = getEventStatus(evt);
-                const icon = getStatusIcon(status);
-                return (
-                  <Paper
-                    key={index}
-                    elevation={3}
-                    sx={{
-                      border: "1px solid rgb(116, 117, 116)",
-                      borderRadius: "8px",
-                      padding: 2,
-                      marginBottom: 2,
-                      backgroundColor: "#f9f9f9",
-                      position: "relative",
-                    }}
-                    onClick={() => openEventDetails(evt, false)}
-                  >
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        display: "flex",
-                        alignItems: "center",
-                        backgroundColor: getStatusColor(status),
-                        borderRadius: "4px",
-                        paddingX: 1,
-                        paddingY: 0.5,
-                      }}
-                    >
-                      {React.cloneElement(icon, { style: { color: "#fff" } })}
-                      <Typography variant="body2" sx={{ color: "#fff", marginLeft: 0.5 }}>
-                        {status.toUpperCase()}
-                      </Typography>
-                    </Box>
-
-                    <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
-                      <ListItemText
-                        primary={
-                          <Typography variant="h6" sx={{ color: "#000" }}>
-                            {evt.name}
-                          </Typography>
-                        }
-                        secondary={
-                          <>
-                            <Typography sx={{ display: "flex", alignItems: "center" }}>
-                              {evt.description}
-                            </Typography>
-                            <Typography
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginTop: 1,
-                              }}
-                            >
-                              <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Location:&nbsp;</strong> {evt.location}
-                            </Typography>
-                            <Box sx={{ marginTop: 1 }}>
-                              <Typography
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  marginBottom: 1,
-                                }}
-                              >
-                                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                                <strong>Days:&nbsp;</strong>
                               </Typography>
                               <ul>
                                 {evt.date_options && evt.date_options.length > 0 ? (
@@ -1925,6 +1932,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
       </Dialog>
     </Container>
   );
-});
+};
 
 export default DashboardPage;

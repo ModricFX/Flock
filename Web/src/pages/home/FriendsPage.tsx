@@ -1,19 +1,5 @@
 import React, { useState, forwardRef } from 'react';
-import {
-    Box,
-    Typography,
-    List,
-    ListItem,
-    Chip,
-    Avatar,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogContentText,
-    IconButton,
-    Button,
-    Slide,
-} from '@mui/material';
+import { Box, Typography, List, ListItem, Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogContentText, IconButton, Button, Slide } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { TransitionProps } from '@mui/material/transitions';
 
@@ -51,11 +37,15 @@ const Transition = forwardRef(function Transition(
     return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const FriendsPage: React.FC = () => {
-    const [FriendListArray, setFriendsList] = useState(FriendList);
-    const [selectedFriend, setSelectedFriend] = useState<typeof FriendList[0] | null>(null);
+interface FriendsPageProps {
+    darkMode: boolean;
+}
 
-    const handleChipClick = (friend: typeof FriendList[0]) => {
+const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
+    const [participants, setParticipants] = useState(FriendList);
+    const [selectedFriend, setSelectedFriend] = useState<{ username: string; email: string; status: string; pfpUrl: string } | null>(null);
+
+    const handleChipClick = (friend: { username: string; email: string; status: string; pfpUrl: string }) => {
         setSelectedFriend(friend);
     };
 
@@ -65,11 +55,11 @@ const FriendsPage: React.FC = () => {
 
     const handleAccept = () => {
         if (selectedFriend) {
-            setFriendsList((prevParticipants) =>
-                prevParticipants.map((friend) =>
-                    friend.email === selectedFriend.email
-                        ? { ...friend, status: 'accepted' }
-                        : friend
+            setParticipants((prevParticipants) =>
+                prevParticipants.map((participant) =>
+                    participant.email === selectedFriend.email
+                        ? { ...participant, status: 'accepted' }
+                        : participant
                 )
             );
         }
@@ -78,8 +68,8 @@ const FriendsPage: React.FC = () => {
 
     const handleDeny = () => {
         if (selectedFriend) {
-            setFriendsList((prevParticipants) =>
-                prevParticipants.filter((friend) => friend.email !== selectedFriend.email)
+            setParticipants((prevParticipants) =>
+                prevParticipants.filter((participant) => participant.email !== selectedFriend.email)
             );
         }
         setSelectedFriend(null);
@@ -87,190 +77,112 @@ const FriendsPage: React.FC = () => {
 
     const handleRemoveFriend = () => {
         if (selectedFriend) {
-            setFriendsList((prevParticipants) =>
-                prevParticipants.filter((friend) => friend.email !== selectedFriend.email)
+            setParticipants((prevParticipants) =>
+                prevParticipants.filter((participant) => participant.email !== selectedFriend.email)
             );
         }
         setSelectedFriend(null);
     };
 
     return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                padding: '40px',
-            }}
-        >
-            <Typography
-                variant="h4"
-                sx={{
-                    textAlign: "center",
-                    marginBottom: "30px",
-                    fontWeight: 700,
-                    color: '#333',
-                }}
-            >
-                Friends
-            </Typography>
-            <List
-                sx={{
-                    maxWidth: '600px',
-                    margin: '0 auto',
-                }}
-            >
-                {FriendListArray.map((friend) => (
-                    <ListItem
-                        key={friend.email}
-                        sx={{
-                            display: 'flex',
-                            // Align items to the left instead of center
-                            justifyContent: 'flex-start',
-                            marginBottom: '16px',
-                        }}
-                    >
+        <Box sx={{ padding: '20px' }}>
+            <Typography variant="h4" sx={{ textAlign: "center", marginBottom: "20px" }}>Friends</Typography>
+            <List>
+                {participants.map((participant) => (
+                    <ListItem key={participant.email} sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Chip
-                            label={`${friend.username} (${friend.email}) ${friend.status === 'pending' ? '- Pending' : ''}`}
+                            label={`${participant.username} (${participant.email})${participant.status !== 'accepted' ? ` - ${capitalizeFirstLetter(participant.status)}` : ''}`}
                             avatar={
-                                <Avatar
-                                    src={friend.pfpUrl}
-                                    sx={{
-                                        width: 60,
-                                        height: 60,
-                                    }}
+                                <Avatar 
+                                    src={participant.pfpUrl} 
+                                    sx={{ 
+                                        width: 60, 
+                                        height: 60 
+                                    }} 
                                 />
                             }
                             variant="filled"
-                            sx={{
-                                justifyContent: 'flex-start',
-                                minWidth: '85%',
-                                padding: '10px 16px',
+                            sx={{ 
+                                marginLeft: '10px',
+                                padding: '10px',
                                 fontSize: '1rem',
                                 height: 'auto',
-                                borderRadius: '24px',
-                                cursor: 'pointer',
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                backgroundColor: '#fff',
-                                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
-                                '&:hover': {
-                                    transform: 'scale(1.03)',
-                                    boxShadow: '0 4px 18px rgba(0, 0, 0, 0.15)',
-                                },
+                                borderRadius: '16px',
+                                backgroundColor: darkMode ? '#333' : '#fff',
+                                color: darkMode ? '#fff' : '#000',
+                                width: '430px',
+                                justifyContent: 'flex-start',
                                 '& .MuiChip-avatar': {
                                     width: 60,
                                     height: 60,
-                                },
+                                }
                             }}
-                            onClick={() => handleChipClick(friend)}
+                            onClick={() => handleChipClick(participant)}
                         />
                     </ListItem>
                 ))}
             </List>
-
-
             <Dialog
                 maxWidth="xs"
                 fullWidth
                 open={!!selectedFriend}
                 onClose={handleClose}
                 TransitionComponent={Transition}
-                PaperProps={{
-                    sx: {
-                        borderRadius: '16px',
-                        padding: '8px',
-                    },
-                }}
             >
-                <DialogTitle
-                    variant="h5"
-                    sx={{
-                        textAlign: 'center',
-                        fontWeight: 700,
-                        position: 'relative',
-                    }}
-                >
+                <DialogTitle variant='h5' sx={{ textAlign: 'center' }}>
                     Friend Information
                     <IconButton
                         aria-label="close"
                         onClick={handleClose}
                         sx={{
                             position: 'absolute',
-                            right: 16,
-                            top: 16,
+                            right: 8,
+                            top: 8,
                             color: (theme) => theme.palette.grey[500],
                         }}
                     >
-                        <CloseIcon sx={{ color: "#ff6666" }} />
+                        <CloseIcon sx={{ color: '#ff6666' }}/>
                     </IconButton>
                 </DialogTitle>
-                <DialogContent
-                    sx={{
-                        textAlign: 'center',
-                        overflowY: 'auto',
-                    }}
-                >
+                <DialogContent sx={{ textAlign: 'center' }}>
                     {selectedFriend && (
                         <>
-                            <DialogContentText sx={{ mb: 1 }}>
+                            <DialogContentText>
                                 <strong>Username:</strong> {selectedFriend.username}
                             </DialogContentText>
-                            <DialogContentText sx={{ mb: 1 }}>
+                            <DialogContentText>
                                 <strong>Email:</strong> {selectedFriend.email}
                             </DialogContentText>
-                            
-                            {selectedFriend.status === 'pending' && (
-                                <DialogContentText sx={{ mb: 2 }}>
+                            {selectedFriend.status !== 'accepted' && (
+                                <DialogContentText>
                                     <strong>Status:</strong> {capitalizeFirstLetter(selectedFriend.status)}
                                 </DialogContentText>
                             )}
-
                             {selectedFriend.status === 'pending' && (
-                                <DialogContentText sx={{ mb: 2, color: 'orange', textAlign: 'center' }}>
+                                <DialogContentText sx={{ color: '#f8a202', marginTop: '10px' }}>
                                     This friend request is still pending. Please respond to accept or deny.
                                 </DialogContentText>
                             )}
-
-                            <Avatar
-                                src={selectedFriend.pfpUrl}
-                                sx={{
-                                    width: 100,
-                                    height: 100,
-                                    margin: '20px auto',
-                                }}
+                            <Avatar 
+                                src={selectedFriend.pfpUrl} 
+                                sx={{ 
+                                    width: 100, 
+                                    height: 100, 
+                                    margin: '20px auto' 
+                                }} 
                             />
-
                             {selectedFriend.status === 'pending' ? (
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                                    <Button
-                                        variant="contained"
-                                        onClick={handleDeny}
-                                        sx={{
-                                            backgroundColor: '#ff6666',
-                                            '&:hover': { backgroundColor: '#ff4d4d' },
-                                        }}
-                                    >
+                                    <Button variant="contained" onClick={handleDeny} sx={{ backgroundColor: '#ff6666' }}>
                                         Deny
                                     </Button>
-                                    <Button
-                                        variant="contained"
-                                        onClick={handleAccept}
-                                        sx={{
-                                            backgroundColor: '#4CAF50',
-                                            '&:hover': { backgroundColor: '#43A047' },
-                                        }}
-                                    >
+                                    <Button variant="contained" onClick={handleAccept} sx={{ backgroundColor: '#4CAF50' }}>
                                         Accept
                                     </Button>
                                 </Box>
                             ) : (
                                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                                    <Button
-                                        variant="contained"
-                                        onClick={handleRemoveFriend}
-                                        sx={{
-                                            backgroundColor: '#ff6666',
-                                            '&:hover': { backgroundColor: '#ff4d4d' },
-                                        }}
-                                    >
+                                    <Button variant="contained" onClick={handleRemoveFriend} sx={{ backgroundColor: '#ff6666' }}>
                                         Remove Friend
                                     </Button>
                                 </Box>
