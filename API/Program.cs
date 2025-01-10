@@ -39,13 +39,21 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin", policy =>
+    /*options.AddPolicy("AllowSpecificOrigin", policy =>
     {
         policy.WithOrigins("http://127.0.0.1:30002")  // Spremeniš na port na kerem hostas web
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
+    });*/
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy
+            .AllowAnyOrigin()   // <-- Allows requests from any origin
+            .AllowAnyMethod()   // <-- Allows any HTTP method (GET, POST, etc.)
+            .AllowAnyHeader();  // <-- Allows any HTTP headers
     });
+    
 });
 
 builder.Services.AddSingleton<DapperContext>();
