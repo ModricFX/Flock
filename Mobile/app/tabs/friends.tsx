@@ -26,7 +26,7 @@ import { authService } from '../services/authservice';
 interface Friend {
     id: number;
     username: string;
-    pfp: string;
+    pfp_url: string;
     email: string;
     status: 'accepted' | 'pending';
 }
@@ -60,7 +60,7 @@ export default function Friends() {
                                             id: friend.id_user,
                                             username: friend.username,
                                             email: friend.email,
-                                            pfp: '',
+                                            pfp_url: friend.pfp_url || '',
                                             status: rel.status
                                         });
                                     }
@@ -74,7 +74,7 @@ export default function Friends() {
                                                 id: friend.id_user,
                                                 username: friend.username,
                                                 email: friend.email,
-                                                pfp: '',
+                                                pfp_url: friend.pfp_url || '',
                                                 status: rel.status
                                             });
                                         }
@@ -190,8 +190,8 @@ export default function Friends() {
                             onPress={() => handleOpenFriendDetails(friend)}
                         >
                             <Image source={
-                                            friend.pfp.startsWith('http') 
-                                                ? { uri: friend.pfp } 
+                                            friend.pfp_url.startsWith('http')
+                                                ? { uri: friend.pfp_url }
                                                 : require('../../assets/images/default_profile.png')
                                             } style={styles.friendPfp} />
                             <View style={styles.friendInfo}>
@@ -235,8 +235,8 @@ export default function Friends() {
                                     <>
                                         <Image
                                             source={
-                                                selectedFriend.pfp.startsWith('http') 
-                                                    ? { uri: selectedFriend.pfp } 
+                                                selectedFriend.pfp_url.startsWith('http')
+                                                    ? { uri: selectedFriend.pfp_url }
                                                     : require('../../assets/images/default_profile.png')
                                             }
                                             style={styles.modalPfp}
