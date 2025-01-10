@@ -68,7 +68,7 @@ public class EventRepository : IEventRepository
     {
         var query = @"
         SELECT c.id_user, c.id_date_option
-        FROM chose c INNER JOIN db.date_option d on c.id_date_option = d.id_date_option INNER JOIN event e ON d.id_event = e.id_event
+        FROM chose c INNER JOIN date_option d on c.id_date_option = d.id_date_option INNER JOIN event e ON d.id_event = e.id_event
         WHERE d.id_event = @Event_id";
 
         using (var connection = _context.CreateConnection())
