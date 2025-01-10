@@ -28,6 +28,7 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
+  // on component mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
