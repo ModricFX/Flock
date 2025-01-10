@@ -17,23 +17,39 @@ export class EventService {
 
     // Add methods for event-related operations
 
-    async getEvents(): Promise<{ data: EventData[] }> {
+    async getEvents(): Promise<{ success:boolean, data?: EventData[], error?: string }> {
        const response = await this.api.get('/event');
-       return response;
+
+       if(!response || response.status != 200){
+        return { success: false, error: "error fetching events" }
+       }
+       return { success: true, data: response.data };
     }
 
-    async getEventById(id: string) {
+    async getEventById(id: string): Promise<{ success:boolean, data?: EventData, error?: string }> {
         const response = await this.api.get('/event/'+id+'');
-        return response.data;
+        if(!response || response.status != 200){
+            return { success: false, error: "error fetching event" }
+        }
+        return { success: true, data: response.data };
     }
 
-    async createEvent(event: any): Promise<{ data: EventData }>  {
+    async createEvent(event: any): Promise<{ success:boolean, data?: EventData, error?: string }>  {
         const response = await this.api.post('/event', event);
-        return response;
+        if(!response || response.status != 200){
+            return { success: false, error: "error creating event" }
+        }
+        return { success: true, data: response.data };
     }
 
-    async updateEvent(event: any): Promise<{ data: EventData }> {
+    async updateEvent(event: any): Promise<{ success:boolean, data?: EventData, error?: string }> {
         const response = await this.api.put('/event', event);
-        return response;
+        if(!response){
+            return { success: false, error: "error updating event" }
+        }
+        if(response.status != 200){
+            return { success: false, error: response.status.toString() }
+        }
+        return { success: true, data: response.data };
     }
 }

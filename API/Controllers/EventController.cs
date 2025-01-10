@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using flock.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace flock.Controllers
 {
@@ -42,6 +43,10 @@ namespace flock.Controllers
                 };
                 
                 var event_id = await _eventRepository.CreateEvent(ev);
+                
+                ev.Invitations = new List<Invitation>();
+                ev.Votes = new List<Chose>();
+                ev.Date_options = new List<DateOption>();
 
                 foreach (var dateOption in request.Date_options)
                 {
@@ -52,22 +57,26 @@ namespace flock.Controllers
                         Date_start = dateOption.Date_end,
                     };
                     
-                    _ = await _eventRepository.CreateDateOption(opt);
+                    ev.Date_options.Add(await _eventRepository.CreateDateOption(opt));
                 }
 
                 foreach (var tagId in request.Tag_ids)
                 {
-                    _eventRepository.AddTag(event_id, tagId);
+                    _ = _eventRepository.AddTag(event_id, tagId);
                 }
                 
                 foreach (var user_id in request.Participant_ids)
                 {
-                    _eventRepository.SendInvitation(event_id, user_id);
+                    Invitation inv = new Invitation
+                    {
+                        Id_user = user_id,
+                        Id_event = event_id,
+                        Status = "pending",
+                        Date_invited = DateTime.UtcNow,
+                    };
+                    
+                    ev.Invitations.Add(await _eventRepository.SendInvitation(inv));
                 }
-
-                ev = await _eventRepository.GetEventById(event_id);
-                ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
-                ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
                 
                 return Ok(ev);
             }
@@ -86,78 +95,122 @@ namespace flock.Controllers
         {
             try
             {
-                Event current_event = await _eventRepository.GetEventById(request.Id_event);
-                current_event.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
-                current_event.Votes = await _eventRepository.GetVotes(current_event.Id_event);
-                current_event.Date_options = await _eventRepository.GetDateOptions(current_event.Id_event);
+                Event currentEvent = await _eventRepository.GetEventById(request.Id_event);
 
-                if (current_event.Id_user != request.Id_user)
+                if (currentEvent == null)
+                {
+                    return BadRequest("event not found");
+                }
+                currentEvent.Invitations = await _eventRepository.GetInvitations(currentEvent.Id_event);
+                currentEvent.Votes = await _eventRepository.GetVotes(currentEvent.Id_event);
+                currentEvent.Date_options = await _eventRepository.GetDateOptions(currentEvent.Id_event);
+
+                if (currentEvent.Id_user != request.Id_user)
                 {
                     return Unauthorized();
                 }
 
                 // Update event details
-                current_event.Name = request.Name;
-                current_event.Description = request.Description;
-                current_event.Location = request.Location;
-                current_event.End_voting_date = request.End_voting_date;
-                current_event.Chosen_date_start = request.Chosen_date_start;
-                current_event.Chosen_date_end = request.Chosen_date_end;
-                current_event.Date_updated = DateTime.UtcNow;
-                current_event.SysRowState = request.SysRowState;
+                currentEvent.Name = request.Name;
+                currentEvent.Description = request.Description;
+                currentEvent.Location = request.Location;
+                currentEvent.End_voting_date = request.End_voting_date;
+                currentEvent.Chosen_date_start = request.Chosen_date_start;
+                currentEvent.Chosen_date_end = request.Chosen_date_end;
+                currentEvent.Date_updated = DateTime.UtcNow;
+                currentEvent.SysRowState = request.SysRowState;
 
-                Event newev = await _eventRepository.UpdateEvent(current_event);
-
-                // Handle Date Options
-                current_event.Date_options.RemoveAll(x =>
-                    request.Date_options.Any(y => y.Id_date_option == x.Id_date_option));
-
-                foreach (var opt in current_event.Date_options)
+                if (!await _eventRepository.UpdateEvent(currentEvent))
                 {
-                    await _eventRepository.DeleteDateOption(opt.Id_date_option);
+                    return BadRequest();
                 }
-
-                foreach (var dateOption in request.Date_options)
+                
+                List<DateOption> newDateOptions = new List<DateOption>();
+                
+                if (request.Date_options != null)
                 {
-                    DateOption transformed_date_option = new DateOption
+                    foreach (var dateOption in request.Date_options)
                     {
-                        Id_date_option = dateOption.Id_date_option,
-                        Id_event = current_event.Id_event,
-                        Date_start = dateOption.Date_start,
-                        Date_end = dateOption.Date_end,
-                    };
+                        DateOption transformedDateOption = new DateOption
+                        {
+                            Id_event = currentEvent.Id_event,
+                            Date_end = dateOption.Date_end,
+                            Date_start = dateOption.Date_start,
+                            Id_date_option = dateOption.Id_date_option,
+                        };
 
-                    if (dateOption.Id_date_option == 0)
-                    {
-                        await _eventRepository.CreateDateOption(transformed_date_option);
-                    }
-                    else
-                    {
-                        await _eventRepository.UpdateDateOption(transformed_date_option);
-                    }
-                }
-
-                // Handle Invitations
-                foreach (var id in request.Participant_ids)
-                {
-                    if (!current_event.Invitations.Exists(x => x.Id_user == id))
-                    {
-                        await _eventRepository.SendInvitation(current_event.Id_event, id);
+                        if (transformedDateOption.Id_date_option == 0)
+                        {
+                            newDateOptions.Add(await _eventRepository.CreateDateOption(transformedDateOption));
+                        }
+                        else
+                        {
+                            newDateOptions.Add(await _eventRepository.UpdateDateOption(transformedDateOption));
+                        }
                     }
                 }
 
-                current_event.Invitations.RemoveAll(x => x.Id_event == request.Id_event && request.Participant_ids.Contains(x.Id_user));
-
-                foreach (var part in current_event.Invitations)
+                if (currentEvent.Date_options != null && currentEvent.Date_options.Count > 0)
                 {
-                    await _eventRepository.DeleteInvitation(part.Id_event, part.Id_user);
+                    foreach (var dateOption in currentEvent.Date_options)
+                    {
+                        if(!newDateOptions.Exists(x => x.Id_date_option == dateOption.Id_date_option))
+                            _ = _eventRepository.DeleteDateOption(dateOption.Id_date_option);
+                    }
+                }
+                
+                currentEvent.Date_options = newDateOptions;
+                
+                List<Invitation> newInvitations = new List<Invitation>();
+
+                if (request.Participant_ids != null)
+                {
+                    foreach (var id in request.Participant_ids)
+                    {
+                        Invitation inv = new Invitation
+                        {
+                            Id_user = id,
+                            Id_event = currentEvent.Id_event,
+                            Date_invited = DateTime.UtcNow,
+                            Status = "pending"
+                        };
+                        
+                        if (currentEvent.Invitations == null)
+                        {
+                            newInvitations.Add(await _eventRepository.SendInvitation(inv));
+                        }
+                        else
+                        {
+                            Invitation? search = currentEvent.Invitations.Find(x => x.Id_user == id);
+                            if(search == null)
+                                newInvitations.Add(await _eventRepository.SendInvitation(inv));
+                            else
+                                newInvitations.Add(search);
+                        }
+                    }
                 }
 
-                newev.Invitations = await _eventRepository.GetInvitations(current_event.Id_event);
-                newev.Votes = await _eventRepository.GetVotes(newev.Id_event);
-                newev.Date_options = await _eventRepository.GetDateOptions(newev.Id_event);
+                if (currentEvent.Invitations != null && currentEvent.Invitations.Count > 0)
+                {
+                    List<Invitation> invitationsToRemove = new List<Invitation>();
+    
+                    foreach (var invite in currentEvent.Invitations)
+                    {
+                        if (!newInvitations.Exists(x => x.Id_user == invite.Id_user))
+                        {
+                            invitationsToRemove.Add(invite);
+                        }
+                    }
+                    
+                    foreach (var invite in invitationsToRemove)
+                    {
+                        await _eventRepository.DeleteInvitation(invite.Id_event, invite.Id_user);
+                    }
+                }
 
-                return Ok(newev);
+                currentEvent.Invitations = await _eventRepository.GetInvitations(currentEvent.Id_event);
+                
+                return Ok(currentEvent);
             }
             catch (Exception e)
             {

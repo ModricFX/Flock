@@ -46,7 +46,7 @@ public class EventRepository : IEventRepository
         SELECT i.*, u.* 
         FROM `invitation` i
         JOIN `user` u ON i.`Id_user` = u.`Id_user`
-        WHERE i.`Id_event` = @Id";
+        WHERE `Id_event` = @Id";
 
         using (var connection = _context.CreateConnection())
         {
@@ -156,23 +156,22 @@ public class EventRepository : IEventRepository
         }
     }
 
-    public async Task<int> CreateDateOption(DateOption option)
+    public async Task<DateOption> CreateDateOption(DateOption option)
     {
         var query = @"
             INSERT INTO `date_option` (`id_event`, `date_start`, `date_end`)
             VALUES (@Id_event, @Date_start, @Date_end);
-            SELECT LAST_INSERT_ID();
+            SELECT * FROM `date_option` WHERE `id_date_option` = LAST_INSERT_ID();
         ";
         
         using (var connection = _context.CreateConnection())
         {
-            var ret_id = await connection.QuerySingleAsync<int>(query, option);
-            return ret_id;
+            return await connection.QuerySingleAsync<DateOption>(query, option);
         }
     }
 
 
-    public async Task<Event> UpdateEvent(Event @event)
+    public async Task<bool> UpdateEvent(Event @event)
     {
         var query = @"
         UPDATE `event`
@@ -185,14 +184,13 @@ public class EventRepository : IEventRepository
             `chosen_date_end` = @Chosen_date_end, 
             `date_updated` = @Date_updated,
             `sysrowstate` = @SysRowState
-        WHERE `id_event` = @Id_event;
-        SELECT *
-        FROM `event`
         WHERE `id_event` = @Id_event";
 
         using (var connection = _context.CreateConnection())
         {
-            return await connection.QueryFirstOrDefaultAsync<Event>(query, @event);
+            await connection.ExecuteAsync(query, @event);
+
+            return true;
         }
     }
 
@@ -227,31 +225,16 @@ public class EventRepository : IEventRepository
         return true;
     }
     
-    public async Task<Invitation> SendInvitation(int event_id, int user_id)
+    public async Task<Invitation> SendInvitation(Invitation invitation)
     {
         var query = "INSERT INTO `invitation` (`id_event`, `id_user`, `status`, `date_invited`) VALUES(@Id_event, @Id_user, @Status, @Date_invited);";
 
         using (var connection = _context.CreateConnection())
         {
-            var parameters = new
-            {
-                Id_event = event_id,
-                Id_user = user_id,
-                Status = "pending",
-                Date_invited = DateTime.Now
-            };
-            
-            await connection.ExecuteAsync(query, parameters);
+            await connection.ExecuteAsync(query, invitation);
         }
 
-
-        return new Invitation
-        {
-            Id_event = event_id,
-            Id_user = user_id,
-            Status = "pending",
-            Date_invited = DateTime.Now,
-        };
+        return invitation;
     }
     
     public async Task<bool> DeleteInvitation(int event_id, int user_id)

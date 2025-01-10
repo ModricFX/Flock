@@ -128,6 +128,15 @@ export default function HomeScreen() {
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
 
     useEffect(() => {
+        const fetchData = async () => {
+            try {
+                await fetchUserData();
+                await fetchEvents();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        
         const fetchUserData = async () => {
             try {
                 let user = await authService.getUserData();
@@ -136,8 +145,8 @@ export default function HomeScreen() {
                     
                     if (user.data?.id_user) {
                         const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
-                        let friends: User[] = [];
-    
+                        let friends = [];
+        
                         for (const rel of relationships) {
                             let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
                             let friend = await friendService.getFriendData(id);
@@ -151,7 +160,7 @@ export default function HomeScreen() {
                                 });
                             }
                         }
-    
+        
                         setFriends(friends);
                     }
                 } else {
@@ -162,8 +171,27 @@ export default function HomeScreen() {
                 router.replace('/auth/login');
             }
         };
-    
-        fetchUserData();
+        
+        const fetchEvents = async () => {
+            try {
+                const response = await eventService.getEvents();
+        
+                if (response.success && response.data) {
+                    let events = transformEvents(response.data);
+                    setEvents(events);
+                } else {
+                    console.log(response.error);
+                }
+            } catch (error) {
+                console.error("Error fetching events:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        // Start the data fetching process
+        fetchData();
+        
     }, []);
     
 
@@ -312,10 +340,12 @@ export default function HomeScreen() {
 
             if(ev.invitations){
                 ev.participants = ev.invitations.map(inv => {
+                    let invitedFriend = inv.user;
+
                     return {
-                        id: inv.user.id_user, 
-                        email: inv.user.email, 
-                        username: inv.user.username,
+                        id: invitedFriend? invitedFriend.id_user : '', 
+                        email: invitedFriend? invitedFriend.email : '', 
+                        username: invitedFriend? invitedFriend.username : '', 
                         pfpUrl: '',
                         status: inv.status
                     };
@@ -334,24 +364,6 @@ export default function HomeScreen() {
 
         return events;
     }
-
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await eventService.getEvents();
-                
-                let events = transformEvents(response.data);
-                
-                setEvents(events);
-            } catch (error) {
-                console.error("Error fetching events:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchEvents();
-    }, []); 
 
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
@@ -443,13 +455,22 @@ export default function HomeScreen() {
                 }   
             }),
             tag_ids: [],
-            participant_ids: editInvitees.map(invite => invite.id? invite.id : null).filter(id => id !== null),
+            participant_ids: invitees
+            .filter(invite => invite.id)
+            .map(invite => invite.id)
         }
+        //console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
-
-        let events = transformEvents([response.data]);
-        setEvents(prev => [...prev, events[0]]);
+        if(response.success && response.data){
+            let events = transformEvents([response.data]);
+        
+            setEvents(prev => [...prev, events[0]]);
+        }
+        else{
+            console.log(response.error);
+        }
+        
         closeCreateEvent();
     }
 
@@ -732,8 +753,6 @@ export default function HomeScreen() {
         setEditDesc(e.description || '');
         setEditLoc(e.location || '');
         setEditDays(e.date_options ? [...e.date_options] : []); // Spread to prevent direct reference issues
-
-        //console.log(e.participants);
         setEditInvitees(e.participants ? [...e.participants] : []); // Ensure participants is not null
         setEditEndVoting(e.end_voting_date || new Date()); // Fallback to current date if endVoting is undefined
         setEditModalVisible(true);
@@ -790,42 +809,28 @@ export default function HomeScreen() {
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
                 date_end: day.date_end.toISOString(),
-                id_date_option: day.id_date_option,
-                id_event: day.id_event
+                id_date_option: day.id_date_option? day.id_date_option : 0,
+                id_event: day.id_event? day.id_event : 0
             })),
-            participant_ids: editInvitees.map(invite => invite.id || null).filter(id => id !== null)
+            participant_ids: editInvitees
+            .filter(invite => invite.id)
+            .map(invite => invite.id)
         }
 
         //console.log(UpdatedEvent);
+        
         let response = await eventService.updateEvent(UpdatedEvent);
 
-        let updated = transformEvents([response.data]);
+        if(response.success && response.data){
+            let updated = transformEvents([response.data]);
 
-        /*let newEvents: EventData[] = [];
-        events.forEach(ev => {
-            if (ev.id_event == updated[0].id_event) {
-                ev.name = updated[0].name;
-                ev.description = updated[0].description;
-                ev.location = updated[0].location;
-                ev.end_voting_date = updated[0].end_voting_date;
-                ev.chosen_date_start = updated[0].chosen_date_start;
-                ev.chosen_date_end = updated[0].chosen_date_end;
-                ev.date_options = updated[0].date_options;
-                ev.participants = updated[0].participants;
-                ev.invitations = updated[0].invitations;
-                ev.date_created = updated[0].date_created;
-                ev.date_updated = updated[0].date_updated;
-                ev.votes = updated[0].votes;
-
-                console.log(ev);
-            }
-
-            newEvents.push(ev);
-        });*/
-
-        setEvents(events.map(ev => 
-            ev.id_event == updated[0].id_event ? updated[0] : ev
-        ));
+            setEvents(events.map(ev => {
+                    return ev.id_event == updated[0].id_event ? updated[0] : ev
+                }
+            ));
+        } else {
+            console.log(response.error)
+        }
         
         closeEditEvent();
     }
