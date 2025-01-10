@@ -146,7 +146,7 @@ export default function HomeScreen() {
                     
                     if (user.data?.id_user) {
                         const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
-                        let friends = [];
+                        let friends: User[] = [];
         
                         for (const rel of relationships) {
                             let id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
@@ -157,7 +157,7 @@ export default function HomeScreen() {
                                     id_user: friend.id_user,
                                     username: friend.username,
                                     email: friend.email,
-                                    pfpUrl: ''
+                                    pfp_url: ''
                                 });
                             }
                         }
