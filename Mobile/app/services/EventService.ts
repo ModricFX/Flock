@@ -17,6 +17,20 @@ export class EventService {
 
     // Add methods for event-related operations
 
+    async getEvents(): Promise<{ success:boolean, data?: EventData[], error?: any }> {
+        const response = await this.api.get('/event');
+ 
+        if(!response){
+         return { success: false, error: "no response from server" }
+        }
+        if(response.status != 200){
+         return { success: false, error: response}
+        }
+ 
+        
+        return { success: true, data: response.data };
+     }
+
     async getMyEvents(id: string): Promise<{ success:boolean, data?: EventData[], error?: any }> {
        const response = await this.api.get('/event/user/'+id);
 
@@ -56,5 +70,32 @@ export class EventService {
             return { success: false, error: response.status.toString() }
         }
         return { success: true, data: response.data };
+    }
+
+    async deleteEvent(id_event: number, id_user: number): Promise<{ success: boolean; error?: string }> {
+        try {
+            const response = await this.api.delete('/event', {
+                params: {
+                    user_id: id_user // Query parameter
+                },
+                data: {
+                    id_user: id_user, // Request body
+                    id_event: id_event
+                }
+            });
+
+            if (response.status === 200) {
+                return { success: true };
+            } else {
+                return { success: false, error: `Failed with status: ${response.status}` };
+            }
+        } catch (error) {
+            let errorMessage = 'An unexpected error occurred';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            console.error('Error deleting event:', error);
+            return { success: false, error: errorMessage };
+        }
     }
 }

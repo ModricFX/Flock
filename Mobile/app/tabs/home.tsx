@@ -27,7 +27,6 @@ import { authService } from '../services/authservice';
 import { router } from 'expo-router';
 import { EventService } from '../services/EventService';
 import { apiService } from '../services/ApiService';
-import { event } from 'jquery';
 
 
 const isIOS = Platform.OS === 'ios';
@@ -165,6 +164,7 @@ export default function HomeScreen() {
                         setFriends(friends);
 
                         const eventResponse = await eventService.getMyEvents(user.data.id_user);
+                        //console.log(eventResponse);
             
                         if (eventResponse.success && eventResponse.data) {
                             let events = transformEvents(eventResponse.data);
@@ -455,6 +455,7 @@ export default function HomeScreen() {
         //console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
+
         if(response.success && response.data){
             let events = transformEvents([response.data]);
         

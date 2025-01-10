@@ -278,6 +278,9 @@ namespace flock.Controllers
         {
             try
             {
+                if(!User.Identity.IsAuthenticated)
+                    return Unauthorized();
+                
                 List<Event>? events = await _eventRepository.GetAllMyEvents(id);
                 if (events != null)
                 {
