@@ -45,6 +45,7 @@ export default function RegisterScreen() {
       await authService.register({
         "first_name": name,
         "last_name": surname,
+        "username": username,
         "email": email,
         "password": password
       });

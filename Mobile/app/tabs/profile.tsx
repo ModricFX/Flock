@@ -35,6 +35,7 @@ export default function Profile() {
         const userData = await authService.getUserData();
         setUsername(userData.data.username);
         setEmail(userData.data.email);
+        console.log('User data from profile get data:', userData);
       } catch (error) {
         console.error('Failed to fetch user data:', error);
         Alert.alert('Error', 'Failed to fetch user data. Please try again.');
