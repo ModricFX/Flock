@@ -22,10 +22,12 @@ import {
   ListItemText,
   IconButton,
   InputAdornment,
+  DialogContentText,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { format } from "date-fns";
 import { authService } from "../../services/authservice";
-
 import InfoIcon from "@mui/icons-material/Info";
 import EventIcon from "@mui/icons-material/Event";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -36,12 +38,10 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
 import PeopleIcon from "@mui/icons-material/People";
 import HowToVoteIcon from "@mui/icons-material/HowToVote";
-
 import CompletedIcon from "@mui/icons-material/Done";
 import VotingIcon from "@mui/icons-material/PlayArrow";
 import InProgressIcon from "@mui/icons-material/Autorenew";
 import UpcomingIcon from "@mui/icons-material/AccessTime";
-
 import { toast } from "react-toastify";
 
 interface Participant {
@@ -475,7 +475,99 @@ const DashboardPage = forwardRef((_props, _ref) => {
     checkUserData();
   }, [navigate]);
 
-  const handleOpen = (eventIndex: number | null = null): void => {
+  // For details modal
+  const [detailsModalOpen, setDetailsModalOpen] = useState<boolean>(false);
+  const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+  const [isMine, setIsMine] = useState<boolean>(false);
+  const [participationStatus, setParticipationStatus] = useState<"confirmed" | "denied" | null>(
+    null
+  );
+
+  // Voting Modal
+  const [votingModalOpen, setVotingModalOpen] = useState<boolean>(false);
+  // We store user responses as dayIndex => boolean (available or not).
+  const [votingResponses, setVotingResponses] = useState<{ [key: number]: boolean }>({});
+
+  function openEventDetails(e: EventData, mine: boolean) {
+    setSelectedEvent(e);
+    setIsMine(mine);
+    setDetailsModalOpen(true);
+    const me = e.participants.find((p) => p.email === "myuser@domain.com");
+    if (me && me.status === "accepted") setParticipationStatus("confirmed");
+    else if (me && me.status === "declined") setParticipationStatus("denied");
+    else setParticipationStatus(null);
+  }
+
+  function closeEventDetails() {
+    setDetailsModalOpen(false);
+    setSelectedEvent(null);
+    setIsMine(false);
+    setParticipationStatus(null);
+  }
+
+  const handleConfirmParticipation = () => {
+    setParticipationStatus("confirmed");
+  };
+  const handleDenyParticipation = () => {
+    setParticipationStatus("denied");
+  };
+
+  function handleVote() {
+    if (!selectedEvent) return;
+    // Initialize the votingResponses with false for each day index
+    const initResp: { [key: number]: boolean } = {};
+    selectedEvent.date_options.forEach((_, idx) => {
+      initResp[idx] = false;
+    });
+    setVotingResponses(initResp);
+    setVotingModalOpen(true);
+  }
+
+  function closeVotingModal() {
+    setVotingModalOpen(false);
+  }
+
+  function handleToggleDay(idx: number, val: boolean) {
+    setVotingResponses((prev) => ({
+      ...prev,
+      [idx]: val,
+    }));
+  }
+
+  function handleSubmitVoting() {
+    // Just an example
+    toast.success("Vote submitted!");
+    setVotingModalOpen(false);
+    setDetailsModalOpen(false);
+  }
+
+  const handleEditFromDetails = () => {
+    if (!selectedEvent) return;
+    const indexInMine = myEvents.findIndex((evt) => evt.id_event === selectedEvent.id_event);
+    if (indexInMine >= 0) {
+      handleOpen(indexInMine);
+      setDetailsModalOpen(false);
+    }
+  };
+
+  function getHoursFrom(dateTime: Date) {
+    const date = new Date(dateTime);
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
+  function parseTimeToDate(dateString: string, timeString: string): Date | null {
+    if (!dateString || !timeString) {
+      return null;
+    }
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const date = new Date(dateString);
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+
+  function handleOpen(eventIndex: number | null = null): void {
     if (eventIndex !== null) {
       setEditEventIndex(eventIndex);
       const eventToEdit = myEvents[eventIndex];
@@ -517,40 +609,22 @@ const DashboardPage = forwardRef((_props, _ref) => {
     }
     setStep(1);
     setOpen(true);
-  };
-
-  function getHoursFrom(dateTime: Date) {
-    const date = new Date(dateTime);
-    const hours = date.getHours().toString().padStart(2, "0");
-    const minutes = date.getMinutes().toString().padStart(2, "0");
-    return `${hours}:${minutes}`;
   }
 
-  const handleClose = (): void => {
+  function handleClose() {
     setOpen(false);
     setEditEventIndex(null);
-  };
-
-  const handleNext = (): void => {
-    setStep((prev) => Math.min(prev + 1, 4));
-  };
-
-  const handleBack = (): void => {
-    setStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  function parseTimeToDate(dateString: string, timeString: string): Date | null {
-    if (!dateString || !timeString) {
-      console.warn("Invalid date or time:", { dateString, timeString });
-      return null;
-    }
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const date = new Date(dateString);
-    date.setHours(hours, minutes, 0, 0);
-    return date;
   }
 
-  const handleSave = (): void => {
+  function handleNext() {
+    setStep((prev) => Math.min(prev + 1, 4));
+  }
+
+  function handleBack() {
+    setStep((prev) => Math.max(prev - 1, 1));
+  }
+
+  function handleSave() {
     if (!newEvent.title || !newEvent.description || !newEvent.location) {
       toast.error("Please fill out all basic info (Title, Description, Location).", {
         position: "top-center",
@@ -586,7 +660,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
       name: newEvent.title,
       description: newEvent.description,
       location: newEvent.location,
-      date_options: newEvent.days.map((day: typeof newEvent.days[0]) => ({
+      date_options: newEvent.days.map((day: any) => ({
         dateStart: parseTimeToDate(day.date, day.startTime) || new Date(),
         dateEnd: parseTimeToDate(day.date, day.endTime) || new Date(),
       })),
@@ -598,8 +672,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
       })),
       end_voting_date: endVotingDate,
       eventDate: firstEventDate,
-      createdAt:
-        editEventIndex !== null ? myEvents[editEventIndex].createdAt : new Date(),
+      createdAt: editEventIndex !== null ? myEvents[editEventIndex].createdAt : new Date(),
       updatedAt: new Date(),
     };
 
@@ -620,26 +693,44 @@ const DashboardPage = forwardRef((_props, _ref) => {
     }
 
     handleClose();
-  };
+  }
 
-  const handleRemoveDay = (index: number) => {
+  function handleRemoveDay(index: number) {
     const updatedDays = [...newEvent.days];
     updatedDays.splice(index, 1);
     setNewEvent({ ...newEvent, days: updatedDays });
-  };
+  }
 
-  const handleRemoveDeadline = (index: number) => {
+  function handleRemoveDeadline(index: number) {
     const updatedDeadline = [...newEvent.deadline];
     updatedDeadline.splice(index, 1);
     setNewEvent({ ...newEvent, deadline: updatedDeadline });
-  };
+  }
 
-  const handleAddUser = (friend: Friend) => {
+  function handleAddUser(friend: Friend) {
     if (friend.name.trim() && !invitedUsers.some((user) => user.email === friend.email)) {
       setInvitedUsers([...invitedUsers, friend]);
       setUsername("");
     }
-  };
+  }
+
+  function getEventStatus(e: EventData): "voting" | "upcoming" | "completed" | "in progress" {
+    const now = Date.now();
+    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
+      return "voting";
+    }
+    if (e.eventDate) {
+      const eventStart = e.eventDate.getTime();
+      const eventEnd = eventStart + 3 * 60 * 60 * 1000;
+      if (now >= eventStart && now <= eventEnd) {
+        return "in progress";
+      }
+      if (now > eventEnd) {
+        return "completed";
+      }
+    }
+    return "upcoming";
+  }
 
   function getStatusIcon(status: string) {
     switch (status) {
@@ -654,26 +745,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
       default:
         return <UpcomingIcon />;
     }
-  }
-
-  function getEventStatus(e: EventData): "voting" | "upcoming" | "completed" | "in progress" {
-    const now = Date.now();
-
-    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
-      return "voting";
-    }
-
-    if (e.eventDate) {
-      const eventStart = e.eventDate.getTime();
-      const eventEnd = eventStart + 3 * 60 * 60 * 1000;
-      if (now >= eventStart && now <= eventEnd) {
-        return "in progress";
-      }
-      if (now > eventEnd) {
-        return "completed";
-      }
-    }
-    return "upcoming";
   }
 
   function getStatusColor(status: string): string {
@@ -724,7 +795,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       backgroundColor: "#f9f9f9",
                       position: "relative",
                     }}
-                    onClick={() => handleOpen(index)}
+                    onClick={() => openEventDetails(evt, true)}
                   >
                     <Box
                       sx={{
@@ -802,8 +873,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong>{" "}
-                              {evt.participants ? evt.participants.length : 0}
+                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -815,7 +885,8 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               >
                                 <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                                 <strong>Voting Ends:&nbsp;</strong>{" "}
-                                {format(evt.end_voting_date, "dd.MM.yyyy")} at {getHoursFrom(evt.end_voting_date)}
+                                {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
+                                {getHoursFrom(evt.end_voting_date)}
                               </Typography>
                             )}
                           </>
@@ -870,6 +941,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                       backgroundColor: "#f9f9f9",
                       position: "relative",
                     }}
+                    onClick={() => openEventDetails(evt, false)}
                   >
                     <Box
                       sx={{
@@ -946,8 +1018,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong>{" "}
-                              {evt.participants ? evt.participants.length : 0}
+                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -959,7 +1030,8 @@ const DashboardPage = forwardRef((_props, _ref) => {
                               >
                                 <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                                 <strong>Voting Ends:&nbsp;</strong>{" "}
-                                {format(evt.end_voting_date, "dd.MM.yyyy")} at {getHoursFrom(evt.end_voting_date)}
+                                {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
+                                {getHoursFrom(evt.end_voting_date)}
                               </Typography>
                             )}
                           </>
@@ -974,6 +1046,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
         </Paper>
       </div>
 
+      {/* Create/Edit Modal */}
       <Dialog
         open={open}
         onClose={handleClose}
@@ -1201,8 +1274,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                 <DialogActions
                   sx={{
                     justifyContent: "space-between",
-                    paddingBottom: "16px",
-                    paddingLeft: "20px",
                     padding: "20px",
                   }}
                 >
@@ -1232,7 +1303,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         });
                         return;
                       }
-
                       const today = new Date();
                       const chosenDate = new Date(selectedDate);
                       chosenDate.setHours(0, 0, 0, 0);
@@ -1244,7 +1314,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         });
                         return;
                       }
-
                       const [startH, startM] = startTime.split(":").map(Number);
                       const [endH, endM] = endTime.split(":").map(Number);
                       if (startH > endH || (startH === endH && startM >= endM)) {
@@ -1254,7 +1323,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         });
                         return;
                       }
-
                       const newDay = {
                         date: selectedDate,
                         startTime,
@@ -1379,11 +1447,7 @@ const DashboardPage = forwardRef((_props, _ref) => {
           {step === 4 && (
             <div>
               <Box display="flex" alignItems="center">
-                <CalendarMonthIcon
-                  sx={{
-                    color: "#4caf50",
-                  }}
-                />
+                <CalendarMonthIcon sx={{ color: "#4caf50" }} />
                 <Typography variant="body1" style={{ marginLeft: 8 }}>
                   Voting deadline
                 </Typography>
@@ -1529,7 +1593,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         });
                         return;
                       }
-
                       const selectedDateTime = new Date(`${selectedDeadline}T${DeadlineTime}:00`);
                       const now = new Date();
                       if (selectedDateTime < now) {
@@ -1539,7 +1602,6 @@ const DashboardPage = forwardRef((_props, _ref) => {
                         });
                         return;
                       }
-
                       const dl = { date: selectedDeadline, DeadlineTime };
                       const updated = [...(newEvent.deadline || []), dl];
                       setNewEvent({ ...newEvent, deadline: updated });
@@ -1651,6 +1713,214 @@ const DashboardPage = forwardRef((_props, _ref) => {
               Finish
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Event Details Modal */}
+      <Dialog
+        open={detailsModalOpen}
+        onClose={closeEventDetails}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{selectedEvent?.name}</DialogTitle>
+        <DialogContent>
+          {selectedEvent && (
+            <>
+              <DialogContentText sx={{ marginBottom: 2 }}>
+                {selectedEvent.description}
+              </DialogContentText>
+              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+                <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Location:&nbsp;</strong>
+                {selectedEvent.location}
+              </Typography>
+              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Days:</strong>
+              </Typography>
+              <ul>
+                {selectedEvent.date_options.map((d, idx) => (
+                  <li key={idx} style={{ marginBottom: "6px" }}>
+                    {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
+                    {getHoursFrom(d.dateEnd)})
+                  </li>
+                ))}
+              </ul>
+              <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Participants: {selectedEvent.participants.length}</strong>
+              </Typography>
+              <Box sx={{ marginTop: 2 }}>
+                {getEventStatus(selectedEvent) === "voting" && (
+                  <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                    <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                    <strong>Voting Ends:&nbsp;</strong>
+                    {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
+                    {getHoursFrom(selectedEvent.end_voting_date)}
+                  </Typography>
+                )}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
+          {selectedEvent && isMine && (
+            <Button
+              variant="outlined"
+              onClick={handleEditFromDetails}
+              sx={{ textTransform: "none" }}
+            >
+              Edit
+            </Button>
+          )}
+          {selectedEvent && (
+            <>
+              {(() => {
+                const status = selectedEvent ? getEventStatus(selectedEvent) : "upcoming";
+                if (status === "voting") {
+                  return (
+                    <>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleVote}
+                        sx={{ textTransform: "none" }}
+                      >
+                        Vote
+                      </Button>
+                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                        Close
+                      </Button>
+                    </>
+                  );
+                } else if (status === "in progress" || status === "upcoming") {
+                  return (
+                    <>
+                      <Box sx={{ marginRight: "auto" }}>
+                        <Typography>Confirm Participation:</Typography>
+                        {participationStatus === "confirmed" && (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Typography sx={{ marginRight: 2 }}>
+                              Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
+                            </Typography>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={handleDenyParticipation}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Change to Deny
+                            </Button>
+                          </Box>
+                        )}
+                        {participationStatus === "denied" && (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Typography sx={{ marginRight: 2 }}>
+                              Participation: <strong style={{ color: "red" }}>DENIED</strong>
+                            </Typography>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              onClick={handleConfirmParticipation}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Change to Confirm
+                            </Button>
+                          </Box>
+                        )}
+                        {!participationStatus && (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              onClick={handleConfirmParticipation}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={handleDenyParticipation}
+                              sx={{ textTransform: "none" }}
+                            >
+                              Deny
+                            </Button>
+                          </Box>
+                        )}
+                      </Box>
+                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                        Close
+                      </Button>
+                    </>
+                  );
+                } else if (status === "completed") {
+                  return (
+                    <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                      Close
+                    </Button>
+                  );
+                }
+                return null;
+              })()}
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Voting Modal */}
+      <Dialog
+        open={votingModalOpen}
+        onClose={closeVotingModal}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Vote Availability</DialogTitle>
+        <DialogContent>
+          {selectedEvent && selectedEvent.date_options.map((dayTime, idx) => {
+            const dayName = format(dayTime.dateStart, "EEEE");
+            const dateLabel = format(dayTime.dateStart, "dd.MM.yyyy");
+            const hoursStart = getHoursFrom(dayTime.dateStart);
+            const hoursEnd = getHoursFrom(dayTime.dateEnd);
+            const checked = votingResponses[idx] || false;
+            return (
+              <Paper
+                key={idx}
+                variant="outlined"
+                sx={{ padding: 2, marginBottom: 2, borderRadius: 2 }}
+              >
+                <Typography sx={{ fontWeight: "bold" }}>
+                  {dayName}, {dateLabel}: {hoursStart} - {hoursEnd}
+                </Typography>
+                <Box sx={{ marginTop: 1 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={checked}
+                        onChange={(e) => handleToggleDay(idx, e.target.checked)}
+                        color="primary"
+                      />
+                    }
+                    label="I am available"
+                  />
+                </Box>
+              </Paper>
+            );
+          })}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ textTransform: "none" }}
+            onClick={handleSubmitVoting}
+          >
+            Submit
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
