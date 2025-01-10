@@ -32,8 +32,8 @@ export default function Profile() {
         const userData = await authService.getUserData();
         setUsername(userData.data.username);
         setEmail(userData.data.email);
-        if (userData.data.profileImage) {
-          setProfileImage(userData.data.profileImage);
+        if (userData.data.pfp_url) {
+          setProfileImage(userData.data.pfp_url);
         }
         console.log('User data from profile get data:', userData);
       } catch (error) {

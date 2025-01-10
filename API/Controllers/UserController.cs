@@ -84,6 +84,7 @@ namespace flock.Controllers
                 Email_verified = user.Email_verified,
                 Date_created = user.Date_created,
                 Date_updated = user.Date_updated
+                Pfp_url = user.Pfp_url
             };
 
             return Ok(userDto);
@@ -113,6 +114,7 @@ namespace flock.Controllers
                 Email_verified = user.Email_verified,
                 Date_created = user.Date_created,
                 Date_updated = user.Date_updated
+                Pfp_url = user.Pfp_url
             };
 
             return Ok(userDto);
