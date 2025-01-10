@@ -474,6 +474,22 @@ export default function HomeScreen() {
             Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
             return;
         }
+        // Add current user to invitees
+        const updatedInvitees = [...invitees];
+        if (currentUser?.id_user) {
+            const isCurrentUserAlreadyAdded = updatedInvitees.some(
+                (invite) => invite.id === currentUser.id_user
+            );
+            if (!isCurrentUserAlreadyAdded) {
+                updatedInvitees.push({
+                    id: currentUser.id_user,
+                    username: currentUser.username,
+                    email: currentUser.email,
+                    pfp_url: currentUser.pfp_url || '',
+                    status: 'pending',
+                });
+            }
+        }
 
         const newEvt = {
             name: createTitle,
@@ -488,11 +504,11 @@ export default function HomeScreen() {
                 }
             }),
             tag_ids: [],
-            participant_ids: invitees
-                .filter(invite => invite.id)
-                .map(invite => invite.id)
+            participant_ids: updatedInvitees
+                .filter(inv => inv.id)
+                .map(inv => inv.id),
         }
-        //console.log(newEvt);
+        console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
 
