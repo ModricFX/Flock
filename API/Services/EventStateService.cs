@@ -49,8 +49,14 @@ namespace flock.Services
 
             foreach (var x in events.Where(x => x.Chosen_date_start == DateTime.MinValue && x.Chosen_date_end == DateTime.MinValue))
             {
-                await AssignVotedDate(x);
-                await NotifyParticipants(x);
+                try
+                {
+                    await AssignVotedDate(x);
+                    await NotifyParticipants(x);
+                } catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error in EventStateService Workload");
+                }
             }
         }
 
@@ -63,7 +69,7 @@ namespace flock.Services
             // check if there are any votes
             if (bestDateOption is null)
             {
-                return;
+                throw new Exception("No votes for this event");
             }
             e.Chosen_date_end = bestDateOption.Date_end;
             e.Chosen_date_start = bestDateOption.Date_start;
