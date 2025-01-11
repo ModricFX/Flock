@@ -53,8 +53,8 @@ namespace flock.Controllers
                     DateOption opt = new DateOption
                     {
                         Id_event = event_id,
-                        Date_end = dateOption.Date_start,
-                        Date_start = dateOption.Date_end,
+                        Date_start = dateOption.Date_start,
+                        Date_end = dateOption.Date_end,
                     };
                     
                     ev.Date_options.Add(await _eventRepository.CreateDateOption(opt));
