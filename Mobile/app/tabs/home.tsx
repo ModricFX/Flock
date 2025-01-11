@@ -237,8 +237,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const date = getDateFrom(date_option.date_start);
-                const dayKey = date.toISOString();
+                const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -401,8 +400,7 @@ export default function HomeScreen() {
                                 if(date_option){
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
 
-                                    const date = getDateFrom(date_option.date_start);
-                                    const dayKey = date.toISOString();
+                                    const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
 
                                     if (availability[dayKey]) {
                                         //console.log(availability[dayKey]);
@@ -1753,7 +1751,7 @@ export default function HomeScreen() {
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
-                                                const dayKey = getDateFrom(dayTime.date_start).toISOString();
+                                                const dayKey = getDateFrom(dayTime.date_start).toISOString()+'.'+getHoursFrom(dayTime.date_start)+'.'+getHoursFrom(dayTime.date_end);
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 //console.log(isAvailable);
