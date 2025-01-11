@@ -3,6 +3,7 @@ using flock.Data.DbContext;
 using flock.Data.Repositories;
 using flock.Data.Repositories.Interfaces;
 using flock.Helpers;
+using flock.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -79,6 +80,7 @@ builder.Services.AddSwaggerGen(opt =>
     // Attach Security Requirements globally
     opt.OperationFilter<AuthenticationRequirementsOperationFilter>();
 });
+builder.Services.AddHostedService<EventStateService>();
 
 
 
@@ -106,6 +108,8 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+
 
 app.MapControllers();
 
