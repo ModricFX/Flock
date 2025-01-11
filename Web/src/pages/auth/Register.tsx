@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -81,6 +81,16 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
       navigate("/Hello");
     }
   };
+
+   useEffect(() => {
+          const checkUserData = async () => {
+              const result = await authService.getUserData();
+              if (result.success) {
+                  navigate("/dashboard");
+              }
+          };
+          checkUserData();
+      }, [navigate]);
 
   return (
     <Container maxWidth="sm">

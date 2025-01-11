@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
-
+import { authService } from '../../services/authservice';
 
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const checkUserData = async () => {
+    try {
+      const result = await authService.getUserData();
+      setIsAuthenticated(result.success);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      setIsAuthenticated(false); // Handle error by assuming user is not authenticated
+    }
+  };
 
   useEffect(() => {
+    checkUserData();
     const homeTypo = document.getElementById("home-typo");
     const handleScroll = () => {
       const boxHeight = document.getElementById("home-box")?.offsetHeight || 0;
@@ -36,6 +48,10 @@ const HomePage: React.FC = () => {
     navigate("/auth/register");
   };
 
+  const handleDashboard = () => {
+    navigate("/dashboard");
+  };
+
   const handleLearnMore = () => {
     navigate("/about");
   };
@@ -45,12 +61,18 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <Box id="home-box" style={styles.heroSection}>
         <div>
-          <img src="/flock-logo-bel.svg" alt="FLOCK Logo" style={{ marginBottom: '20px' }} />
+          <img src="/flock-logo-bel.svg" alt="FLOCK Logo" style={{ marginBottom: "20px" }} />
         </div>
         <Box style={styles.buttonGroup}>
-          <Button variant="contained" style={styles.signUpButton} onClick={handleSignUp}>
-            Sign Up
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="contained" style={styles.dashboardButton} onClick={handleDashboard}>
+              Dashboard
+            </Button>
+          ) : (
+            <Button variant="contained" style={styles.signUpButton} onClick={handleSignUp}>
+              Sign Up
+            </Button>
+          )}
           <Button variant="outlined" style={styles.learnMoreButton} onClick={handleLearnMore}>
             Learn More
           </Button>
@@ -70,10 +92,9 @@ const HomePage: React.FC = () => {
           </Typography>
 
           <Box style={styles.infoImagesContainer}>
-            {/* Placeholder images, replace with your own or real images */}
             <Box style={styles.infoImage}>
               <img
-                src="https://via.placeholder.com/300x200.png?text=Plan+Events"
+                src="../src/assets/PlanEvents.png"
                 alt="Plan your events"
                 style={styles.imgStyle}
               />
@@ -83,7 +104,7 @@ const HomePage: React.FC = () => {
             </Box>
             <Box style={styles.infoImage}>
               <img
-                src="https://via.placeholder.com/300x200.png?text=Invite+Friends"
+                src="../src/assets/InviteFriends.png"
                 alt="Invite your friends"
                 style={styles.imgStyle}
               />
@@ -100,7 +121,6 @@ const HomePage: React.FC = () => {
 
           <Box style={styles.spacer} />
 
-          {/* Another Example Section */}
           <Typography variant="h6" gutterBottom>
             Why FLOCK?
           </Typography>
@@ -133,19 +153,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundImage: "linear-gradient(135deg, #4CAF50 0%, #81C784 100%)",
     textAlign: "center",
   },
-  title: {
-    marginBottom: "0.5rem",
-    color: "white",
-    textShadow: "1px 1px 3px rgba(0,0,0,0.3)",
-    fontWeight: "bold",
-    userSelect: "none",
-  },
-  subtitle: {
-    color: "white",
-    marginBottom: "1.5rem",
-    textShadow: "1px 1px 3px rgba(0,0,0,0.2)",
-    userSelect: "none",
-  },
   buttonGroup: {
     display: "flex",
     gap: "1rem",
@@ -154,12 +161,16 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: "#388E3C",
     color: "#fff",
   },
+  dashboardButton: {
+    backgroundColor: "#FFA726",
+    color: "#fff",
+  },
   learnMoreButton: {
     color: "#ffffff",
     borderColor: "#ffffff",
   },
   contentContainer: {
-    backgroundColor: "#FAFDF9", // a lighter greenish-white background
+    backgroundColor: "#FAFDF9",
     padding: "2rem 0",
   },
   contentInner: {
@@ -167,29 +178,34 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "2rem",
     borderRadius: "8px",
     boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-    color: "#333", // Ensure text is visible on white background
+    color: "#333",
   },
   spacer: {
     height: "50px",
   },
   infoImagesContainer: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", // Dynamic columns based on available space
     gap: "2rem",
     marginBottom: "2rem",
-    flexWrap: "wrap",
     justifyContent: "center",
-  },
-  infoImage: {
+    alignItems: "flex-start",
+},
+infoImage: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    maxWidth: "300px",
-  },
-  imgStyle: {
-    width: "100%",
-    height: "auto",
-    marginBottom: "0.5rem",
+    textAlign: "center",
+},
+imgStyle: {
+    width: "100%", // Take the full width of the container
+    height: "auto", // Set a consistent height for all images
+    objectFit: "cover", // Ensure the image fits without distortion
     borderRadius: "5px",
     boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-  },
+    marginBottom: "0.5rem",
+},
+
+
+
 };

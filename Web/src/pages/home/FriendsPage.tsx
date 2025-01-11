@@ -1,10 +1,24 @@
 import React, { useState, forwardRef, useEffect } from 'react';
-import { Box, Typography, List, ListItem, Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogContentText, IconButton, Button, Slide } from '@mui/material';
+import {
+    Box,
+    Typography,
+    List,
+    ListItem,
+    Chip,
+    Avatar,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    IconButton,
+    Button,
+    Slide,
+    TextField,
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { TransitionProps } from '@mui/material/transitions';
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authservice";
-
 
 const FriendList = [
     {
@@ -47,6 +61,7 @@ interface FriendsPageProps {
 const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
     const [participants, setParticipants] = useState(FriendList);
     const [selectedFriend, setSelectedFriend] = useState<{ username: string; email: string; status: string; pfpUrl: string } | null>(null);
+    const [newFriendInput, setNewFriendInput] = useState("");
     const navigate = useNavigate();
 
     const handleChipClick = (friend: { username: string; email: string; status: string; pfpUrl: string }) => {
@@ -88,11 +103,23 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
         setSelectedFriend(null);
     };
 
-    useEffect(() => {
-        const homeTypo = document.getElementById("home-typo");
-        if (homeTypo) {
-            homeTypo.style.opacity = "1";
+    const handleAddFriend = () => {
+        if (newFriendInput.trim()) {
+            const isEmail = newFriendInput.includes('@');
+            setParticipants((prevParticipants) => [
+                ...prevParticipants,
+                {
+                    username: isEmail ? "New Friend" : newFriendInput.trim(),
+                    email: isEmail ? newFriendInput.trim() : `${newFriendInput.trim()}@domain.com`,
+                    status: "pending",
+                    pfpUrl: "https://i.pravatar.cc/100", // Placeholder profile picture
+                },
+            ]);
+            setNewFriendInput(""); // Clear the input
         }
+    };
+
+    useEffect(() => {
         const checkUserData = async () => {
             const result = await authService.getUserData();
             if (!result.success) {
@@ -105,6 +132,20 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
     return (
         <Box sx={{ padding: '20px' }}>
             <Typography variant="h4" sx={{ textAlign: "center", marginBottom: "20px" }}>Friends</Typography>
+            <Box sx={{ display: 'flex', gap: '10px', marginBottom: '20px', justifyContent: 'center' }}>
+                <TextField
+                    label="Friend's Username or Email"
+                    variant="outlined"
+                    size="small"
+                    value={newFriendInput}
+                    onChange={(e) => setNewFriendInput(e.target.value)}
+                    sx={{ flex: 1, maxWidth: '300px' }}
+                />
+                <Button variant="contained" onClick={handleAddFriend} sx={{ backgroundColor: '#4CAF50' }}>
+                    Add Friend
+                </Button>
+            </Box>
+
             <List>
                 {participants.map((participant) => (
                     <ListItem key={participant.email} sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -121,6 +162,7 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                             }
                             variant="filled"
                             sx={{
+                                border: '1px solid #ccc',
                                 marginLeft: '10px',
                                 padding: '10px',
                                 fontSize: '1rem',
@@ -133,7 +175,12 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                                 '& .MuiChip-avatar': {
                                     width: 60,
                                     height: 60,
-                                }
+                                },
+                                boxShadow: darkMode ? "none" : '0 2px 12px rgba(0, 0, 0, 0.1)',
+                                '&:hover': {
+                                    transform: 'scale(1.03)',
+                                    boxShadow: '0 4px 18px rgba(0, 0, 0, 0.15)',
+                                },
                             }}
                             onClick={() => handleChipClick(participant)}
                         />
@@ -171,11 +218,6 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                             <DialogContentText>
                                 <strong>Email:</strong> {selectedFriend.email}
                             </DialogContentText>
-                            {selectedFriend.status !== 'accepted' && (
-                                <DialogContentText>
-                                    <strong>Status:</strong> {capitalizeFirstLetter(selectedFriend.status)}
-                                </DialogContentText>
-                            )}
                             {selectedFriend.status === 'pending' && (
                                 <DialogContentText sx={{ color: '#f8a202', marginTop: '10px' }}>
                                     This friend request is still pending. Please respond to accept or deny.
