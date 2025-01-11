@@ -4,4 +4,5 @@ public class Chose
 {
     public int Id_user { get; set; }
     public int Id_date_option { get; set; }
+    public string Status { get; set; }
 }

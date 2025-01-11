@@ -83,7 +83,7 @@ public class EventRepository : IEventRepository
     public async Task<List<Chose>?> GetVotes(int event_id)
     {
         var query = @"
-        SELECT c.id_user, c.id_date_option
+        SELECT c.*
         FROM chose c INNER JOIN date_option d on c.id_date_option = d.id_date_option INNER JOIN event e ON d.id_event = e.id_event
         WHERE d.id_event = @Event_id";
 
@@ -112,7 +112,7 @@ public class EventRepository : IEventRepository
 
     public async Task<bool> DeleteVote(Chose chose)
     {
-        var query = "DELETE FROM chose WHERE id_user = @Id_user AND id_date_option = @Id_date_option;";
+        var query = "REPLACE INTO chose (id_user, id_date_option, status) VALUES (@Id_user, @Id_date_option, @Status);";
         
         using (var connection = _context.CreateConnection())
         {
@@ -124,7 +124,7 @@ public class EventRepository : IEventRepository
 
     public async Task<Chose> CastVote(Chose chose)
     {
-        var query = "INSERT INTO chose (id_user, id_date_option) VALUES (@Id_user, @Id_date_option);";
+        var query = "REPLACE INTO chose (id_user, id_date_option, status) VALUES (@Id_user, @Id_date_option, @Status);";
         
         using (var connection = _context.CreateConnection())
         {

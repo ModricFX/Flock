@@ -391,6 +391,8 @@ export default function HomeScreen() {
                         status: status
                     });
 
+                    //console.log(ev.votes);
+
                     if(invitedFriend.id_user == currentUserId){
                         ev.votes?.forEach((vote) => {
                             if(vote.id_user == currentUserId){
@@ -413,12 +415,14 @@ export default function HomeScreen() {
     
                                         const endTime = new Date(date_option.date_end);
                                         endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+                                        //console.log(vote.status);
     
                                         mergedAvailability[dayKey] = {
                                             startTime,
                                             endTime,
                                             selectedTimes: [],
-                                            isAvailable: true,
+                                            isAvailable: vote.status == "accepted",
                                             id_date_option: date_option.id_date_option
                                         };
                                     }
@@ -966,6 +970,7 @@ export default function HomeScreen() {
             if(currentDbavailability[key]){
                 if(currentDbavailability[key].isAvailable != value.isAvailable){
                     if(value.isAvailable){
+                        vote.status = "accepted";
                         let response = await eventService.castVote(vote);
 
                         if(!response.success){
@@ -974,6 +979,7 @@ export default function HomeScreen() {
                             console.log(response.data)
                         }
                     } else {
+                        vote.status = "declined";
                         let response = await eventService.deleteVote(vote);
 
                         if(!response.success){
@@ -986,6 +992,7 @@ export default function HomeScreen() {
             }
             else{
                 if(value.isAvailable){
+                    vote.status = "accepted";
                     let response = await eventService.castVote(vote);
 
                     if(!response.success){
