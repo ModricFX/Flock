@@ -22,4 +22,9 @@ public interface IEventRepository
     Task<bool> DeleteInvitation(int event_id, int user_id);
     Task<bool> DeleteEvent(int id);
     Task<bool> DeleteDateOption(int id);
+    Task<List<Event>> GetEventsWithEndedVotingStage();
+    Task<DateOption> GetBestDateOption(int eventId);
+    Task<List<User>> GetParticipants(int eventId);
+    Task<List<User>> GetParticipantsAndOwner(int eventId);
+    
 }

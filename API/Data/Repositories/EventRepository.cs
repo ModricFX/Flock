@@ -294,6 +294,80 @@ public class EventRepository : IEventRepository
         
         return true;
     }
+
+    /// <summary>
+    /// Get all events that have ended the voting stage and have not yet selected a date
+    /// </summary>
+    /// <returns></returns>
+    public async Task<List<Event>> GetEventsWithEndedVotingStage()
+    {
+        var query = @"
+        SELECT DISTINCT e.*
+        FROM `event` e
+        JOIN `date_option` d ON e.`id_event` = d.`id_event`
+        WHERE e.`end_voting_date` < NOW() AND e.`chosen_date_start` IS NULL";
+        
+        using var connection = _context.CreateConnection();
+        var result = await connection.QueryAsync<Event>(query);
+
+        return result.ToList();
+    }
+    /// <summary>
+    /// Returns the date option with the most votes for a given event
+    /// </summary>
+    /// <param name="eventId"></param>
+    /// <returns></returns>
+    public async Task<DateOption> GetBestDateOption(int eventId)
+    {
+        var query = @"
+        SELECT d.*
+        FROM `date_option` d
+        JOIN `chose` c ON d.`id_date_option` = c.`id_date_option`
+        WHERE d.`id_event` = @Id_event
+        GROUP BY d.`id_date_option`
+        ORDER BY COUNT(c.`id_user`) DESC
+        LIMIT 1;
+        ";
+
+        using var connection = _context.CreateConnection();
+        var result = await connection.QueryFirstOrDefaultAsync<DateOption>(query, new { Id_event = eventId });
+
+        return result;
+    }
     
+    public async Task<List<User>> GetParticipants(int eventId)
+    {
+        var query = @"
+        SELECT u.*
+        FROM `user` u
+        JOIN `invitation` i ON u.`id_user` = i.`id_user`
+        WHERE i.`id_event` = @Id_event;
+        ";
+
+        using var connection = _context.CreateConnection();
+        var result = await connection.QueryAsync<User>(query, new { Id_event = eventId });
+
+        return result.ToList();
+    }
+    
+    public async Task<List<User>> GetParticipantsAndOwner(int eventId)
+    {
+        var query = @"
+    SELECT u.*
+    FROM `user` u
+    JOIN `invitation` i ON u.`id_user` = i.`id_user`
+    WHERE i.`id_event` = @Id_event
+    UNION
+    SELECT u.*
+    FROM `user` u
+    JOIN `event` e ON u.`id_user` = e.`id_user`
+    WHERE e.`id_event` = @Id_event;
+    ";
+
+        using var connection = _context.CreateConnection();
+        var result = await connection.QueryAsync<User>(query, new { Id_event = eventId });
+
+        return result.ToList();
+    }
 }
 
