@@ -36,7 +36,8 @@ import { authService } from "./services/authservice.ts";
 import HomePage from "./pages/home/HomePage.tsx";
 import AboutPage from "./pages/home/AboutPage.tsx";
 import logo from '/flock-logo-bel.svg';
-import { AppNotification } from "./types"; 
+import { AppNotification } from "./types";
+import SettingsPage from "./pages/home/SettingsPage.tsx";
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
@@ -132,7 +133,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
-    const routesWithoutSidebar = ["/auth/login", "/auth/register", "/homepage", "/about"];
+    const routesWithoutSidebar = ["/auth/login", "/auth/register", "/homepage", "/about", "/settings"];
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
@@ -162,12 +163,12 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/dashboard", { state: { scrollTo: "otherEvents" } });
     };
 
-const handleFriendsPage = () => {
-    // Similarly for "friends"
-    navigate("/friends");
-}
+    const handleFriendsPage = () => {
+        // Similarly for "friends"
+        navigate("/friends");
+    }
 
-console.log("Notifications:", notifications);
+    console.log("Notifications:", notifications);
     return (
         <Box sx={{ display: "flex" }}>
             <ToastContainer />
@@ -288,9 +289,9 @@ console.log("Notifications:", notifications);
                                     </ListItemIcon>
                                     <ListItemText primary="Friends" />
                                 </ListItemButton>
-                            </ListItem>                       
+                            </ListItem>
                             <ListItem disablePadding>
-                                <ListItemButton  onClick={handleNavigateToNotifications} >
+                                <ListItemButton onClick={handleNavigateToNotifications} >
                                     <ListItemIcon sx={{ color: darkMode ? "white" : "black" }}>
                                         <NotificationsIcon />
                                     </ListItemIcon>
@@ -313,8 +314,9 @@ console.log("Notifications:", notifications);
                     <Route path="/auth/register" element={<Register darkMode={darkMode} />} />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/friends" element={<FriendsPage darkMode={darkMode} />} />
+                    <Route path="/settings" element={<SettingsPage />} />
 
-                    <Route path="/dashboard" element={<DashboardPage darkMode={darkMode}/>}>
+                    <Route path="/dashboard" element={<DashboardPage darkMode={darkMode} />}>
                         <Route
                             path="allevents"
                             element={
@@ -328,19 +330,19 @@ console.log("Notifications:", notifications);
                         <Route
                             path="yourevents"
                             element={<YourEvents events={userEvents} setEvents={setUserEvents} />}
-                        />                        
+                        />
                     </Route>
                     <Route
-                             path="notifications"
-                             element={
-                               <Notifications
-                                 notifications={notifications.map((n) => ({
-                                   ...n,
-                                   id: n.id.toString(), // Pretvori id iz number v string
-                                 }))}
-                               />
-                             }
-                        />
+                        path="notifications"
+                        element={
+                            <Notifications
+                                notifications={notifications.map((n) => ({
+                                    ...n,
+                                    id: n.id.toString(), // Pretvori id iz number v string
+                                }))}
+                            />
+                        }
+                    />
 
                     {/* Fallback for any unknown route */}
                     {/*<Route path="*" element={<Navigate to="/auth/login" />} />*/}
@@ -361,7 +363,7 @@ console.log("Notifications:", notifications);
                     <PersonAdd fontSize="small" />
                     Add another account
                 </MenuItem>
-                <MenuItem>
+                <MenuItem onClick={() => navigate("/settings")}>
                     <Settings fontSize="small" />
                     Settings
                 </MenuItem>

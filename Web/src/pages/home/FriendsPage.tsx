@@ -1,7 +1,10 @@
-import React, { useState, forwardRef } from 'react';
+import React, { useState, forwardRef, useEffect } from 'react';
 import { Box, Typography, List, ListItem, Chip, Avatar, Dialog, DialogTitle, DialogContent, DialogContentText, IconButton, Button, Slide } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { TransitionProps } from '@mui/material/transitions';
+import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/authservice";
+
 
 const FriendList = [
     {
@@ -44,6 +47,7 @@ interface FriendsPageProps {
 const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
     const [participants, setParticipants] = useState(FriendList);
     const [selectedFriend, setSelectedFriend] = useState<{ username: string; email: string; status: string; pfpUrl: string } | null>(null);
+    const navigate = useNavigate();
 
     const handleChipClick = (friend: { username: string; email: string; status: string; pfpUrl: string }) => {
         setSelectedFriend(friend);
@@ -84,6 +88,20 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
         setSelectedFriend(null);
     };
 
+    useEffect(() => {
+        const homeTypo = document.getElementById("home-typo");
+        if (homeTypo) {
+            homeTypo.style.opacity = "1";
+        }
+        const checkUserData = async () => {
+            const result = await authService.getUserData();
+            if (!result.success) {
+                navigate("/auth/login");
+            }
+        };
+        checkUserData();
+    }, [navigate]);
+
     return (
         <Box sx={{ padding: '20px' }}>
             <Typography variant="h4" sx={{ textAlign: "center", marginBottom: "20px" }}>Friends</Typography>
@@ -93,16 +111,16 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                         <Chip
                             label={`${participant.username} (${participant.email})${participant.status !== 'accepted' ? ` - ${capitalizeFirstLetter(participant.status)}` : ''}`}
                             avatar={
-                                <Avatar 
-                                    src={participant.pfpUrl} 
-                                    sx={{ 
-                                        width: 60, 
-                                        height: 60 
-                                    }} 
+                                <Avatar
+                                    src={participant.pfpUrl}
+                                    sx={{
+                                        width: 60,
+                                        height: 60
+                                    }}
                                 />
                             }
                             variant="filled"
-                            sx={{ 
+                            sx={{
                                 marginLeft: '10px',
                                 padding: '10px',
                                 fontSize: '1rem',
@@ -141,7 +159,7 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                             color: (theme) => theme.palette.grey[500],
                         }}
                     >
-                        <CloseIcon sx={{ color: '#ff6666' }}/>
+                        <CloseIcon sx={{ color: '#ff6666' }} />
                     </IconButton>
                 </DialogTitle>
                 <DialogContent sx={{ textAlign: 'center' }}>
@@ -163,13 +181,13 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                                     This friend request is still pending. Please respond to accept or deny.
                                 </DialogContentText>
                             )}
-                            <Avatar 
-                                src={selectedFriend.pfpUrl} 
-                                sx={{ 
-                                    width: 100, 
-                                    height: 100, 
-                                    margin: '20px auto' 
-                                }} 
+                            <Avatar
+                                src={selectedFriend.pfpUrl}
+                                sx={{
+                                    width: 100,
+                                    height: 100,
+                                    margin: '20px auto'
+                                }}
                             />
                             {selectedFriend.status === 'pending' ? (
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>

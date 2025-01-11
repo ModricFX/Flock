@@ -474,7 +474,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
       homeTypo.style.opacity = "1";
     }
     const checkUserData = async () => {
-      await authService.getUserData();
+      const result = await authService.getUserData();
+      if (!result.success) {
+        navigate("/auth/login");
+      }
     };
     checkUserData();
   }, [navigate]);
@@ -776,111 +779,63 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
       </Paper>
 
       <div ref={yourEventsRef} style={{ cursor: "pointer" }}>
-      <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
-        <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
-          Your Events
-        </Typography>
-        {myEvents.length === 0 ? (
-          <Typography>No events yet. Create one by clicking the "+" button!</Typography>
-        ) : (
-          <List>
-            {myEvents.map((evt, index) => {
-              const status = getEventStatus(evt);
-              const icon = getStatusIcon(status);
-              return (
-                <Paper
-                  key={index}
-                  elevation={3}
-                  sx={{
-                    border: "1px solid rgb(116, 117, 116)",
-                    borderRadius: "8px",
-                    padding: 2,
-                    marginBottom: 2,
-                    backgroundColor: darkMode ? '#444' : '#f9f9f9',
-                    color: darkMode ? '#fff' : '#000',
-                    position: "relative",
-                  }}
-                  onClick={() => openEventDetails(evt, true)}
-                >
-                  <Box
+        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
+          <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
+            Your Events
+          </Typography>
+          {myEvents.length === 0 ? (
+            <Typography>No events yet. Create one by clicking the "+" button!</Typography>
+          ) : (
+            <List>
+              {myEvents.map((evt, index) => {
+                const status = getEventStatus(evt);
+                const icon = getStatusIcon(status);
+                return (
+                  <Paper
+                    key={index}
+                    elevation={3}
                     sx={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      display: "flex",
-                      alignItems: "center",
-                      backgroundColor: getStatusColor(status),
-                      borderRadius: "4px",
-                      paddingX: 1,
-                      paddingY: 0.5,
+                      border: "1px solid rgb(116, 117, 116)",
+                      borderRadius: "8px",
+                      padding: 2,
+                      marginBottom: 2,
+                      backgroundColor: darkMode ? '#444' : '#f9f9f9',
+                      color: darkMode ? '#fff' : '#000',
+                      position: "relative",
                     }}
+                    onClick={() => openEventDetails(evt, true)}
                   >
-                    {React.cloneElement(icon, { style: { color: "#fff" } })}
-                    <Typography variant="body2" sx={{ color: "#fff", marginLeft: 0.5 }}>
-                      {status.toUpperCase()}
-                    </Typography>
-                  </Box>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        backgroundColor: getStatusColor(status),
+                        borderRadius: "4px",
+                        paddingX: 1,
+                        paddingY: 0.5,
+                      }}
+                    >
+                      {React.cloneElement(icon, { style: { color: "#fff" } })}
+                      <Typography variant="body2" sx={{ color: "#fff", marginLeft: 0.5 }}>
+                        {status.toUpperCase()}
+                      </Typography>
+                    </Box>
 
-                  <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="h6" sx={{ color: darkMode ? '#fff' : '#000' }}>
-                          {evt.name}
-                        </Typography>
-                      }
-                      secondary={
-                        <>
-                          <Typography sx={{ display: "flex", alignItems: "center" }}>
-                            {evt.description}
+                    <ListItem sx={{ flexDirection: "column", alignItems: "flex-start" }}>
+                      <ListItemText
+                        primary={
+                          <Typography variant="h6" sx={{ color: darkMode ? '#fff' : '#000' }}>
+                            {evt.name}
                           </Typography>
-                          <Typography
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              marginTop: 1,
-                            }}
-                          >
-                            <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                            <strong>Location:&nbsp;</strong>
-                            <Typography component="span">{evt.location}</Typography>
-                          </Typography>
-                          <Box sx={{ marginTop: 1 }}>
-                            <Typography
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginBottom: 1,
-                              }}
-                            >
-                              <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Days:</strong>
+                        }
+                        secondary={
+                          <>
+                            <Typography sx={{ display: "flex", alignItems: "center" }}>
+                              {evt.description}
                             </Typography>
-                            <ul>
-                              {evt.date_options && evt.date_options.length > 0 ? (
-                                evt.date_options.map((d, i) => (
-                                  <Typography key={i}>
-                                    <li>
-                                      {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
-                                      {getHoursFrom(d.dateEnd)})
-                                    </li>
-                                  </Typography>
-                                ))
-                              ) : (
-                                <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
-                              )}
-                            </ul>
-                          </Box>
-                          <Typography
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              marginTop: 1,
-                            }}
-                          >
-                            <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                            <strong>Participants:&nbsp;</strong> {evt.participants.length}
-                          </Typography>
-                          {status === "voting" && (
                             <Typography
                               sx={{
                                 display: "flex",
@@ -888,23 +843,71 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                                 marginTop: 1,
                               }}
                             >
-                              <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Voting Ends:&nbsp;</strong>{" "}
-                              {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
-                              {getHoursFrom(evt.end_voting_date)}
+                              <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                              <strong>Location:&nbsp;</strong>
+                              <Typography component="span">{evt.location}</Typography>
                             </Typography>
-                          )}
-                        </>
-                      }
-                    />
-                  </ListItem>
-                </Paper>
-              );
-            })}
-          </List>
-        )}
-      </Paper>
-    </div>
+                            <Box sx={{ marginTop: 1 }}>
+                              <Typography
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  marginBottom: 1,
+                                }}
+                              >
+                                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                                <strong>Days:</strong>
+                              </Typography>
+                              <ul>
+                                {evt.date_options && evt.date_options.length > 0 ? (
+                                  evt.date_options.map((d, i) => (
+                                    <Typography key={i}>
+                                      <li>
+                                        {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
+                                        {getHoursFrom(d.dateEnd)})
+                                      </li>
+                                    </Typography>
+                                  ))
+                                ) : (
+                                  <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
+                                )}
+                              </ul>
+                            </Box>
+                            <Typography
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginTop: 1,
+                              }}
+                            >
+                              <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
+                            </Typography>
+                            {status === "voting" && (
+                              <Typography
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  marginTop: 1,
+                                }}
+                              >
+                                <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                                <strong>Voting Ends:&nbsp;</strong>{" "}
+                                {format(evt.end_voting_date, "dd.MM.yyyy")} at{" "}
+                                {getHoursFrom(evt.end_voting_date)}
+                              </Typography>
+                            )}
+                          </>
+                        }
+                      />
+                    </ListItem>
+                  </Paper>
+                );
+              })}
+            </List>
+          )}
+        </Paper>
+      </div>
 
       <Box sx={{ textAlign: "center", paddingBottom: 6 }}>
         <Button
@@ -1519,7 +1522,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                       backgroundColor: darkMode ? "#555" : "f0f0f0",
                       color: darkMode ? "#fff" : "#000",
                       borderRadius: "5px",
-                      border: darkMode ?  "1px solid #777" : "1px solid #ccc",
+                      border: darkMode ? "1px solid #777" : "1px solid #ccc",
                       textAlign: "center",
                       "&:hover": {
                         backgroundColor: darkMode ? "#666" : "#e0e0e0",

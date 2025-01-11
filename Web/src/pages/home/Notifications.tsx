@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,6 +10,10 @@ import {
   ToggleButton,
   ToggleButtonGroup
 } from "@mui/material";
+import { authService } from "../../services/authservice";
+import { useNavigate } from "react-router-dom";
+
+
 
 interface Notification {
   id: string;
@@ -28,6 +32,7 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications: initialNot
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const navigate = useNavigate();
 
   const handleMarkAsRead = (id: string) => {
     setNotifications((prev) =>
@@ -62,6 +67,20 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications: initialNot
   const filteredNotifications = notifications.filter((notif) =>
     filter === "unread" ? notif.unread : true
   );
+
+  useEffect(() => {
+    const homeTypo = document.getElementById("home-typo");
+    if (homeTypo) {
+      homeTypo.style.opacity = "1";
+    }
+    const checkUserData = async () => {
+      const result = await authService.getUserData();
+      if (!result.success) {
+        navigate("/auth/login");
+      }
+    };
+    checkUserData();
+  }, [navigate]);
 
   return (
     <>
