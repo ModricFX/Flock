@@ -39,10 +39,13 @@ export default function LoginScreen() {
       console.log('Login successful:', session);
       router.replace("/tabs/home");
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      // @ts-ignore
-      Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
+      if (error.message.includes("Invalid value provided to SecureStore")) {
+        Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+      } else {
+        Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
+      }
     }
   };
 
