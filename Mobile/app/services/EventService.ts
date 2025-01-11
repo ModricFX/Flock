@@ -1,6 +1,7 @@
 ﻿// services/EventService.ts
 import { AxiosInstance } from 'axios';
 import { EventData } from '../models/EventData';
+import { Vote } from '../models/Vote';
 
 export class EventService {
     private api: AxiosInstance;
@@ -97,5 +98,21 @@ export class EventService {
             console.error('Error deleting event:', error);
             return { success: false, error: errorMessage };
         }
+    }
+
+    async castVote(vote: Vote): Promise<{ success:boolean, data?: any, error?: string }>  {
+        const response = await this.api.post('/event/vote/cast', vote);
+        if(!response || response.status != 200){
+            return { success: false, error: "error creating vote" }
+        }
+        return { success: true, data: response.data };
+    }
+
+    async deleteVote(vote: Vote): Promise<{ success:boolean, data?: any, error?: string }>  {
+        const response = await this.api.post('/event/vote/delete', vote);
+        if(!response || response.status != 200){
+            return { success: false, error: "error deleting vote" }
+        }
+        return { success: true, data: response.data };
     }
 }

@@ -9,8 +9,8 @@ public class EventDto
     public string Description { get; set; }
     public string Location { get; set; }
     public DateTime End_voting_date { get; set; }
-    public DateTime Chosen_date_start { get; set; }
-    public DateTime Chosen_date_end { get; set; }
+    public DateTime? Chosen_date_start { get; set; }
+    public DateTime? Chosen_date_end { get; set; }
     
     public int SysRowState { get; set; }
     

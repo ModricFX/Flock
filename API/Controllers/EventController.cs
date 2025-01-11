@@ -10,7 +10,7 @@ namespace flock.Controllers
 {
     [Route("api/event")]
     [ApiController]
-    [Authorize]
+    
     public class EventController : ControllerBase
     {
         private readonly IEventRepository _eventRepository;
@@ -115,8 +115,8 @@ namespace flock.Controllers
                 currentEvent.Description = request.Description;
                 currentEvent.Location = request.Location;
                 currentEvent.End_voting_date = request.End_voting_date;
-                currentEvent.Chosen_date_start = request.Chosen_date_start;
-                currentEvent.Chosen_date_end = request.Chosen_date_end;
+                currentEvent.Chosen_date_start = request.Chosen_date_start ?? currentEvent.Chosen_date_start;
+                currentEvent.Chosen_date_end = request.Chosen_date_end ?? currentEvent.Chosen_date_end;
                 currentEvent.Date_updated = DateTime.UtcNow;
                 currentEvent.SysRowState = request.SysRowState;
 
@@ -316,6 +316,36 @@ namespace flock.Controllers
                 _eventRepository.DeleteEvent(eventDeletion.Id_event);
                 return Ok("Success");
 
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        [Route("/api/event/vote/cast")]
+        [HttpPost()]
+        public async Task<IActionResult> VoteForDateoption(Chose chose)
+        {
+            try
+            {
+                await _eventRepository.CastVote(chose);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+        
+        [Route("/api/event/vote/delete")]
+        [HttpPost()]
+        public async Task<IActionResult> DeleteVoteForDateoption(Chose chose)
+        {
+            try
+            {
+                await _eventRepository.DeleteVote(chose);
+                return Ok();
             }
             catch (Exception e)
             {

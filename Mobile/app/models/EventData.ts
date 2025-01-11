@@ -1,5 +1,7 @@
 import { SingleDay } from './SingleDay';
 import { Participant } from './Participant';
+import { Vote } from './Vote';
+
 export interface EventData {
     id_event: string;
     name: string;
@@ -14,5 +16,5 @@ export interface EventData {
     chosen_date_end?: Date;
     date_created: Date;
     date_updated: Date;
-    votes?: Record<string, any>;
+    votes?: Vote[];
 }

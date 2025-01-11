@@ -43,6 +43,8 @@ import { Participant } from '../models/Participant';
 import { EventData } from '../models/EventData';
 
 import { SingleDay } from '../models/SingleDay';
+import { Vote } from '../models/Vote';
+
 import { date } from 'yup';
 import { FriendService } from '../services/FriendService';
 
@@ -200,7 +202,7 @@ export default function HomeScreen() {
                     const eventResponse = await eventService.getMyEvents(user.data.id_user);
 
                     if (eventResponse.success && eventResponse.data) {
-                        const events = transformEvents(eventResponse.data);
+                        const events = transformEvents(eventResponse.data, user.data.id_user);
                         setEvents(events);
                     } else {
                         console.error('Error fetching events:', eventResponse.error);
@@ -256,6 +258,7 @@ export default function HomeScreen() {
                         endTime,
                         selectedTimes: [],
                         // isAvailable is left undefined initially
+                        id_date_option: date_option.id_date_option
                     };
                 }
             });
@@ -347,7 +350,7 @@ export default function HomeScreen() {
         return new Date(date.toString()[date.toString().length - 1] === 'Z' ? date : date + 'Z');
     }
 
-    function transformEvents(events: EventData[]) {
+    function transformEvents(events: EventData[], currentUserId: string) {
         events.forEach(ev => {
             ev.date_created = makeDateUTC(ev.date_created);
             ev.date_updated = makeDateUTC(ev.date_updated);
@@ -364,20 +367,6 @@ export default function HomeScreen() {
                     ev.chosen_date_start = undefined;
             }
 
-            if (ev.invitations) {
-                ev.participants = ev.invitations.map(inv => {
-                    let invitedFriend = inv.user;
-
-                    return {
-                        id: invitedFriend ? invitedFriend.id_user : '',
-                        email: invitedFriend ? invitedFriend.email : '',
-                        username: invitedFriend ? invitedFriend.username : '',
-                        pfp_url: invitedFriend ? invitedFriend.pfp_url || '' : '',
-                        status: inv.status
-                    };
-                })
-            }
-
             ev.date_options = ev.date_options.map(dateOption => {
                 return {
                     id_date_option: dateOption.id_date_option || 0,
@@ -386,6 +375,62 @@ export default function HomeScreen() {
                     date_end: makeDateUTC(dateOption.date_end)
                 }
             });
+
+            if (ev.invitations) {
+                ev.invitations.forEach(inv => {
+                    let invitedFriend = inv.user;
+                    let status: "pending" | "accepted" | "declined" = 
+                        ev.votes?.some(vote => vote.id_user === invitedFriend?.id_user) ? "accepted" : "pending";
+            
+                    ev.participants = ev.participants || []; // Ensure participants array is initialized
+                    ev.participants.push({
+                        id: invitedFriend?.id_user || '',
+                        email: invitedFriend?.email || '',
+                        username: invitedFriend?.username || '',
+                        pfp_url: invitedFriend?.pfp_url || '',
+                        status: status
+                    });
+
+                    if(invitedFriend.id_user == currentUserId){
+                        ev.votes?.forEach((vote) => {
+                            if(vote.id_user == currentUserId){
+                                let date_option = ev.date_options.find(dt => dt.id_date_option?.toString() == vote.id_date_option);
+
+                                if(date_option){
+                                    const mergedAvailability: { [key: string]: any } = currentDbavailability;
+
+                                    const date = getDateFrom(date_option.date_start);
+                                    const dayKey = date.toISOString();
+
+                                    if (availability[dayKey]) {
+                                        //console.log(availability[dayKey]);
+                                        mergedAvailability[dayKey] = {
+                                            ...availability[dayKey],
+                                        };
+                                    } else {
+                                        const startTime = new Date(date_option.date_start);
+                                        startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+    
+                                        const endTime = new Date(date_option.date_end);
+                                        endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+    
+                                        mergedAvailability[dayKey] = {
+                                            startTime,
+                                            endTime,
+                                            selectedTimes: [],
+                                            isAvailable: true,
+                                            id_date_option: date_option.id_date_option
+                                        };
+                                    }
+    
+                                    setAvailability(mergedAvailability);
+                                    setCurrentDbavailability(mergedAvailability);
+                                }
+                            }
+                        });
+                    }
+                });
+            }            
         });
 
         return events;
@@ -500,12 +545,12 @@ export default function HomeScreen() {
                 .filter(inv => inv.id)
                 .map(inv => inv.id),
         }
-        console.log(newEvt);
+        //console.log(newEvt);
 
         let response = await eventService.createEvent(newEvt)
 
         if (response.success && response.data) {
-            let events = transformEvents([response.data]);
+            let events = transformEvents([response.data], currentUser?.id_user? currentUser.id_user:'');
             setEvents(prev => [...prev, events[0]]);
         }
         else {
@@ -553,6 +598,7 @@ export default function HomeScreen() {
                     endTime: new Date(),
                     selectedTimes: [],
                     isAvailable,
+                    id_date_option: ''
                 };
             } else {
                 updated[dayKey] = {
@@ -740,7 +786,18 @@ export default function HomeScreen() {
             startTime: Date;
             endTime: Date;
             selectedTimes: Date[];
-            isAvailable?: boolean; // Add this optional property
+            isAvailable?: boolean;
+            id_date_option: string;
+        };
+    }>({});
+
+    const [currentDbavailability, setCurrentDbavailability] = useState<{
+        [key: string]: {
+            startTime: Date;
+            endTime: Date;
+            selectedTimes: Date[];
+            isAvailable?: boolean;
+            id_date_option: string;
         };
     }>({});
 
@@ -805,8 +862,6 @@ export default function HomeScreen() {
             description: editDesc,
             location: editLoc,
             end_voting_date: editEndVoting.toISOString(),
-            chosen_date_start: editChosenDateStart ? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000").toISOString(),
-            chosen_date_end: editChosenDateEnd ? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000").toISOString(),
             sysrowstate: 1,
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
@@ -818,11 +873,11 @@ export default function HomeScreen() {
                 .filter(invite => invite.id)
                 .map(invite => invite.id)
         }
-
+        //console.log(UpdatedEvent);
         let response = await eventService.updateEvent(UpdatedEvent);
 
         if (response.success && response.data) {
-            let updated = transformEvents([response.data]);
+            let updated = transformEvents([response.data], currentUser?.id_user? currentUser.id_user:'');
 
             setEvents(events.map(ev => {
                 return ev.id_event == updated[0].id_event ? updated[0] : ev
@@ -896,6 +951,53 @@ export default function HomeScreen() {
                 }
             }
         ]);
+    }
+
+    function saveVotingData(){
+        setIsVotingModalVisible(false); 
+        setIsEventModalVisible(true);
+
+        Object.entries(availability).forEach(async ([key, value]) => {
+            let vote: Vote = {
+                id_date_option: value.id_date_option,
+                id_user: currentUser? currentUser.id_user : 'undefined'
+            }
+
+            if(currentDbavailability[key]){
+                if(currentDbavailability[key].isAvailable != value.isAvailable){
+                    if(value.isAvailable){
+                        let response = await eventService.castVote(vote);
+
+                        if(!response.success){
+                            console.log(response.error)
+                        } else {
+                            console.log(response.data)
+                        }
+                    } else {
+                        let response = await eventService.deleteVote(vote);
+
+                        if(!response.success){
+                            console.log(response.error)
+                        } else {
+                            console.log(response.data)
+                        }
+                    }
+                }
+            }
+            else{
+                if(value.isAvailable){
+                    let response = await eventService.castVote(vote);
+
+                    if(!response.success){
+                        console.log(response.error)
+                    } else {
+                        console.log(response.data)
+                    }
+                }
+            }
+        });
+
+        setCurrentDbavailability(availability);
     }
 
     /* Step2 pick date/time for edit */
@@ -1647,6 +1749,8 @@ export default function HomeScreen() {
                                                 const dayKey = getDateFrom(dayTime.date_start).toISOString();
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
+                                                //console.log(isAvailable);
+
                                                 return (
                                                     <View key={index} style={styles.dayContainer}>
                                                         <View style={styles.dayHeader}>
@@ -1710,8 +1814,8 @@ export default function HomeScreen() {
                                         {/* Voting Modal Actions */}
                                         <View style={styles.modalActions}>
                                             <Button
-                                                title="Back"
-                                                onPress={() => { setIsVotingModalVisible(false); setIsEventModalVisible(true); }}
+                                                title="Save"
+                                                onPress={() => { saveVotingData() }}
                                                 color="#757575"
                                             />
                                         </View>
