@@ -94,7 +94,7 @@ const HomePage: React.FC = () => {
           <Box style={styles.infoImagesContainer}>
             <Box style={styles.infoImage}>
               <img
-                src="../src/assets/PlanEvents.png"
+                src=".../../public/PlanEvents.png"
                 alt="Plan your events"
                 style={styles.imgStyle}
               />
@@ -104,7 +104,7 @@ const HomePage: React.FC = () => {
             </Box>
             <Box style={styles.infoImage}>
               <img
-                src="../src/assets/InviteFriends.png"
+                src=".../../public/InviteFriends.png"
                 alt="Invite your friends"
                 style={styles.imgStyle}
               />
