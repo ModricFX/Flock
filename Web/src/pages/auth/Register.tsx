@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -37,8 +37,8 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
     return passwordRegex.test(password);
   };
 
-  const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
     let validationErrors: Record<string, string> = {};
 
     if (!validateEmail(email)) {
@@ -56,69 +56,63 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
 
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length === 0) {
-      try {
+    try {
         let data = {
-          first_name: name,
-          last_name: surname,
-          username: username,
-          email: email,
-          password: password,
-        };
+          first_name : name,
+          last_name : surname,
+          username : username,
+          email : email,
+          password : password
+        }
         const session = await authService.register(data);
-        console.log("Register successful:", session);
-
+        console.log('Register successful:', session);
+        
         navigate("/login");
-      } catch (error) {
+
+    } catch (error) {
+        console.error('Register failed:', error);
         // @ts-ignore
-        alert("Register Failed", error.message || "");
-      }
+        Alert.alert('Register Failed', error.message || '');
+    }
+
+    if (Object.keys(validationErrors).length === 0) {
+      console.log("Registering...");
+      localStorage.setItem("username", username);
+      navigate("/Hello");
     }
   };
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        handleSubmit(); // Trigger form submission on "Enter"
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [name, surname, username, email, password, confirmPassword]);
-
   return (
     <Container maxWidth="sm">
-      <Container sx={{ textAlign: "center" }}>
-        <Typography
-          variant="h3"
-          sx={{
-            ml: "auto",
-            mr: "auto",
-            mt: 5,
-            fontWeight: "bold",
-            color: "#4CAF50",
-            cursor: "pointer",
-          }}
-          component={RouterLink}
-          to="/homepage"
-        >
-          FLOCK
-        </Typography>
-        <Typography
-          variant="h5"
-          sx={{
-            textAlign: "center",
-            fontWeight: "bold",
-            color: darkMode ? "white" : "black",
-          }}
-        >
-          A new way to make plans
-        </Typography>
-      </Container>
+      <Container sx={{ textAlign: "center"}}>
+      <Typography
+        variant="h3"
+        sx={{
+          ml: "auto",
+          mr: "auto",
+          mt: 5,
+          fontWeight: "bold",
+          color: "#4CAF50",
+          cursor: "pointer"
+        }}
 
+        component={RouterLink}
+        to="/homepage"
+      >
+        FLOCK
+      </Typography>
+      <Typography
+        variant="h5"
+        sx={{
+          textAlign: "center",
+          fontWeight: "bold",
+          color: darkMode? "white" : "black",
+        }}
+      >
+        A new way to make plans
+      </Typography>
+      </Container>
+      
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
         <Typography component="h1" variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
           Create an Account
@@ -126,22 +120,10 @@ const Register: React.FC<DarkModeProp> = ({ darkMode }) => {
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <Grid container spacing={2}>
             <Grid item xs={6}>
-              <TextField
-                label="Name"
-                fullWidth
-                required
-                onChange={(e) => setName(e.target.value)}
-                sx={{ mb: 2 }}
-              />
+              <TextField label="Name" fullWidth required onChange={(e) => setName(e.target.value)} sx={{ mb: 2 }} />
             </Grid>
             <Grid item xs={6}>
-              <TextField
-                label="Surname"
-                fullWidth
-                required
-                onChange={(e) => setSurname(e.target.value)}
-                sx={{ mb: 2 }}
-              />
+              <TextField label="Surname" fullWidth required onChange={(e) => setSurname(e.target.value)} sx={{ mb: 2 }} />
             </Grid>
           </Grid>
 

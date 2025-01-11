@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
-import { authService } from '../../services/authservice';
+
+
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const homeTypo = document.getElementById("home-typo");
@@ -15,7 +15,7 @@ const HomePage: React.FC = () => {
         if (homeTypo) {
           homeTypo.style.transition = "opacity 0.3s ease-in";
           homeTypo.style.opacity = "1";
-          homeTypo.innerHTML = "FLOCK";
+          homeTypo.innerHTML = '<img src="flock-logo-bel.svg" alt="Flock Logo" style="width: 150px; height: auto; margin-top: 10px;" />';
         }
       } else {
         if (homeTypo) {
@@ -27,17 +27,6 @@ const HomePage: React.FC = () => {
     };
 
     window.addEventListener("scroll", handleScroll);
-
-    const checkUserData = async () => {
-      const result = await authService.getUserData(); // Replace with your actual auth check logic
-      if (result.success) {
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
-      }
-    };
-
-    checkUserData();
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
@@ -51,43 +40,18 @@ const HomePage: React.FC = () => {
     navigate("/about");
   };
 
-  const handleDashboard = () => {
-    navigate("/dashboard");
-  };
-
   return (
     <>
       {/* Hero Section */}
       <Box id="home-box" style={styles.heroSection}>
-        <Typography variant="h1" noWrap style={styles.title}>
-          FLOCK
-        </Typography>
-        <Typography variant="h4" noWrap style={styles.subtitle}>
-          A new way to make plans
-        </Typography>
+        <div>
+          <img src="/flock-logo-bel.svg" alt="FLOCK Logo" style={{ marginBottom: '20px' }} />
+        </div>
         <Box style={styles.buttonGroup}>
-          {isLoggedIn ? (
-            <Button
-              variant="contained"
-              style={styles.signUpButton}
-              onClick={handleDashboard}
-            >
-              Dashboard
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              style={styles.signUpButton}
-              onClick={handleSignUp}
-            >
-              Sign Up
-            </Button>
-          )}
-          <Button
-            variant="outlined"
-            style={styles.learnMoreButton}
-            onClick={handleLearnMore}
-          >
+          <Button variant="contained" style={styles.signUpButton} onClick={handleSignUp}>
+            Sign Up
+          </Button>
+          <Button variant="outlined" style={styles.learnMoreButton} onClick={handleLearnMore}>
             Learn More
           </Button>
         </Box>
@@ -100,11 +64,9 @@ const HomePage: React.FC = () => {
             Welcome to FLOCK
           </Typography>
           <Typography variant="body1" paragraph>
-            FLOCK is a platform that makes coordinating group events and meetups
-            as easy as possible. Whether you’re planning a birthday, an office
-            lunch, or a spontaneous get-together with friends, we give you the
-            tools to make it all happen — without the usual frustration of
-            back-and-forth messaging.
+            FLOCK is a platform that makes coordinating group events and meetups as easy as possible.
+            Whether you’re planning a birthday, an office lunch, or a spontaneous get-together with friends,
+            we give you the tools to make it all happen — without the usual frustration of back-and-forth messaging.
           </Typography>
 
           <Box style={styles.infoImagesContainer}>
@@ -132,9 +94,8 @@ const HomePage: React.FC = () => {
           </Box>
 
           <Typography variant="body1" paragraph>
-            Ready to see how it works? Scroll down or click "Learn More" to dive
-            deeper into what FLOCK has in store. You can sign up immediately to
-            start planning your next event!
+            Ready to see how it works? Scroll down or click "Learn More" to dive deeper
+            into what FLOCK has in store. You can sign up immediately to start planning your next event!
           </Typography>
 
           <Box style={styles.spacer} />
@@ -144,12 +105,9 @@ const HomePage: React.FC = () => {
             Why FLOCK?
           </Typography>
           <Typography variant="body1" paragraph>
-            - Easy scheduling with a visual overview of everyone’s availability
-            <br />
-            - Simple sign-up: create an account and begin scheduling right away
-            <br />
-            - Automatically handle confirmations and reminders
-            <br />
+            - Easy scheduling with a visual overview of everyone’s availability<br />
+            - Simple sign-up: create an account and begin scheduling right away<br />
+            - Automatically handle confirmations and reminders<br />
             - ...and much more!
           </Typography>
         </Container>
@@ -174,7 +132,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     backgroundImage: "linear-gradient(135deg, #4CAF50 0%, #81C784 100%)",
     textAlign: "center",
-    paddingTop: "90px"
   },
   title: {
     marginBottom: "0.5rem",
@@ -202,7 +159,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderColor: "#ffffff",
   },
   contentContainer: {
-    backgroundColor: "#FAFDF9",
+    backgroundColor: "#FAFDF9", // a lighter greenish-white background
     padding: "2rem 0",
   },
   contentInner: {
@@ -210,7 +167,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "2rem",
     borderRadius: "8px",
     boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-    color: "#333",
+    color: "#333", // Ensure text is visible on white background
   },
   spacer: {
     height: "50px",

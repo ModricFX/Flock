@@ -1,4 +1,4 @@
-﻿import React, { useState, FormEvent, useEffect } from "react";
+﻿import React, {useState, FormEvent, useEffect} from "react";
 import {
   Box,
   Container,
@@ -14,7 +14,7 @@ import {
 import "/node_modules/@fontsource/roboto/index.css";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import ForgotPassword from "./ForgotPassword";
-import { authService } from "../../services/authservice";
+import { authService } from '../../services/authservice';
 
 interface DarkModeProp {
   darkMode: boolean;
@@ -26,76 +26,70 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
   const [password, setPassword] = useState<string>("");
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState<boolean>(false);
 
-  const handleSubmit = async (e?: FormEvent<HTMLFormElement>): Promise<void> => {
-    if (e) e.preventDefault();
-    try {
-      console.log("Attempting login with:", username);
+    useEffect(() => {
+        const checkUserData = async () => {
+            const result = await authService.getUserData();
+            if (result.success) {
+                navigate("/dashboard");
+            }
+        };
+        checkUserData();
+    }, [navigate]);
 
-      const session = await authService.login(username, password);
-      console.log("Login successful:", session);
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+        e.preventDefault();
+        try {
+            console.log('Attempting login with email:', username);
+            
+            const session = await authService.login(username, password);
+            console.log('Login successful:', session);
+            
+            navigate("/dashboard");
+            console.log('Redirecting to /homepage');
 
-      navigate("/dashboard");
-      console.log("Redirecting to /homepage");
-    } catch (error) {
-      // @ts-ignore
-      alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        handleSubmit(); // Trigger login on "Enter"
-      }
+        } catch (error) {
+            console.error('Login failed:', error);
+            // @ts-ignore
+            Alert.alert('Login Failed', error.message || 'Invalid email or password. Please try again.');
+        }
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [username, password]);
-
-  useEffect(() => {
-    const checkUserData = async () => {
-      const result = await authService.getUserData();
-      if (result.success) {
-        navigate("/dashboard");
-      }
-    };
-    checkUserData();
-  }, [navigate]);
 
   return (
     <Container maxWidth="sm">
-      <Container sx={{ textAlign: "center" }}>
-        <Typography
-          variant="h3"
-          sx={{
-            ml: "auto",
-            mr: "auto",
-            mt: 5,
-            fontWeight: "bold",
-            color: "#4CAF50",
-            cursor: "pointer",
-          }}
-          component={RouterLink}
-          to="/homepage"
-        >
-          FLOCK
-        </Typography>
-        <Typography
-          variant="h5"
-          sx={{
-            textAlign: "center",
-            fontWeight: "bold",
-            color: darkMode ? "white" : "black",
-          }}
-        >
-          A new way to make plans
-        </Typography>
-      </Container>
+      <Container sx={{ textAlign: "center"}}>
+            <Typography
+              variant="h3"
+              sx={{
+                ml: "auto",
+                mr: "auto",
+                mt: 5,
+                fontWeight: "bold",
+                color: "#4CAF50",
+                cursor: "pointer"
+              }}
+      
+              component={RouterLink}
+              to="/homepage"
+            >
+              FLOCK
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                textAlign: "center",
+                fontWeight: "bold",
+                color: darkMode? "white" : "black",
+              }}
+            >
+              A new way to make plans
+            </Typography>
+            </Container>
       <Paper elevation={10} sx={{ marginTop: 5, padding: 2 }}>
-        <Typography component="h1" variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
+        <Typography
+          component="h1"
+          variant="h4"
+          sx={{ textAlign: "center", fontWeight: "bold" }}
+        >
           Welcome back!
         </Typography>
         <br />
@@ -103,7 +97,12 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
           Log in to your account
         </Typography>
 
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          noValidate
+          sx={{ mt: 1 }}
+        >
           <TextField
             placeholder="Enter username or email"
             label="Username or email"
@@ -124,7 +123,10 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
             onChange={(e) => setPassword(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <FormControlLabel control={<Checkbox value="remember" color="primary" />} label="Remember me?" />
+          <FormControlLabel
+            control={<Checkbox value="remember" color="primary" />}
+            label="Remember me?"
+          />
           <Button
             type="submit"
             variant="contained"
@@ -159,7 +161,11 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
             </Typography>
           </Grid>
           <Grid item>
-            <Typography variant="body2" align="center" sx={{ fontSize: 16, mt: 1 }}>
+            <Typography
+              variant="body2"
+              align="center"
+              sx={{ fontSize: 16, mt: 1 }}
+            >
               Don't have an account?{" "}
               <Link
                 component={RouterLink}
@@ -178,7 +184,10 @@ const Login: React.FC<DarkModeProp> = ({ darkMode }) => {
           </Grid>
         </Grid>
       </Paper>
-      <ForgotPassword open={isForgotPasswordOpen} onClose={() => setIsForgotPasswordOpen(false)} />
+      <ForgotPassword
+        open={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </Container>
   );
 };
