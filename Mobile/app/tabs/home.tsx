@@ -19,22 +19,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import DateTimePickerComponent from '../../components/DateTimePicker';
 
-/* IMPORT STYLES */
-
-import styles from '../styles/HomePageStyles';
-import friendStyles from '../styles/FriendsPageStyles';
 import { authService } from '../services/authservice';
 import { router } from 'expo-router';
 import { EventService } from '../services/EventService';
 import { apiService } from '../services/ApiService';
 
+import styles from '../styles/HomePageStyles';
+import friendStyles from '../styles/FriendsPageStyles';
+
 
 const isIOS = Platform.OS === 'ios';
 console.log("Running for platform: ", isIOS ? "iOS" : "Android");
 
-/* ----------------------------------------
-   Mock user, friend list, and data models
----------------------------------------- */
 import { User } from '../models/User';
 
 import { Participant } from '../models/Participant';
@@ -98,7 +94,6 @@ function formatDay(date: Date) {
         'Thursday', 'Friday', 'Saturday'
     ];
     const dayName = weekdayNames[date.getDay()]; // 0=Sunday
-    // Format date as DD.MM.YYYY
     const dd = String(date.getDate()).padStart(2, '0');
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const yyyy = date.getFullYear();
@@ -280,7 +275,6 @@ export default function HomeScreen() {
     const [createDesc, setCreateDesc] = useState('');
     const [createLoc, setCreateLoc] = useState('');
 
-
     // Step2
     const [createDays, setCreateDays] = useState<SingleDay[]>([]);
 
@@ -290,7 +284,6 @@ export default function HomeScreen() {
     const [tempDate, setTempDate] = useState(new Date());
     const [tempStart, setTempStart] = useState('08:00'); // Default start time in 24-hour format
     const [tempEnd, setTempEnd] = useState('22:00'); // Default end time in 24-hour format
-
 
     // Additional modals for date/time picking
     const [pickDateModalVisible, setPickDateModalVisible] = useState(false);
@@ -332,7 +325,6 @@ export default function HomeScreen() {
     const [tempDateEdit, setTempDateEdit] = useState(new Date());
     const [tempStartEdit, setTempStartEdit] = useState('08:00');
     const [tempEndEdit, setTempEndEdit] = useState('22:00');
-
 
     // Additional modals for date/time picking (edit)
     const [pickDateModalEditVisible, setPickDateModalEditVisible] = useState(false);
@@ -460,7 +452,6 @@ export default function HomeScreen() {
         }
     }
 
-
     async function finalizeCreateEvent() {
         if (!createTitle.trim()) {
             Alert.alert('Missing Title', 'Provide a title.');
@@ -543,16 +534,12 @@ export default function HomeScreen() {
 
         // Show the Add Day modal and hide the Create Event modal
         setAddDayModalVisible(true);
-        if (isIOS) {
-            setCreateModalVisible(false);
-        }
+        if (isIOS) setCreateModalVisible(false);
     }
 
     function closeAddDayModalCreate() {
         setAddDayModalVisible(false);
-        if (isIOS) {
-            setCreateModalVisible(true);
-        }
+        if (isIOS) setCreateModalVisible(true);
     }
 
     const handleAvailabilityResponse = (dayKey: string, isAvailable: boolean) => {
@@ -601,7 +588,6 @@ export default function HomeScreen() {
             };
         });
 
-
         // 3) (Optional) Update the global events array to reflect changes on the homepage
         setEvents((prevEvents) =>
             prevEvents.map((evt) => {
@@ -625,6 +611,7 @@ export default function HomeScreen() {
         const [hours, minutes] = time.split(":").map(Number);
         return hours * 100 + minutes;
     };
+
     function handleSaveDayCreate() {
         // Check if end time is smaller than start time
         const startTimeNumber = convertTimeToNumber(tempStart);
@@ -657,6 +644,7 @@ export default function HomeScreen() {
         }
         closeAddDayModalCreate();
     }
+
     function removeDayCreate(i: number) {
         Alert.alert('Remove Day', 'Are you sure?', [
             { text: 'Cancel', style: 'cancel' },
@@ -671,63 +659,42 @@ export default function HomeScreen() {
     }
 
     /* Step2: picking date/time => each is a separate modal */
-    function openPickDate() {
-        if (isIOS) {
-            setAddDayModalVisible(false);
-        }
-        setPickDateModalVisible(true);
-    }
-
-    function openPickDateEdit() {
-        if (isIOS) {
-            setAddDayModalVisibleEdit(false);
-        }
-        setPickDateModalEditVisible(true);
-    }
-
-    function closePickDate() {
-        setPickDateModalVisible(false);
-        if (isIOS) {
-            setAddDayModalVisible(true);
-        }
-    }
     function onPickDateChange(sel?: Date) {
         if (sel) {
             sel.setHours(sel.getHours() + 1);
             setTempDate(sel);
         }
     }
+    function openPickDate() {
+        if (isIOS) setAddDayModalVisible(false);
+        setPickDateModalVisible(true);
+    }
+    function openPickDateEdit() {
+        if (isIOS) setAddDayModalVisibleEdit(false);
+        setPickDateModalEditVisible(true);
+    }
+    function closePickDate() {
+        setPickDateModalVisible(false);
+        if (isIOS) setAddDayModalVisible(true);
+    }
     function savePickDate() {
         setPickDateModalVisible(false);
-        if (isIOS) {
-            setAddDayModalVisible(true);
-        }
+        if (isIOS) setAddDayModalVisible(true);
     }
-
     function openPickStartTime() {
-        if (isIOS) {
-            setAddDayModalVisible(false);
-        }
+        if (isIOS) setAddDayModalVisible(false);
         setPickStartModalVisible(true);
     }
     function openPickEndTime() {
-        if (isIOS) {
-            setAddDayModalVisible(false);
-        }
+        if (isIOS) setAddDayModalVisible(false);
         setPickEndModalVisible(true);
     }
-
     function openPickStartTimeEdit() {
-        if (isIOS) {
-            setAddDayModalVisibleEdit(false);
-        }
+        if (isIOS) setAddDayModalVisibleEdit(false);
         setPickStartModalEditVisible(true);
     }
-
     function openPickEndTimeEdit() {
-        if (isIOS) {
-            setAddDayModalVisibleEdit(false);
-        }
+        if (isIOS) setAddDayModalVisibleEdit(false);
         setPickEndModalEditVisible(true);
     }
 
@@ -741,7 +708,7 @@ export default function HomeScreen() {
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-
+            // TODO?
         }
         setTypedInvite('');
     }
@@ -751,26 +718,20 @@ export default function HomeScreen() {
     }
 
     /* Step4 create -> Voting */
+    function onVotingDateChange(sel?: Date) {
+        if (sel) setEndVotingDate(sel);
+    }
     function openVotingDatePickerCreate() {
         setVotingPickerVisible(true);
-        if (isIOS) {
-            setCreateModalVisible(false);
-        }
+        if (isIOS) setCreateModalVisible(false);
     }
     function cancelVotingDate() {
         setVotingPickerVisible(false);
-        if (isIOS) {
-            setCreateModalVisible(true);
-        }
+        if (isIOS) setCreateModalVisible(true);
     }
     function saveVotingDate() {
         setVotingPickerVisible(false);
-        if (isIOS) {
-            setCreateModalVisible(true);
-        }
-    }
-    function onVotingDateChange(sel?: Date) {
-        if (sel) setEndVotingDate(sel);
+        if (isIOS) setCreateModalVisible(true);
     }
 
     // Function to handle date changes from the picker
@@ -830,6 +791,7 @@ export default function HomeScreen() {
             setEditStep(prev => prev - 1);
         }
     }
+
     async function finalizeEditEvent() {
         if (!editEvent) return;
         if (!editTitle.trim()) {
@@ -867,8 +829,6 @@ export default function HomeScreen() {
                 .map(invite => invite.id)
         }
 
-        //console.log(UpdatedEvent);
-
         let response = await eventService.updateEvent(UpdatedEvent);
 
         if (response.success && response.data) {
@@ -902,16 +862,12 @@ export default function HomeScreen() {
             setTempEndEdit('10:00'); // Default end time in 24-hour format
         }
         setAddDayModalVisibleEdit(true);
-        if (isIOS) {
-            setEditModalVisible(false);
-        }
+        if (isIOS) setEditModalVisible(false);
     }
 
     function closeAddDayModalEdit() {
         setAddDayModalVisibleEdit(false);
-        if (isIOS) {
-            setEditModalVisible(true);
-        }
+        if (isIOS) setEditModalVisible(true);
     }
 
     function handleSaveDayEdit() {
@@ -997,26 +953,20 @@ export default function HomeScreen() {
     }
 
     /* Step4 (edit) => voting date */
+    function onVotingDateChangeEdit(sel?: Date) {
+        if (sel) setEditEndVoting(sel);
+    }
     function openVotingDatePickerEdit() {
         setVotingPickerEditVisible(true);
-        if (isIOS) {
-            setEditModalVisible(false);
-        }
+        if (isIOS) setEditModalVisible(false);
     }
     function cancelVotingDateEdit() {
         setVotingPickerEditVisible(false);
-        if (isIOS) {
-            setEditModalVisible(true);
-        }
+        if (isIOS) setEditModalVisible(true);
     }
     function saveVotingDateEdit() {
         setVotingPickerEditVisible(false);
-        if (isIOS) {
-            setEditModalVisible(true);
-        }
-    }
-    function onVotingDateChangeEdit(sel?: Date) {
-        if (sel) setEditEndVoting(sel);
+        if (isIOS) setEditModalVisible(true);
     }
 
     /* =============== VIEW / VOTE =============== */
@@ -1346,9 +1296,7 @@ export default function HomeScreen() {
                                                                         style={[styles.actionButton, styles.voteButton]}
                                                                         onPress={() => {
                                                                             setIsVotingModalVisible(true);
-                                                                            if (isIOS) {
-                                                                                setIsEventModalVisible(false);
-                                                                            }
+                                                                            if (isIOS) setIsEventModalVisible(false);
                                                                         }}
                                                                     >
                                                                         <MaterialIcons name="how-to-vote" size={20} color="#fff" />
@@ -1571,15 +1519,8 @@ export default function HomeScreen() {
                                                                                 // If the event is in "voting" status, show either "VOTED" or "PENDING"
                                                                                 if (eventStatus === 'voting') {
                                                                                     const isPending = p.status.toLowerCase() === 'pending';
-                                                                                    // TODO: add user pfp instead of person icon
                                                                                     return (
                                                                                         <View key={index} style={styles.participantRow}>
-                                                                                            {/*<MaterialIcons*/}
-                                                                                            {/*    name="person"*/}
-                                                                                            {/*    size={20}*/}
-                                                                                            {/*    color="#4CAF50"*/}
-                                                                                            {/*    style={{ marginRight: 8 }}*/}
-                                                                                            {/*/>*/}
                                                                                             <Image source={
                                                                                                 p.pfp_url.startsWith('http')
                                                                                                     ? { uri: p.pfp_url }
@@ -1619,12 +1560,6 @@ export default function HomeScreen() {
                                                                                 // Otherwise, use the existing accepted/declined/pending logic
                                                                                 return (
                                                                                     <View key={index} style={styles.participantRow}>
-                                                                                        {/*<MaterialIcons*/}
-                                                                                        {/*    name="person"*/}
-                                                                                        {/*    size={20}*/}
-                                                                                        {/*    color="#4CAF50"*/}
-                                                                                        {/*    style={{ marginRight: 8 }}*/}
-                                                                                        {/*/>*/}
                                                                                         <Image source={
                                                                                             p.pfp_url.startsWith('http')
                                                                                                 ? { uri: p.pfp_url }
