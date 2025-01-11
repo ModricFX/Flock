@@ -159,7 +159,7 @@ export default function Friends() {
             setAlertText("Friend request sent successfully!");
             setAlertModalVisible(true);
         } else {
-            setAlertText(response.error? response.error : 'Falied to send friend request' );
+            setAlertText(response.error? response.error : 'Failed to send friend request.' );
             setAlertModalVisible(true);
         }
 

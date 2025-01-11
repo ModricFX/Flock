@@ -19,27 +19,20 @@ import CloseIcon from '@mui/icons-material/Close';
 import { TransitionProps } from '@mui/material/transitions';
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authservice";
+import { apiService } from "../../services/ApiService";
+import { FriendService } from "../../services/FriendService";
+import { Friendship } from "../../models/Friendship";
 
-const FriendList = [
-    {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=12",
-    },
-    {
-        username: "Alice",
-        email: "alice@example.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=28",
-    },
-    {
-        username: "Bob",
-        email: "bob@example.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=36",
-    },
-];
+const api = apiService.getApi();
+const friendService = new FriendService(api);
+
+interface Friend {
+    id: number;
+    username: string;
+    pfp_url: string;
+    email: string;
+    status: 'accepted' | 'pending';
+}
 
 const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
@@ -59,12 +52,41 @@ interface FriendsPageProps {
 }
 
 const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
-    const [participants, setParticipants] = useState(FriendList);
-    const [selectedFriend, setSelectedFriend] = useState<{ username: string; email: string; status: string; pfpUrl: string } | null>(null);
+    const [friends, setFriends] = useState<Friend[]>([]);
+    const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
     const [newFriendInput, setNewFriendInput] = useState("");
     const navigate = useNavigate();
 
-    const handleChipClick = (friend: { username: string; email: string; status: string; pfpUrl: string }) => {
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const user = await authService.getUserData();
+                if (user.success && user.data) {
+                    const relationships = await friendService.getFriends(user.data.id_user, 'all');
+                    const friends = await Promise.all(relationships.map(async (rel: Friendship) => {
+                        const id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
+                        const friend = await friendService.getFriendData(id.toString());
+                        return {
+                            id: friend.id_user,
+                            username: friend.username,
+                            email: friend.email,
+                            pfp_url: friend.pfp_url || '',
+                            status: rel.status
+                        };
+                    }));
+                    setFriends(friends);
+                } else {
+                    navigate("/auth/login");
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                navigate("/auth/login");
+            }
+        };
+        fetchUserData();
+    }, [navigate]);
+
+    const handleChipClick = (friend: Friend) => {
         setSelectedFriend(friend);
     };
 
@@ -72,62 +94,69 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
         setSelectedFriend(null);
     };
 
-    const handleAccept = () => {
+    const handleAccept = async () => {
         if (selectedFriend) {
-            setParticipants((prevParticipants) =>
-                prevParticipants.map((participant) =>
-                    participant.email === selectedFriend.email
-                        ? { ...participant, status: 'accepted' }
-                        : participant
-                )
-            );
-        }
-        setSelectedFriend(null);
-    };
-
-    const handleDeny = () => {
-        if (selectedFriend) {
-            setParticipants((prevParticipants) =>
-                prevParticipants.filter((participant) => participant.email !== selectedFriend.email)
-            );
-        }
-        setSelectedFriend(null);
-    };
-
-    const handleRemoveFriend = () => {
-        if (selectedFriend) {
-            setParticipants((prevParticipants) =>
-                prevParticipants.filter((participant) => participant.email !== selectedFriend.email)
-            );
-        }
-        setSelectedFriend(null);
-    };
-
-    const handleAddFriend = () => {
-        if (newFriendInput.trim()) {
-            const isEmail = newFriendInput.includes('@');
-            setParticipants((prevParticipants) => [
-                ...prevParticipants,
-                {
-                    username: isEmail ? "New Friend" : newFriendInput.trim(),
-                    email: isEmail ? newFriendInput.trim() : `${newFriendInput.trim()}@domain.com`,
-                    status: "pending",
-                    pfpUrl: "https://i.pravatar.cc/100", // Placeholder profile picture
-                },
-            ]);
-            setNewFriendInput(""); // Clear the input
-        }
-    };
-
-    useEffect(() => {
-        const checkUserData = async () => {
-            const result = await authService.getUserData();
-            if (!result.success) {
-                navigate("/auth/login");
+            const response = await friendService.updateRelationshipStatus(selectedFriend.id, 'accepted');
+            if (response.status === 200) {
+                setFriends((prev) =>
+                    prev.map((friend) =>
+                        friend.id === selectedFriend.id ? { ...friend, status: 'accepted' } : friend
+                    )
+                );
             }
-        };
-        checkUserData();
-    }, [navigate]);
+            setSelectedFriend(null);
+        }
+    };
+
+    const handleDeny = async () => {
+        if (selectedFriend) {
+            const response = await friendService.updateRelationshipStatus(selectedFriend.id, 'rejected');
+            if (response.status === 200) {
+                setFriends((prev) =>
+                    prev.filter((friend) => friend.id !== selectedFriend.id)
+                );
+            }
+            setSelectedFriend(null);
+        }
+    };
+
+    const handleRemoveFriend = async () => {
+        if (selectedFriend) {
+            const response = await friendService.updateRelationshipStatus(selectedFriend.id, 'blocked');
+            if (response.status === 200) {
+                setFriends((prev) =>
+                    prev.filter((friend) => friend.id !== selectedFriend.id)
+                );
+            }
+            setSelectedFriend(null);
+        }
+    };
+
+    const handleAddFriend = async () => {
+        // TODO: fix this
+        console.log("Adding friend:", newFriendInput);
+        if (!newFriendInput.trim()) return;
+
+        let response = await friendService.sendFriendRequest(newFriendInput);
+
+        if (response.success) {
+            alert("Friend request sent successfully!");
+            // setFriends((prev) => [
+            //     ...prev,
+            //     {
+            //         id: response.data.id_user,
+            //         username: response.data.username,
+            //         email: response.data.email,
+            //         pfp_url: response.data.pfp_url || '',
+            //         status: 'pending'
+            //     }
+            // ]);
+        } else {
+            alert(response.error? response.error : 'Failed to send friend request.');
+        }
+
+        setNewFriendInput('');
+    };
 
     return (
         <Box sx={{ padding: '20px' }}>
@@ -147,13 +176,13 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
             </Box>
 
             <List>
-                {participants.map((participant) => (
-                    <ListItem key={participant.email} sx={{ display: 'flex', justifyContent: 'center' }}>
+                {friends.map((friend) => (
+                    <ListItem key={friend.email} sx={{ display: 'flex', justifyContent: 'center' }}>
                         <Chip
-                            label={`${participant.username} (${participant.email})${participant.status !== 'accepted' ? ` - ${capitalizeFirstLetter(participant.status)}` : ''}`}
+                            label={`${friend.username} (${friend.email})${friend.status !== 'accepted' ? ` - ${capitalizeFirstLetter(friend.status)}` : ''}`}
                             avatar={
                                 <Avatar
-                                    src={participant.pfpUrl}
+                                    src={friend.pfp_url}
                                     sx={{
                                         width: 60,
                                         height: 60
@@ -182,7 +211,7 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                                     boxShadow: '0 4px 18px rgba(0, 0, 0, 0.15)',
                                 },
                             }}
-                            onClick={() => handleChipClick(participant)}
+                            onClick={() => handleChipClick(friend)}
                         />
                     </ListItem>
                 ))}
@@ -224,7 +253,7 @@ const FriendsPage: React.FC<FriendsPageProps> = ({ darkMode }) => {
                                 </DialogContentText>
                             )}
                             <Avatar
-                                src={selectedFriend.pfpUrl}
+                                src={selectedFriend.pfp_url}
                                 sx={{
                                     width: 100,
                                     height: 100,
