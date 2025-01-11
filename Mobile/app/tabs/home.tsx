@@ -76,14 +76,15 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
     return 'upcoming';
 }
 
-function formatDate(date: Date) {
-    return date.toLocaleString([], {
+function formatDate(date: Date | string) {
+    const parsedDate = new Date(date);
+    return parsedDate.toLocaleString([], {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        hourCycle: 'h23', // Use 24-hour format
+        hourCycle: 'h23', // use 24-hour format
     });
 }
 
@@ -341,23 +342,24 @@ export default function HomeScreen() {
     /* ------------------------------------------
        Create Flow
     ------------------------------------------*/
+    /** Convert a date to UTC format if it's not already in that format. */
+    function makeDateUTC(date: Date) {
+        return new Date(date.toString()[date.toString().length - 1] === 'Z' ? date : date + 'Z');
+    }
+
     function transformEvents(events: EventData[]) {
         events.forEach(ev => {
-            ev.date_created = new Date(ev.date_created);
-            ev.date_updated = new Date(ev.date_updated);
-            ev.end_voting_date = new Date(ev.end_voting_date);
+            ev.date_created = makeDateUTC(ev.date_created);
+            ev.date_updated = makeDateUTC(ev.date_updated);
+            ev.end_voting_date = makeDateUTC(ev.end_voting_date);
 
             if (ev.chosen_date_end) {
-                ev.chosen_date_end = new Date(ev.chosen_date_end);
-
+                ev.chosen_date_end = makeDateUTC(ev.chosen_date_end);
                 if (ev.chosen_date_end.getUTCFullYear() < 2000)
                     ev.chosen_date_end = undefined;
             }
-
-
             if (ev.chosen_date_start) {
-                ev.chosen_date_start = new Date(ev.chosen_date_start);
-
+                ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
                 if (ev.chosen_date_start.getUTCFullYear() < 2000)
                     ev.chosen_date_start = undefined;
             }
@@ -378,17 +380,16 @@ export default function HomeScreen() {
 
             ev.date_options = ev.date_options.map(dateOption => {
                 return {
-                    id_date_option: dateOption.id_date_option ? dateOption.id_date_option : 0,
-                    id_event: dateOption.id_event ? dateOption.id_event : 0,
-                    date_start: new Date(dateOption.date_start),
-                    date_end: new Date(dateOption.date_end)
+                    id_date_option: dateOption.id_date_option || 0,
+                    id_event: dateOption.id_event || 0,
+                    date_start: makeDateUTC(dateOption.date_start),
+                    date_end: makeDateUTC(dateOption.date_end)
                 }
             });
         });
 
         return events;
     }
-
 
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
@@ -490,8 +491,8 @@ export default function HomeScreen() {
             id_user: currentUser?.id_user || 'unknown',
             date_options: createDays.map(day => {
                 return {
-                    date_start: day.date_start.toISOString(),
-                    date_end: day.date_end.toISOString()
+                    date_start: new Date(day.date_start).toISOString(),
+                    date_end: new Date(day.date_end).toISOString()
                 }
             }),
             tag_ids: [],
@@ -505,7 +506,6 @@ export default function HomeScreen() {
 
         if (response.success && response.data) {
             let events = transformEvents([response.data]);
-
             setEvents(prev => [...prev, events[0]]);
         }
         else {
@@ -618,29 +618,19 @@ export default function HomeScreen() {
         const endTimeNumber = convertTimeToNumber(tempEnd);
 
         if (endTimeNumber < startTimeNumber) {
-            alert("End time cannot be earlier than start time. Please correct the time.");
-            return; // Exit the function to prevent saving invalid data
+            Alert.alert("End time cannot be earlier than start time. Please correct the time.");
+            return;
         }
 
-        if (tempDayIndex !== null) {
-            // edit
+        const dateStart = new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`);
+        const dateEnd = new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`);
+
+        if (tempDayIndex === null) {  // new
+            setCreateDays(prev => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+        } else {  // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = {
-                date_start: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
-                date_end: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
-            };
-
+            copy[tempDayIndex] = { date_start: dateStart, date_end: dateEnd };
             setCreateDays(copy);
-        } else {
-            // new
-            setCreateDays(prev => [
-                ...prev,
-                {
-                    date_start: new Date(`${tempDate.toISOString().split('T')[0]}T${tempStart}:00`),
-                    date_end: new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`)
-                }
-            ]);
-
         }
         closeAddDayModalCreate();
     }
@@ -815,8 +805,8 @@ export default function HomeScreen() {
             description: editDesc,
             location: editLoc,
             end_voting_date: editEndVoting.toISOString(),
-            chosen_date_start: editChosenDateStart ? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
-            chosen_date_end: editChosenDateEnd ? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000Z").toISOString(),
+            chosen_date_start: editChosenDateStart ? editChosenDateStart.toISOString() : new Date("0001-01-01T00:00:00.000").toISOString(),
+            chosen_date_end: editChosenDateEnd ? editChosenDateEnd.toISOString() : new Date("0001-01-01T00:00:00.000").toISOString(),
             sysrowstate: 1,
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
@@ -876,31 +866,24 @@ export default function HomeScreen() {
         const endTimeNumber = convertTimeToNumber(tempEndEdit);
 
         if (endTimeNumber < startTimeNumber) {
-            alert("End time cannot be earlier than start time. Please correct the time.");
-            return; // Exit the function to prevent saving invalid data
+            Alert.alert("End time cannot be earlier than start time. Please correct the time.");
+            return;
         }
 
+        const dateStart = new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`);
+        const dateEnd = new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`);
+
         // Proceed with saving data if validation passes
-        if (tempDayIndexEdit !== null) {
+        if (tempDayIndexEdit === null) {  // new
+            setEditDays((prev) => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+        } else {  // edit
             const copy = [...editDays];
-            copy[tempDayIndexEdit] = {
-                date_start: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
-                date_end: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
-            };
+            copy[tempDayIndexEdit] = { date_start: dateStart, date_end: dateEnd };
             setEditDays(copy);
-        } else {
-            setEditDays((prev) => [
-                ...prev,
-                {
-                    date_start: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempStartEdit}:00`),
-                    date_end: new Date(`${tempDateEdit.toISOString().split('T')[0]}T${tempEndEdit}:00`),
-                },
-            ]);
         }
 
         closeAddDayModalEdit();
     }
-
 
     function removeDayEdit(i: number) {
         Alert.alert('Remove Day', 'Are you sure?', [
@@ -934,6 +917,7 @@ export default function HomeScreen() {
             setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfp_url: friend.pfp_url }]);
         }
     }
+
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
@@ -948,6 +932,7 @@ export default function HomeScreen() {
         }
         setEditTypedInvite('');
     }
+
     function removeInviteEdit(email: string) {
         setEditInvitees(prev => prev.filter(i => i.email !== email));
     }
@@ -2211,7 +2196,6 @@ export default function HomeScreen() {
                                     mode="datetime"
                                     display="spinner"
                                     onChange={(ev, sel) => {
-                                        if (!sel) return; // Handle cancellation
                                         onVotingDateChange(sel); // Update deadline
                                     }}
                                     textColor="black" // Ensure visibility
