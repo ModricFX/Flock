@@ -46,7 +46,8 @@ public class EventRepository : IEventRepository
         SELECT e.*
         FROM event e
         LEFT JOIN invitation i ON e.id_event = i.id_event
-        WHERE (e.id_user = @Id_user OR i.id_user = @Id_user) AND e.sysrowstate = 1;";
+        WHERE (e.id_user = @Id_user OR i.id_user = @Id_user) AND e.sysrowstate = 1
+        GROUP BY e.id_event;";
 
         using (var connection = _context.CreateConnection())
         {
