@@ -20,10 +20,8 @@ public class EventRepository : IEventRepository
         FROM `event`
         WHERE `id_event` = @Id";
 
-        using (var connection = _context.CreateConnection())
-        {
-            return await connection.QueryFirstOrDefaultAsync<Event>(query, new { Id = id });
-        }
+        using var connection = _context.CreateConnection();
+        return await connection.QueryFirstOrDefaultAsync<Event>(query, new { Id = id });
     }
 
     public async Task<List<Event>?> GetAllEvents()
