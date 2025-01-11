@@ -194,7 +194,7 @@ export default function HomeScreen() {
                                 id_user: friend.id_user,
                                 username: friend.username,
                                 email: friend.email,
-                                pfp_url: ''
+                                pfp_url: friend.pfp_url || '',
                             });
                         }
                     }
@@ -378,7 +378,7 @@ export default function HomeScreen() {
                         id: invitedFriend ? invitedFriend.id_user : '',
                         email: invitedFriend ? invitedFriend.email : '',
                         username: invitedFriend ? invitedFriend.username : '',
-                        pfp_url: '',
+                        pfp_url: invitedFriend ? invitedFriend.pfp_url || '' : '',
                         status: inv.status
                     };
                 })
@@ -986,7 +986,7 @@ export default function HomeScreen() {
                 username: editTypedInvite.split('@')[0],
                 email: editTypedInvite,
                 status: 'pending',
-                pfp_url: 'https://i.pravatar.cc/100?img=50'
+                pfp_url: 'https://i.pravatar.cc/100?img=48'
             };
             setEditInvitees([...editInvitees, newPart]);
         }
