@@ -1,6 +1,6 @@
 /*==============================================================*/
 /* DBMS name:      MySQL 5.0                                    */
-/* Created on:     06/01/2025 20:30:46                          */
+/* Created on:     07/01/2025 17:30:37                          */
 /*==============================================================*/
 
 
@@ -9,6 +9,7 @@ drop table if exists chose;
 drop table if exists date_option;
 drop table if exists friendship;
 drop table if exists invitation;
+drop table if exists user_attendance;
 drop table if exists tag;
 drop table if exists event;
 drop table if exists usernotification;
@@ -18,6 +19,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 drop table if exists role;
 SET FOREIGN_KEY_CHECKS = 1;
 drop table if exists user;
+
 
 /*==============================================================*/
 /* Table: categorizes_as                                        */
@@ -141,13 +143,24 @@ create table user
    last_name            varchar(32) not null,
    email                varchar(64) not null,
    password             varchar(128) not null,
-   email_verified       bool,
    username             varchar(64),
+   email_verified       bool,
    date_created         datetime,
    date_updated         datetime,
-   pfp_url              varchar(128),
+   pfp_url              varchar(256),
    sysrowstate          int not null,
    primary key (id_user)
+);
+
+/*==============================================================*/
+/* Table: user_attendance                                       */
+/*==============================================================*/
+create table user_attendance
+(
+   id_event             int not null,
+   id_user              int not null,
+   will_attend          bool not null,
+   primary key (id_event, id_user)
 );
 
 /*==============================================================*/
@@ -163,41 +176,46 @@ create table usernotification
 );
 
 alter table categorizes_as add constraint FK_categorizes_as foreign key (id_event)
-      references event (id_event);
+      references event (id_event) on delete cascade;
 
 alter table categorizes_as add constraint FK_tag_of_event foreign key (id_tag)
-      references tag (id_tag);
+      references tag (id_tag) on delete cascade;
 
 alter table chose add constraint FK_was_chosen foreign key (id_date_option)
-      references date_option (id_date_option);
+      references date_option (id_date_option) on delete cascade;
 
 alter table chose add constraint FK_chose foreign key (id_user)
-      references user (id_user);
+      references user (id_user) on delete cascade;
 
 alter table date_option add constraint FK_offers foreign key (id_event)
-      references event (id_event);
+      references event (id_event) on delete cascade;
 
 alter table event add constraint FK_created foreign key (id_user)
-      references user (id_user);
+      references user (id_user) on delete cascade;
 
 alter table friendship add constraint FK_friend_initiator foreign key (use_id_user)
-      references user (id_user);
+      references user (id_user) on delete cascade;
 
 alter table friendship add constraint FK_friend_recipient foreign key (id_user)
-      references user (id_user);
+      references user (id_user) on delete cascade;
 
 alter table invitation add constraint FK_receives foreign key (id_user)
-      references user (id_user);
+      references user (id_user) on delete cascade;
 
 alter table invitation add constraint FK_sends foreign key (id_event)
-      references event (id_event);
+      references event (id_event) on delete cascade;
 
 alter table user add constraint FK_has foreign key (id_role)
       references role (id_role);
 
+alter table user_attendance add constraint FK_records_attendance foreign key (id_user)
+      references user (id_user) on delete cascade;
+
+alter table user_attendance add constraint FK_tracks_attendance foreign key (id_event)
+      references event (id_event) on delete cascade;
+
 alter table usernotification add constraint FK_belongs_to foreign key (id_notification)
-      references notification (id_notification);
+      references notification (id_notification) on delete cascade;
 
 alter table usernotification add constraint FK_receives_notification foreign key (id_user)
-      references user (id_user);
-
+      references user (id_user) on delete cascade;
