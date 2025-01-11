@@ -378,9 +378,9 @@ export default function HomeScreen() {
             if (ev.invitations) {
                 ev.invitations.forEach(inv => {
                     let invitedFriend = inv.user;
-                    let status: "pending" | "accepted" | "declined" = 
+                    let status: "pending" | "accepted" | "declined" =
                         ev.votes?.some(vote => vote.id_user === invitedFriend?.id_user) ? "accepted" : "pending";
-            
+
                     ev.participants = ev.participants || []; // Ensure participants array is initialized
                     ev.participants.push({
                         id: invitedFriend?.id_user || '',
@@ -392,12 +392,12 @@ export default function HomeScreen() {
 
                     //console.log(ev.votes);
 
-                    if(invitedFriend.id_user == currentUserId){
+                    if (invitedFriend.id_user == currentUserId) {
                         ev.votes?.forEach((vote) => {
-                            if(vote.id_user == currentUserId){
+                            if (vote.id_user == currentUserId) {
                                 let date_option = ev.date_options.find(dt => dt.id_date_option?.toString() == vote.id_date_option);
 
-                                if(date_option){
+                                if (date_option) {
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
 
                                     const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
@@ -410,12 +410,12 @@ export default function HomeScreen() {
                                     } else {
                                         const startTime = new Date(date_option.date_start);
                                         startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
-    
+
                                         const endTime = new Date(date_option.date_end);
                                         endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
                                         //console.log(vote.status);
-    
+
                                         mergedAvailability[dayKey] = {
                                             startTime,
                                             endTime,
@@ -424,7 +424,7 @@ export default function HomeScreen() {
                                             id_date_option: date_option.id_date_option
                                         };
                                     }
-    
+
                                     setAvailability(mergedAvailability);
                                     setCurrentDbavailability(mergedAvailability);
                                 }
@@ -432,7 +432,7 @@ export default function HomeScreen() {
                         });
                     }
                 });
-            }            
+            }
         });
 
         return events;
@@ -552,7 +552,7 @@ export default function HomeScreen() {
         let response = await eventService.createEvent(newEvt)
 
         if (response.success && response.data) {
-            let events = transformEvents([response.data], currentUser?.id_user? currentUser.id_user:'');
+            let events = transformEvents([response.data], currentUser?.id_user ? currentUser.id_user : '');
             setEvents(prev => [...prev, events[0]]);
         }
         else {
@@ -879,7 +879,7 @@ export default function HomeScreen() {
         let response = await eventService.updateEvent(UpdatedEvent);
 
         if (response.success && response.data) {
-            let updated = transformEvents([response.data], currentUser?.id_user? currentUser.id_user:'');
+            let updated = transformEvents([response.data], currentUser?.id_user ? currentUser.id_user : '');
 
             setEvents(events.map(ev => {
                 return ev.id_event == updated[0].id_event ? updated[0] : ev
@@ -955,23 +955,23 @@ export default function HomeScreen() {
         ]);
     }
 
-    function saveVotingData(){
-        setIsVotingModalVisible(false); 
+    function saveVotingData() {
+        setIsVotingModalVisible(false);
         setIsEventModalVisible(true);
 
         Object.entries(availability).forEach(async ([key, value]) => {
             let vote: Vote = {
                 id_date_option: value.id_date_option,
-                id_user: currentUser? currentUser.id_user : 'undefined'
+                id_user: currentUser ? currentUser.id_user : 'undefined'
             }
 
-            if(currentDbavailability[key]){
-                if(currentDbavailability[key].isAvailable != value.isAvailable){
-                    if(value.isAvailable){
+            if (currentDbavailability[key]) {
+                if (currentDbavailability[key].isAvailable != value.isAvailable) {
+                    if (value.isAvailable) {
                         vote.status = "accepted";
                         let response = await eventService.castVote(vote);
 
-                        if(!response.success){
+                        if (!response.success) {
                             console.log(response.error)
                         } else {
                             console.log(response.data)
@@ -980,7 +980,7 @@ export default function HomeScreen() {
                         vote.status = "declined";
                         let response = await eventService.deleteVote(vote);
 
-                        if(!response.success){
+                        if (!response.success) {
                             console.log(response.error)
                         } else {
                             console.log(response.data)
@@ -988,12 +988,12 @@ export default function HomeScreen() {
                     }
                 }
             }
-            else{
-                if(value.isAvailable){
+            else {
+                if (value.isAvailable) {
                     vote.status = "accepted";
                     let response = await eventService.castVote(vote);
 
-                    if(!response.success){
+                    if (!response.success) {
                         console.log(response.error)
                     } else {
                         console.log(response.data)
@@ -1107,8 +1107,10 @@ export default function HomeScreen() {
                                 horizontal={false}
                                 showsVerticalScrollIndicator={false}
                             >
-                                {myEvents.map(evt => (
-                                    <TouchableOpacity
+                                {myEvents.map(evt => {
+                                    const eventStatus = getEventStatus(evt);
+                                    const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
+                                    return <TouchableOpacity
                                         key={evt.id_event}
                                         style={styles.eventCard}
                                         onPress={() => openView(evt)}
@@ -1121,16 +1123,16 @@ export default function HomeScreen() {
                                             <Text style={styles.eventTitle}>{evt.name}</Text>
                                             <View style={[
                                                 styles.statusBadge,
-                                                getStatusStyle(getEventStatus(evt))
+                                                getStatusStyle(eventStatus)
                                             ]}>
                                                 <MaterialIcons
-                                                    name={getStatusIcon(getEventStatus(evt))}
+                                                    name={getStatusIcon(eventStatus)}
                                                     size={16}
                                                     color="#fff"
                                                     style={{ marginRight: 4 }}
                                                 />
                                                 <Text style={styles.statusText}>
-                                                    {getEventStatus(evt).toUpperCase()}
+                                                    {eventStatus.toUpperCase()}
                                                 </Text>
                                             </View>
                                         </View>
@@ -1165,8 +1167,18 @@ export default function HomeScreen() {
                                                 {evt.participants?.length} Participants
                                             </Text>
                                         </View>
+
+                                        {/* User Voting Status */}
+                                        {eventStatus === 'voting' && userParticipant && (
+                                            <View style={styles.userStatus}>
+                                                <MaterialIcons name="how-to-vote" size={20} color="#4CAF50" />
+                                                <Text style={styles.userStatusText}>
+                                                    Your Vote: {['accepted', 'declined'].includes(userParticipant.status.toLowerCase()) ? 'VOTED' : 'PENDING'}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </TouchableOpacity>
-                                ))}
+                                })}
                             </ScrollView>
                         )}
                     </View>
