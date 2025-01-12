@@ -26,10 +26,19 @@ class AuthService {
     }
 
     async login(email: string, password: string) {
-        const response = await apiService.getApi().post('/auth/token', { Email: email, Password: password });
-        const token = response.data.token;
-        await tokenStorage.setToken(token);
-        return response.data;
+        try {
+            const response = await apiService.getApi().post('/auth/token', { Email: email, Password: password });
+            if (response.status === 401) {
+                throw new Error('Wrong password. Please try again.');
+            } else if (response.status !== 200) {
+                throw new Error('Server error. Please try again later.');
+            }
+            const token = response.data.token;
+            await tokenStorage.setToken(token);
+            return response.data;
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to log in.');
+        }
     }
 
     async logout() {
