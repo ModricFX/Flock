@@ -353,6 +353,13 @@ public class EventRepository : IEventRepository
         WHERE d.`id_event` = @Id_event
         GROUP BY d.`id_date_option`
         ORDER BY COUNT(c.`id_user`) DESC
+        LIMIT 1
+
+        UNION ALL
+
+        SELECT d.*
+        FROM `date_option` d
+        WHERE d.`id_event` = @Id_event
         LIMIT 1;
         ";
 

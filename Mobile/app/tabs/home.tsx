@@ -14,6 +14,7 @@ import {
     Keyboard,
     Alert,
     Image,
+    RefreshControl
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -123,9 +124,17 @@ export default function HomeScreen() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [friends, setFriends] = useState<User[]>();
     const [events, setEvents] = useState<EventData[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
 
     // iOS keyboard offset
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
+
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchData();
+        setRefreshing(false);
+    };
 
     function deleteEvent(event: EventData, currentUserId: number) {
         Alert.alert('Delete Event', 'Are you sure?', [
@@ -240,7 +249,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const dayKey = date_option.id_date_option? date_option.id_date_option : 0;
+                const dayKey = date_option.id_date_option ? date_option.id_date_option : 0;
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -418,7 +427,7 @@ export default function HomeScreen() {
 
                                 if (date_option && date_option.id_date_option) {
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
-                                    
+
                                     const dayKey = date_option.id_date_option;
 
                                     //console.log(dayKey);
@@ -452,9 +461,9 @@ export default function HomeScreen() {
                 });
             }
 
-            if(ev.user_attendances){
+            if (ev.user_attendances) {
                 ev.user_attendances.forEach((attendance) => {
-                    if(attendance.id_user == currentUserId){
+                    if (attendance.id_user == currentUserId) {
                         let newParticipations = participationStatus;
                         newParticipations[ev.id_event] = attendance.will_attend;
 
@@ -541,10 +550,10 @@ export default function HomeScreen() {
             });
             return;
         }
-    
+
         const currentTime = new Date();
         const endVotingTime = new Date(endVotingDate);
-    
+
         if (endVotingTime <= currentTime) {
             Toast.show({
                 type: 'error',
@@ -553,7 +562,7 @@ export default function HomeScreen() {
             });
             return;
         }
-    
+
         const updatedInvitees = [...invitees];
         if (currentUser?.id_user) {
             const isCurrentUserAlreadyAdded = updatedInvitees.some(
@@ -569,7 +578,7 @@ export default function HomeScreen() {
                 });
             }
         }
-    
+
         const newEvt = {
             name: createTitle,
             description: createDesc,
@@ -585,17 +594,17 @@ export default function HomeScreen() {
                 .filter(inv => inv.id)
                 .map(inv => inv.id),
         };
-    
+
         setLoading(true);
-    
+
         try {
             const response = await eventService.createEvent(newEvt);
-    
+
             if (response.success && response.data) {
                 const currentUserId = newEvt.id_user;
                 const events = transformEvents([response.data], currentUserId);
                 setEvents(prev => [...prev, events[0]]);
-    
+
                 Toast.show({
                     type: 'success',
                     text1: 'Event Created',
@@ -622,7 +631,7 @@ export default function HomeScreen() {
             closeCreateEvent();
         }
     }
-    
+
 
 
 
@@ -742,7 +751,7 @@ export default function HomeScreen() {
             setCreateDays(prev => [...prev, { id_date_option: 0, date_start: dateStart, date_end: dateEnd }]);
         } else {  // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { id_date_option: 0,date_start: dateStart, date_end: dateEnd };
+            copy[tempDayIndex] = { id_date_option: 0, date_start: dateStart, date_end: dateEnd };
             setCreateDays(copy);
         }
         closeAddDayModalCreate();
@@ -813,9 +822,9 @@ export default function HomeScreen() {
         if (!invitees.find(i => i.email === typedInvite)) {
             if (friends) {
                 let friend = friends.find(i => i.email === typedInvite || i.username === typedInvite);
-                if(friend)
+                if (friend)
                     setInvitees([...invitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
-                else{
+                else {
                     Toast.show({
                         type: 'error',
                         text1: 'No friend with this email / username found',
@@ -823,7 +832,7 @@ export default function HomeScreen() {
                     });
                 }
             }
-            else{
+            else {
                 Toast.show({
                     type: 'error',
                     text1: 'No friend with this email / username found',
@@ -1121,9 +1130,9 @@ export default function HomeScreen() {
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
             if (friends) {
                 let friend = friends.find(i => i.email === editTypedInvite || i.username === editTypedInvite);
-                if(friend)
+                if (friend)
                     setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
-                else{
+                else {
                     Toast.show({
                         type: 'error',
                         text1: 'No friend with this email / username found',
@@ -1131,7 +1140,7 @@ export default function HomeScreen() {
                     });
                 }
             }
-            else{
+            else {
                 Toast.show({
                     type: 'error',
                     text1: 'No friend with this email / username found',
@@ -1163,8 +1172,8 @@ export default function HomeScreen() {
         if (isIOS) setEditModalVisible(true);
     }
 
-    async function updateUserEventAttendance(id_event: string, will_attend: number){
-        if(!currentUser){
+    async function updateUserEventAttendance(id_event: string, will_attend: number) {
+        if (!currentUser) {
             Toast.show({
                 type: 'error',
                 text1: 'Error with updating attendance',
@@ -1181,7 +1190,7 @@ export default function HomeScreen() {
         }
 
         let response = await eventService.updateAttendance(userAttendance);
-        if(!response.success){
+        if (!response.success) {
             Toast.show({
                 type: 'error',
                 text1: 'Error with updating attendance',
@@ -1189,7 +1198,7 @@ export default function HomeScreen() {
             });
         }
 
-        const copy = {...participationStatus};
+        const copy = { ...participationStatus };
         copy[id_event] = will_attend;
 
         setParticipationStatus(copy);
@@ -1225,119 +1234,41 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <Text style={styles.headerText}>FLOCK</Text>
                 </View>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                        />
+                    }
+                >
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <View style={styles.card}>
-                        <Text style={styles.greeting}>Hi {currentUser?.username || 'User'}!</Text>
-                    </View>
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        <View style={styles.card}>
+                            <Text style={styles.greeting}>Hi {currentUser?.username || 'User'}!</Text>
+                        </View>
 
-                    {/* My Events */}
-                    <View style={styles.card}>
-                        <Text style={styles.eventsTitle}>My Events</Text>
-                        {myEvents.length === 0 ? (
-                            <Text style={styles.noEvents}>No events. Create one below!</Text>
-                        ) : (
-                            <ScrollView
-                                horizontal={false}
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {myEvents.map(evt => {
-                                    const eventStatus = getEventStatus(evt);
-                                    const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
-                                    return <TouchableOpacity
-                                        key={evt.id_event}
-                                        style={styles.eventCard}
-                                        onPress={() => openView(evt)}
-                                        activeOpacity={0.8}
-                                        accessible={true}
-                                        accessibilityLabel={`Edit event ${evt.name}`}
-                                    >
-                                        {/* Event Header */}
-                                        <View style={styles.eventHeader}>
-                                            <Text style={styles.eventTitle}>{evt.name}</Text>
-                                            <View style={[
-                                                styles.statusBadge,
-                                                getStatusStyle(eventStatus)
-                                            ]}>
-                                                <MaterialIcons
-                                                    name={getStatusIcon(eventStatus)}
-                                                    size={16}
-                                                    color="#fff"
-                                                    style={{ marginRight: 4 }}
-                                                />
-                                                <Text style={styles.statusText}>
-                                                    {eventStatus.toUpperCase()}
-                                                </Text>
-                                            </View>
-                                        </View>
-
-                                        {/* Event Description */}
-                                        <Text style={styles.eventDescription} numberOfLines={2}>
-                                            {evt.description}
-                                        </Text>
-
-                                        {/* Event Dates */}
-                                        <View style={styles.eventDates}>
-                                            <View style={styles.dateRow}>
-                                                <MaterialIcons name="today" size={20} color="#4CAF50" />
-                                                <Text style={styles.dateText}>
-                                                    Voting Ends: {formatDate(evt.end_voting_date)}
-                                                </Text>
-                                            </View>
-                                            {evt.chosen_date_start && (
-                                                <View style={styles.dateRow}>
-                                                    <MaterialIcons name="event" size={20} color="#4CAF50" />
-                                                    <Text style={styles.dateText}>
-                                                        Event Date: {formatDate(evt.chosen_date_start)}
-                                                    </Text>
-                                                </View>
-                                            )}
-                                        </View>
-
-                                        {/* Participants */}
-                                        <View style={styles.participants}>
-                                            <MaterialIcons name="people" size={20} color="#4CAF50" />
-                                            <Text style={styles.participantsText}>
-                                                {evt.participants?.length} Participants
-                                            </Text>
-                                        </View>
-
-                                        {/* User Voting Status */}
-                                        {eventStatus === 'voting' && userParticipant && (
-                                            <View style={styles.userStatus}>
-                                                <MaterialIcons name="how-to-vote" size={20} color="#4CAF50" />
-                                                <Text style={styles.userStatusText}>
-                                                    Your Vote: {['accepted', 'declined'].includes(userParticipant.status.toLowerCase()) ? 'VOTED' : 'PENDING'}
-                                                </Text>
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                })}
-                            </ScrollView>
-                        )}
-                    </View>
-
-                    {/* Other Events */}
-                    <View style={styles.card}>
-                        <Text style={styles.eventsTitle}>Other Events</Text>
-                        {otherEvents.length === 0 ? (
-                            <Text style={styles.noEvents}>No other events available.</Text>
-                        ) : (
-                            <ScrollView
-                                horizontal={false}
-                                showsVerticalScrollIndicator={false}
-                            >
-                                {otherEvents.map(evt => {
-                                    const eventStatus = getEventStatus(evt);
-                                    const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
-                                    return (
-                                        <TouchableOpacity
+                        {/* My Events */}
+                        <View style={styles.card}>
+                            <Text style={styles.eventsTitle}>My Events</Text>
+                            {myEvents.length === 0 ? (
+                                <Text style={styles.noEvents}>No events. Create one below!</Text>
+                            ) : (
+                                <ScrollView
+                                    horizontal={false}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    {myEvents.map(evt => {
+                                        const eventStatus = getEventStatus(evt);
+                                        const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
+                                        return <TouchableOpacity
                                             key={evt.id_event}
                                             style={styles.eventCard}
                                             onPress={() => openView(evt)}
                                             activeOpacity={0.8}
                                             accessible={true}
-                                            accessibilityLabel={`View event ${evt.name}`}
+                                            accessibilityLabel={`Edit event ${evt.name}`}
                                         >
                                             {/* Event Header */}
                                             <View style={styles.eventHeader}>
@@ -1363,24 +1294,15 @@ export default function HomeScreen() {
                                                 {evt.description}
                                             </Text>
 
-                                            {/* Event Dates or Location */}
+                                            {/* Event Dates */}
                                             <View style={styles.eventDates}>
-                                                {eventStatus === 'voting' ? (
-                                                    <View style={styles.dateRow}>
-                                                        <MaterialIcons name="today" size={20} color="#4CAF50" />
-                                                        <Text style={styles.dateText}>
-                                                            Voting Ends: {formatDate(evt.end_voting_date)}
-                                                        </Text>
-                                                    </View>
-                                                ) : (
-                                                    <View style={styles.dateRow}>
-                                                        <MaterialIcons name="location-on" size={20} color="#4CAF50" />
-                                                        <Text style={styles.dateText}>
-                                                            Location: {evt.location}
-                                                        </Text>
-                                                    </View>
-                                                )}
-                                                {eventStatus === 'in progress' && evt.chosen_date_start && (
+                                                <View style={styles.dateRow}>
+                                                    <MaterialIcons name="today" size={20} color="#4CAF50" />
+                                                    <Text style={styles.dateText}>
+                                                        Voting Ends: {formatDate(evt.end_voting_date)}
+                                                    </Text>
+                                                </View>
+                                                {evt.chosen_date_start && (
                                                     <View style={styles.dateRow}>
                                                         <MaterialIcons name="event" size={20} color="#4CAF50" />
                                                         <Text style={styles.dateText}>
@@ -1408,11 +1330,108 @@ export default function HomeScreen() {
                                                 </View>
                                             )}
                                         </TouchableOpacity>
-                                    )
-                                })}
-                            </ScrollView>
-                        )}
-                    </View>
+                                    })}
+                                </ScrollView>
+                            )}
+                        </View>
+
+                        {/* Other Events */}
+                        <View style={styles.card}>
+                            <Text style={styles.eventsTitle}>Other Events</Text>
+                            {otherEvents.length === 0 ? (
+                                <Text style={styles.noEvents}>No other events available.</Text>
+                            ) : (
+                                <ScrollView
+                                    horizontal={false}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    {otherEvents.map(evt => {
+                                        const eventStatus = getEventStatus(evt);
+                                        const userParticipant = evt.participants?.find(p => p.email === currentUser?.email);
+                                        return (
+                                            <TouchableOpacity
+                                                key={evt.id_event}
+                                                style={styles.eventCard}
+                                                onPress={() => openView(evt)}
+                                                activeOpacity={0.8}
+                                                accessible={true}
+                                                accessibilityLabel={`View event ${evt.name}`}
+                                            >
+                                                {/* Event Header */}
+                                                <View style={styles.eventHeader}>
+                                                    <Text style={styles.eventTitle}>{evt.name}</Text>
+                                                    <View style={[
+                                                        styles.statusBadge,
+                                                        getStatusStyle(eventStatus)
+                                                    ]}>
+                                                        <MaterialIcons
+                                                            name={getStatusIcon(eventStatus)}
+                                                            size={16}
+                                                            color="#fff"
+                                                            style={{ marginRight: 4 }}
+                                                        />
+                                                        <Text style={styles.statusText}>
+                                                            {eventStatus.toUpperCase()}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+
+                                                {/* Event Description */}
+                                                <Text style={styles.eventDescription} numberOfLines={2}>
+                                                    {evt.description}
+                                                </Text>
+
+                                                {/* Event Dates or Location */}
+                                                <View style={styles.eventDates}>
+                                                    {eventStatus === 'voting' ? (
+                                                        <View style={styles.dateRow}>
+                                                            <MaterialIcons name="today" size={20} color="#4CAF50" />
+                                                            <Text style={styles.dateText}>
+                                                                Voting Ends: {formatDate(evt.end_voting_date)}
+                                                            </Text>
+                                                        </View>
+                                                    ) : (
+                                                        <View style={styles.dateRow}>
+                                                            <MaterialIcons name="location-on" size={20} color="#4CAF50" />
+                                                            <Text style={styles.dateText}>
+                                                                Location: {evt.location}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                    {eventStatus === 'in progress' && evt.chosen_date_start && (
+                                                        <View style={styles.dateRow}>
+                                                            <MaterialIcons name="event" size={20} color="#4CAF50" />
+                                                            <Text style={styles.dateText}>
+                                                                Event Date: {formatDate(evt.chosen_date_start)}
+                                                            </Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+
+                                                {/* Participants */}
+                                                <View style={styles.participants}>
+                                                    <MaterialIcons name="people" size={20} color="#4CAF50" />
+                                                    <Text style={styles.participantsText}>
+                                                        {evt.participants?.length} Participants
+                                                    </Text>
+                                                </View>
+
+                                                {/* User Voting Status */}
+                                                {eventStatus === 'voting' && userParticipant && (
+                                                    <View style={styles.userStatus}>
+                                                        <MaterialIcons name="how-to-vote" size={20} color="#4CAF50" />
+                                                        <Text style={styles.userStatusText}>
+                                                            Your Vote: {['accepted', 'declined'].includes(userParticipant.status.toLowerCase()) ? 'VOTED' : 'PENDING'}
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        )
+                                    })}
+                                </ScrollView>
+                            )}
+                        </View>
+                    </ScrollView>
 
                     {/* Event Details Modal */}
                     <Modal
@@ -1627,7 +1646,7 @@ export default function HomeScreen() {
                                                                             </TouchableOpacity>
                                                                         </View>
                                                                     ) : (
-                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems: 'center' }}>
+                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
                                                                                 onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
@@ -1650,28 +1669,28 @@ export default function HomeScreen() {
                                                             {/* If currentUser is the creator, show an "Edit" button. */}
                                                             {isCreator && (
                                                                 <>
-                                                                <View style={{ width:'100%', height: 2, backgroundColor: '#e3e3e3', marginTop: 5 }} /> 
-                                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                                                                    <TouchableOpacity
-                                                                        style={[styles.actionButton, styles.editButton, { marginRight: 10 }]}
-                                                                        onPress={() => {
-                                                                            setIsEventModalVisible(false);
-                                                                            openEdit(selectedEvent);
-                                                                        }}
-                                                                    >
-                                                                        <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                        <Text style={styles.buttonText}>Edit</Text>
-                                                                    </TouchableOpacity>
-                                                                    <TouchableOpacity
-                                                                        style={[styles.actionButton, styles.deleteButton]}
-                                                                        onPress={() => {
-                                                                            deleteEvent(selectedEvent, Number(currentUser?.id_user));
-                                                                        }}
-                                                                    >
-                                                                        <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                        <Text style={styles.buttonText}>Delete</Text>
-                                                                    </TouchableOpacity>
-                                                                </View>
+                                                                    <View style={{ width: '100%', height: 2, backgroundColor: '#e3e3e3', marginTop: 5 }} />
+                                                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                                                        <TouchableOpacity
+                                                                            style={[styles.actionButton, styles.editButton, { marginRight: 10 }]}
+                                                                            onPress={() => {
+                                                                                setIsEventModalVisible(false);
+                                                                                openEdit(selectedEvent);
+                                                                            }}
+                                                                        >
+                                                                            <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                            <Text style={styles.buttonText}>Edit</Text>
+                                                                        </TouchableOpacity>
+                                                                        <TouchableOpacity
+                                                                            style={[styles.actionButton, styles.deleteButton]}
+                                                                            onPress={() => {
+                                                                                deleteEvent(selectedEvent, Number(currentUser?.id_user));
+                                                                            }}
+                                                                        >
+                                                                            <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                            <Text style={styles.buttonText}>Delete</Text>
+                                                                        </TouchableOpacity>
+                                                                    </View>
                                                                 </>
                                                             )}
                                                         </View>
@@ -1892,7 +1911,7 @@ export default function HomeScreen() {
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
                                                 const dayKey = dayTime.id_date_option;
-                                                const isAvailable = dayKey != 0? availability[dayKey].isAvailable : false; // to check if user has already chosen
+                                                const isAvailable = dayKey != 0 ? availability[dayKey].isAvailable : false; // to check if user has already chosen
 
                                                 //console.log(isAvailable);
 
