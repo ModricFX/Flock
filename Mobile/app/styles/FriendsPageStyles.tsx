@@ -50,6 +50,20 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         marginRight: 12,
     },
+    flatList: {
+        flex: 1, // Make FlatList fill the available space
+    },
+    flatListContent: {
+        flexGrow: 1, // Allow content to grow and fill the FlatList
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+    },
+    // Separator between items
+    separator: {
+        height: 1,
+        backgroundColor: '#eee',
+        marginLeft: 80, // Align separator with the text content
+    },
     friendInfo: {
         flex: 1,
     },
