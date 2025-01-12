@@ -14,6 +14,7 @@ import {
     Keyboard,
     Alert,
     Image,
+    RefreshControl
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -123,10 +124,17 @@ export default function HomeScreen() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [friends, setFriends] = useState<User[]>();
     const [events, setEvents] = useState<EventData[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
 
     // iOS keyboard offset
     const keyboardOffset = Platform.OS === 'ios' ? 'padding' : undefined;
 
+    
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await fetchData();
+        setRefreshing(false);
+    };
     function deleteEvent(event: EventData, currentUserId: number) {
         Alert.alert('Delete Event', 'Are you sure?', [
             { text: 'Cancel', style: 'cancel' },
@@ -1228,7 +1236,13 @@ export default function HomeScreen() {
                     <Text style={styles.headerText}>FLOCK</Text>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ScrollView contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                        />
+                    }>
                     <View style={styles.card}>
                         <Text style={styles.greeting}>Hi {currentUser?.username || 'User'}!</Text>
                     </View>
