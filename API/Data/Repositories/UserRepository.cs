@@ -82,8 +82,13 @@ namespace flock.Data.Repositories
 
         public async void UpdateUserRelationship(Friendship friendship)
         {
-            var query = "DELETE FROM friendship WHERE (id_user = @Id_User AND use_id_user = @Use_id_user) OR (id_user = @Use_id_User AND use_id_user = @Id_User); INSERT INTO friendship (id_user, use_id_user, status, date_updated) VALUES (@Id_user ,@Use_id_user, @Status, @Date_updated);";
-            
+            var query = "DELETE FROM friendship WHERE (id_user = @Id_User AND use_id_user = @Use_id_user) OR (id_user = @Use_id_User AND use_id_user = @Id_User);";
+
+            if (friendship.Status != "remove")
+            {
+                query +=
+                    "INSERT INTO friendship (id_user, use_id_user, status, date_updated) VALUES (@Id_user ,@Use_id_user, @Status, @Date_updated);";
+            }
             
             using (var connection = _context.CreateConnection())
             {
