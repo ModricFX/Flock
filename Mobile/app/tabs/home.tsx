@@ -801,7 +801,25 @@ export default function HomeScreen() {
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-            // TODO?
+            if (friends) {
+                let friend = friends.find(i => i.email === typedInvite || i.username === typedInvite);
+                if(friend)
+                    setInvitees([...invitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+                else{
+                    Toast.show({
+                        type: 'error',
+                        text1: 'No friend with this email / username found',
+                        text2: 'Please check for spelling and your friends list.',
+                    });
+                }
+            }
+            else{
+                Toast.show({
+                    type: 'error',
+                    text1: 'No friend with this email / username found',
+                    text2: 'Please check for spelling and your friends list.',
+                });
+            }
         }
         setTypedInvite('');
     }
@@ -1083,14 +1101,25 @@ export default function HomeScreen() {
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
-            const newPart: Participant = {
-                id: Math.random().toString(),
-                username: editTypedInvite.split('@')[0],
-                email: editTypedInvite,
-                status: 'pending',
-                pfp_url: 'https://i.pravatar.cc/100?img=48'
-            };
-            setEditInvitees([...editInvitees, newPart]);
+            if (friends) {
+                let friend = friends.find(i => i.email === editTypedInvite || i.username === editTypedInvite);
+                if(friend)
+                    setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+                else{
+                    Toast.show({
+                        type: 'error',
+                        text1: 'No friend with this email / username found',
+                        text2: 'Please check for spelling and your friends list.',
+                    });
+                }
+            }
+            else{
+                Toast.show({
+                    type: 'error',
+                    text1: 'No friend with this email / username found',
+                    text2: 'Please check for spelling and your friends list.',
+                });
+            }
         }
         setEditTypedInvite('');
     }
