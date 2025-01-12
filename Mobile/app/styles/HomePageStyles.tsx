@@ -749,6 +749,7 @@ const styles = StyleSheet.create({
     },
     voteButton: {
         backgroundColor: '#FF9800',
+        width: '95%',
     },
     confirmButton: {
         backgroundColor: '#4CAF50',

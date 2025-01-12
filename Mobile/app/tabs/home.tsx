@@ -64,9 +64,9 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
         return 'voting';
     }
 
-    if (e.chosen_date_start) {
+    if (e.chosen_date_start && e.chosen_date_end) {
         const eventStart = e.chosen_date_start.getTime();
-        const eventEnd = eventStart + 3 * 60 * 60 * 1000; // TODO: get eventEnd from winning day!
+        const eventEnd = e.chosen_date_end.getTime();
 
         if (now >= eventStart && now <= eventEnd) {
             return 'in progress';
@@ -1525,9 +1525,9 @@ export default function HomeScreen() {
                                                                             </TouchableOpacity>
                                                                         </View>
                                                                     ) : (
-                                                                        <>
+                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                                                             <TouchableOpacity
-                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
                                                                                 onPress={() => setParticipationStatus('confirmed')}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
@@ -1540,7 +1540,7 @@ export default function HomeScreen() {
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
                                                                             </TouchableOpacity>
-                                                                        </>
+                                                                        </View>
                                                                     )}
                                                                 </>
                                                             )}
@@ -1577,9 +1577,9 @@ export default function HomeScreen() {
                                                                             </TouchableOpacity>
                                                                         </View>
                                                                     ) : (
-                                                                        <>
+                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems: 'center' }}>
                                                                             <TouchableOpacity
-                                                                                style={[styles.actionButton, styles.confirmButton]}
+                                                                                style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
                                                                                 onPress={() => setParticipationStatus('confirmed')}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
@@ -1592,43 +1592,37 @@ export default function HomeScreen() {
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
                                                                             </TouchableOpacity>
-                                                                        </>
+                                                                        </View>
                                                                     )}
                                                                 </>
                                                             )}
 
                                                             {/* If currentUser is the creator, show an "Edit" button. */}
                                                             {isCreator && (
-                                                                <TouchableOpacity
-                                                                    style={[styles.actionButton, styles.editButton]}
-                                                                    onPress={() => {
-                                                                        setIsEventModalVisible(false);
-                                                                        openEdit(selectedEvent);
-                                                                    }}
-                                                                >
-                                                                    <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                    <Text style={styles.buttonText}>Edit</Text>
-                                                                </TouchableOpacity>
-                                                            )}
-                                                            <TouchableOpacity
-                                                                style={[styles.actionButton, styles.closeButton]}
-                                                                onPress={closeView}
-                                                            >
-                                                                <MaterialIcons name="close" size={20} color="#fff" />
-                                                                <Text style={styles.buttonText}>Close</Text>
-                                                            </TouchableOpacity>
-
-                                                            {/* If currentUser is the creator, show an "Edit" button. */}
-                                                            {isCreator && (
-                                                                <TouchableOpacity
-                                                                    style={[styles.actionButton, styles.deleteButton]}
-                                                                    onPress={() => {
-                                                                        deleteEvent(selectedEvent, Number(currentUser?.id_user));
-                                                                    }}
-                                                                >
-                                                                    <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                    <Text style={styles.buttonText}>Delete</Text>
-                                                                </TouchableOpacity>
+                                                                <>
+                                                                <View style={{ width:'100%', height: 2, backgroundColor: '#e3e3e3', marginTop: 5 }} /> 
+                                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.editButton, { marginRight: 10 }]}
+                                                                        onPress={() => {
+                                                                            setIsEventModalVisible(false);
+                                                                            openEdit(selectedEvent);
+                                                                        }}
+                                                                    >
+                                                                        <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                        <Text style={styles.buttonText}>Edit</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.deleteButton]}
+                                                                        onPress={() => {
+                                                                            deleteEvent(selectedEvent, Number(currentUser?.id_user));
+                                                                        }}
+                                                                    >
+                                                                        <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                        <Text style={styles.buttonText}>Delete</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                                </>
                                                             )}
                                                         </View>
 
