@@ -36,6 +36,28 @@ public class NotificationController : ControllerBase
         return Ok(notifications);
     }
     
+    
+    [HttpPost]
+    [Route("markAsRead/{notificationId}")]
+    public async Task<ActionResult> MarkAsRead(int notificationId)
+    {
+        var idUserClaim = User.FindFirst("id_user");
+        if (idUserClaim == null)
+        {
+            return Unauthorized("You are not authorized to access these notifications.");
+        }
+        // Extract user ID from JWT token
+        var userIdFromToken = int.Parse(idUserClaim.Value);
+
+        var result = await _userNotificationRepository.MarkAsReadAsync(userIdFromToken, notificationId);
+        if (!result)
+        {
+            return NotFound("Notification not found or you are not authorized to mark it as read.");
+        }
+
+        return NoContent();
+    }
+    
     [HttpPost]
     public async Task<ActionResult<UserNotificationJoined>> CreateNotificationForUser(CreateNotificationRequestDto newNotification)
     {

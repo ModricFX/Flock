@@ -17,6 +17,20 @@ namespace flock.Data.Repositories
         {
             _context = context;
         }
+        
+        public async Task<bool> MarkAsReadAsync(int userId, int notificationId)
+        {
+            const string sql = @"
+        UPDATE usernotification
+        SET unread = false
+        WHERE id_user = @UserId AND id_notification = @NotificationId;
+    ";
+
+            using var connection = _context.CreateConnection();
+            var affectedRows = await connection.ExecuteAsync(sql, new { UserId = userId, NotificationId = notificationId });
+
+            return affectedRows > 0;
+        }
 
         public async Task<IEnumerable<UserNotificationJoined>> GetJoinedForUserAsync(int userId)
         {
@@ -93,7 +107,8 @@ namespace flock.Data.Repositories
                 {
                     Id_User        = dto.Id_User,
                     Id_Notification = notificationId,
-                    Date_Received  =  DateTime.UtcNow
+                    Date_Received  =  DateTime.UtcNow,
+                    Unread         = true
                 };
 
                 await connection.ExecuteAsync(

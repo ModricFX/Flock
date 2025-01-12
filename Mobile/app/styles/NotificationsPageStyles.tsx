@@ -104,6 +104,25 @@ const styles = StyleSheet.create({
         color: "#555",
         marginBottom: 20,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    errorText: {
+        color: "#ff0000",
+        marginBottom: 16,
+    },
+    emptyText: {
+        textAlign: "center",
+        marginTop: 20,
+        color: "#888",
+    },
 });
 
 export default styles;
