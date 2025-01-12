@@ -14,6 +14,7 @@ import {
     Animated,
     ActivityIndicator,
     Alert,
+    RefreshControl,
 } from 'react-native';
 
 /* IMPORT STYLES */
@@ -54,7 +55,7 @@ export default function Notifications() {
      * @returns A valid Date object or Invalid Date.
      */
     const parseUTCDate = (dateString: string): Date => {
-        if (!dateString) {
+        if (!dateString || typeof dateString !== 'string') {
             return new Date(NaN);
         }
         // Check if dateString already has a timezone designator
@@ -70,13 +71,12 @@ export default function Notifications() {
      * Function to fetch notifications from the server.
      */
     const fetchNotifications = async () => {
-        setLoading(true);
-        setError(null);
         try {
+            setError(null);
             const notifications = await notificationService.getNotifications();
             console.log('Fetched Notifications:', notifications); // Debugging
 
-            // Filter out notifications with invalid dates
+            // Parse and validate dates
             const validNotifications = notifications.filter(notification => {
                 const date = parseUTCDate(notification.date_Received);
                 if (!isValid(date)) {
@@ -103,7 +103,11 @@ export default function Notifications() {
 
     useEffect(() => {
         // Initial fetch
-        fetchNotifications();
+        const initialFetch = async () => {
+            setLoading(true);
+            await fetchNotifications();
+        };
+        initialFetch();
 
         // Set up interval to fetch every minute (60000 ms)
         const intervalId = setInterval(() => {
@@ -158,8 +162,10 @@ export default function Notifications() {
                 )
             );
             closeNotificationPopup();
+            Alert.alert('Success', 'Notification marked as read.');
         } catch (err: any) {
             Alert.alert('Error', err.message || 'Failed to mark notification as read.');
+            console.error('Mark As Read Error:', err);
         }
     };
 
@@ -201,7 +207,19 @@ export default function Notifications() {
         if (!isValid(date)) {
             return 'Invalid date';
         }
-        return format(date, 'p, MMM dd, yyyy'); // Example: "3:35 PM, Jan 12, 2025"
+        return format(date, 'd MMM, HH:mm'); // Example: "14 May, 14:30"
+    };
+
+    /**
+     * Formats the notification description by replacing {date} with the formatted local time.
+     * @param description The notification description containing {date}.
+     * @returns The formatted description.
+     */
+    const formatNotificationDescription = (description: string): string => {
+        return description.replace(/{(.*?)}/g, (match, p1) => {
+            const date = parseUTCDate(p1);
+            return isValid(date) ? formatExactTime(p1) : match;
+        });
     };
 
     /**
@@ -218,16 +236,17 @@ export default function Notifications() {
             {item.unread && <View style={styles.unreadDot} />}
             <View style={styles.textContainer}>
                 <Text style={styles.title}>{item.notification.title}</Text>
-                <Text style={styles.description}>{item.notification.description}</Text>
+                <Text style={styles.description}>{formatNotificationDescription(item.notification.description)}</Text>
                 <Text style={styles.time}>{formatRelativeTime(item.date_Received)}</Text>
             </View>
         </Pressable>
     );
+    
 
     /**
      * Displays a loading indicator while notifications are being fetched.
      */
-    if (loading) {
+    if (loading && data.length === 0) {
         return (
             <View style={[styles.container, styles.loadingContainer]}>
                 <ActivityIndicator size="large" color="#0000ff" />
@@ -239,7 +258,7 @@ export default function Notifications() {
     /**
      * Displays an error message if fetching notifications fails.
      */
-    if (error) {
+    if (error && data.length === 0) {
         return (
             <View style={[styles.container, styles.errorContainer]}>
                 <Text style={styles.errorText}>{error}</Text>
@@ -274,6 +293,16 @@ export default function Notifications() {
                     ListEmptyComponent={<Text style={styles.emptyText}>No notifications to display.</Text>}
                     refreshing={loading}
                     onRefresh={fetchNotifications}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={loading}
+                            onRefresh={fetchNotifications}
+                            colors={['#0000ff']} // Android
+                            tintColor="#0000ff" // iOS
+                            title="Refreshing..."
+                            titleColor="#0000ff"
+                        />
+                    }
                 />
 
                 {/* Notification Popup */}

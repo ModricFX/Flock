@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using flock.Controllers.Dtos;
 using flock.Data.Repositories.Interfaces;
 using flock.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -55,7 +56,7 @@ namespace flock.Services
                     await NotifyParticipants(x);
                 } catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error in EventStateService Workload");
+                    logger.LogError(ex, "Error in EventStateService Workload for event id {EventId}", x.Id_event);
                 }
             }
         }
@@ -82,12 +83,22 @@ namespace flock.Services
         {
             using var scope = serviceProvider.CreateScope();
             var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
+            var notiRepo = scope.ServiceProvider.GetRequiredService<IUserNotificationRepository>();
 
             var participants = await eventRepository.GetParticipantsAndOwner(e.Id_event);
             foreach (var p in participants)
             {
-                // TODO: send email or notification
-                Console.WriteLine($"Email sent to {p.Email} about the chosen date for event {e.Id_event}");
+                var chosenDateStartUtc = e.Chosen_date_start.ToUniversalTime().ToString("o");
+                var chosenDateEndUtc = e.Chosen_date_end.ToUniversalTime().ToString("o");
+
+                var dto = new CreateNotificationRequestDto
+                {
+                    Id_User = p.Id_user,
+                    Description = $"Chosen date for event {e.Name} is {{{chosenDateStartUtc}}} - {{{chosenDateEndUtc}}}",
+                    Title = "Voting has ended",
+                };
+                await notiRepo.CreateNotificationForUserAsync(dto);
+                Console.WriteLine($"Notification sent to {p.Username} about the chosen date for event {e.Id_event}");
             }
         }
     }
