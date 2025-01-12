@@ -240,7 +240,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const dayKey = getDateFrom(date_option.date_start).toISOString() + '.' + getHoursFrom(date_option.date_start) + '.' + getHoursFrom(date_option.date_end);
+                const dayKey = date_option.id_date_option? date_option.id_date_option : 0;
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -409,21 +409,19 @@ export default function HomeScreen() {
                     });
 
                     if (invitedFriend.id_user === currentUserId) {
+                        console.log(ev.votes);
                         ev.votes?.forEach(vote => {
                             if (vote.id_user === currentUserId) {
                                 const date_option = ev.date_options.find(
-                                    dt => dt.id_date_option?.toString() === vote.id_date_option
+                                    dt => dt.id_date_option?.toString() == vote.id_date_option
                                 );
 
-                                if (date_option) {
+                                if (date_option && date_option.id_date_option) {
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
+                                    
+                                    const dayKey = date_option.id_date_option;
 
-                                    const dayKey =
-                                        getDateFrom(date_option.date_start).toISOString() +
-                                        '.' +
-                                        getHoursFrom(date_option.date_start) +
-                                        '.' +
-                                        getHoursFrom(date_option.date_end);
+                                    //console.log(dayKey);
 
                                     if (availability[dayKey]) {
                                         mergedAvailability[dayKey] = {
@@ -656,7 +654,7 @@ export default function HomeScreen() {
         if (isIOS) setCreateModalVisible(true);
     }
 
-    const handleAvailabilityResponse = (dayKey: string, isAvailable: boolean) => {
+    const handleAvailabilityResponse = (dayKey: number, isAvailable: boolean) => {
         // 1) Update the local "availability" state
         setAvailability((prevAvailability) => {
             const updated = { ...prevAvailability };
@@ -741,10 +739,10 @@ export default function HomeScreen() {
         const dateEnd = new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`);
 
         if (tempDayIndex === null) {  // new
-            setCreateDays(prev => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+            setCreateDays(prev => [...prev, { id_date_option: 0, date_start: dateStart, date_end: dateEnd }]);
         } else {  // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { date_start: dateStart, date_end: dateEnd };
+            copy[tempDayIndex] = { id_date_option: 0,date_start: dateStart, date_end: dateEnd };
             setCreateDays(copy);
         }
         closeAddDayModalCreate();
@@ -869,7 +867,7 @@ export default function HomeScreen() {
 
     const [isVotingModalVisible, setIsVotingModalVisible] = useState(false);
     const [availability, setAvailability] = useState<{
-        [key: string]: {
+        [key: number]: {
             startTime: Date;
             endTime: Date;
             selectedTimes: Date[];
@@ -879,7 +877,7 @@ export default function HomeScreen() {
     }>({});
 
     const [currentDbavailability, setCurrentDbavailability] = useState<{
-        [key: string]: {
+        [key: number]: {
             startTime: Date;
             endTime: Date;
             selectedTimes: Date[];
@@ -953,7 +951,7 @@ export default function HomeScreen() {
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
                 date_end: day.date_end.toISOString(),
-                id_date_option: day.id_date_option ? day.id_date_option : 0,
+                id_date_option: day.id_date_option,
                 id_event: day.id_event ? day.id_event : 0
             })),
             participant_ids: editInvitees
@@ -1017,10 +1015,10 @@ export default function HomeScreen() {
 
         // Proceed with saving data if validation passes
         if (tempDayIndexEdit === null) {  // new
-            setEditDays((prev) => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+            setEditDays((prev) => [...prev, { id_date_option: 0, date_start: dateStart, date_end: dateEnd }]);
         } else {  // edit
             const copy = [...editDays];
-            copy[tempDayIndexEdit] = { date_start: dateStart, date_end: dateEnd };
+            copy[tempDayIndexEdit] = { id_date_option: 0, date_start: dateStart, date_end: dateEnd };
             setEditDays(copy);
         }
 
@@ -1045,13 +1043,15 @@ export default function HomeScreen() {
         setIsEventModalVisible(true);
 
         Object.entries(availability).forEach(async ([key, value]) => {
+            let daykey = Number(key);
+
             let vote: Vote = {
                 id_date_option: value.id_date_option,
                 id_user: currentUser ? currentUser.id_user : 'undefined'
             }
 
-            if (currentDbavailability[key]) {
-                if (currentDbavailability[key].isAvailable != value.isAvailable) {
+            if (currentDbavailability[daykey]) {
+                if (currentDbavailability[daykey].isAvailable != value.isAvailable) {
                     if (value.isAvailable) {
                         vote.status = "accepted";
                         let response = await eventService.castVote(vote);
@@ -1059,7 +1059,10 @@ export default function HomeScreen() {
                         if (!response.success) {
                             console.log(response.error)
                         } else {
-                            console.log(response.data)
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Succesfully cast vote',
+                            });
                         }
                     } else {
                         vote.status = "declined";
@@ -1068,7 +1071,10 @@ export default function HomeScreen() {
                         if (!response.success) {
                             console.log(response.error)
                         } else {
-                            console.log(response.data)
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Succesfully removed vote',
+                            });
                         }
                     }
                 }
@@ -1885,8 +1891,8 @@ export default function HomeScreen() {
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
-                                                const dayKey = getDateFrom(dayTime.date_start).toISOString() + '.' + getHoursFrom(dayTime.date_start) + '.' + getHoursFrom(dayTime.date_end);
-                                                const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
+                                                const dayKey = dayTime.id_date_option;
+                                                const isAvailable = dayKey != 0? availability[dayKey].isAvailable : false; // to check if user has already chosen
 
                                                 //console.log(isAvailable);
 
