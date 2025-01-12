@@ -123,6 +123,11 @@ const styles = StyleSheet.create({
         marginTop: 20,
         color: "#888",
     },
+    popupExactTime: {
+        fontSize: 12,
+        color: "#888",
+        marginTop: 5,
+    },
 });
 
 export default styles;
