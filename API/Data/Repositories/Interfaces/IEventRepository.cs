@@ -10,6 +10,7 @@ public interface IEventRepository
     Task<List<Invitation>?> GetInvitations(int event_id);
     Task<List<Chose>?> GetVotes(int event_id);
     Task<List<DateOption>?> GetDateOptions(int event_id);
+    Task<List<UserAttendance>?> GetAttendance(int event_id);
     Task<bool> DeleteVote(Chose chose);
     Task<Chose> CastVote(Chose chose);
     Task<User> GetUserById(int id);
@@ -22,6 +23,7 @@ public interface IEventRepository
     Task<bool> DeleteInvitation(int event_id, int user_id);
     Task<bool> DeleteEvent(int id);
     Task<bool> DeleteDateOption(int id);
+    Task<bool> UpdateUserAttendace(UserAttendance userAttendance);
     Task<List<Event>> GetEventsWithEndedVotingStage();
     Task<DateOption> GetBestDateOption(int eventId);
     Task<List<User>> GetParticipants(int eventId);

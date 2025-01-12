@@ -22,4 +22,5 @@ public class Event
     public List<Invitation>? Invitations { get; set; }
     
     public List<Chose>? Votes { get; set; }
+    public List<UserAttendance>? User_attendances { get; set; }
 }

@@ -49,6 +49,7 @@ import { Vote } from '../models/Vote';
 
 import { date } from 'yup';
 import { FriendService } from '../services/FriendService';
+import { UserAttendance } from '../models/UserAttendance';
 
 const api = apiService.getApi();
 
@@ -269,7 +270,7 @@ export default function HomeScreen() {
     }, [selectedEvent]);
 
 
-    const [participationStatus, setParticipationStatus] = useState<string | null>(null);
+    const [participationStatus, setParticipationStatus] = useState<Record<string, number>>({});
 
     /* =============== CREATE EVENT =============== */
     const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -449,6 +450,17 @@ export default function HomeScreen() {
                                 }
                             }
                         });
+                    }
+                });
+            }
+
+            if(ev.user_attendances){
+                ev.user_attendances.forEach((attendance) => {
+                    if(attendance.id_user == currentUserId){
+                        let newParticipations = participationStatus;
+                        newParticipations[ev.id_event] = attendance.will_attend;
+
+                        setParticipationStatus(newParticipations);
                     }
                 });
             }
@@ -1145,6 +1157,38 @@ export default function HomeScreen() {
         if (isIOS) setEditModalVisible(true);
     }
 
+    async function updateUserEventAttendance(id_event: string, will_attend: number){
+        if(!currentUser){
+            Toast.show({
+                type: 'error',
+                text1: 'Error with updating attendance',
+                text2: 'Couldnt get current user data',
+            });
+
+            return;
+        }
+
+        let userAttendance: UserAttendance = {
+            id_event: id_event,
+            id_user: currentUser.id_user,
+            will_attend: will_attend
+        }
+
+        let response = await eventService.updateAttendance(userAttendance);
+        if(!response.success){
+            Toast.show({
+                type: 'error',
+                text1: 'Error with updating attendance',
+                text2: response.error,
+            });
+        }
+
+        const copy = {...participationStatus};
+        copy[id_event] = will_attend;
+
+        setParticipationStatus(copy);
+    }
+
     /* =============== VIEW / VOTE =============== */
     function openView(event: EventData) {
         setSelectedEvent(event); // Set the selected event
@@ -1496,7 +1540,7 @@ export default function HomeScreen() {
                                                             {eventStatus === 'upcoming' && (
                                                                 <>
                                                                     <Text style={styles.modalLabel}>Confirm participation:</Text>
-                                                                    {participationStatus === 'confirmed' ? (
+                                                                    {participationStatus[selectedEvent.id_event] === 1 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1504,13 +1548,13 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Deny</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
-                                                                    ) : participationStatus === 'denied' ? (
+                                                                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1518,7 +1562,7 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Confirm</Text>
@@ -1528,14 +1572,14 @@ export default function HomeScreen() {
                                                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Confirm</Text>
                                                                             </TouchableOpacity>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
@@ -1548,7 +1592,7 @@ export default function HomeScreen() {
                                                             {eventStatus === 'in progress' && (
                                                                 <>
                                                                     <Text style={styles.modalLabel}>Confirm participation:</Text>
-                                                                    {participationStatus === 'confirmed' ? (
+                                                                    {participationStatus[selectedEvent.id_event] === 1 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1556,13 +1600,13 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Deny</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
-                                                                    ) : participationStatus === 'denied' ? (
+                                                                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1570,7 +1614,7 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Confirm</Text>
@@ -1580,14 +1624,14 @@ export default function HomeScreen() {
                                                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems: 'center' }}>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Confirm</Text>
                                                                             </TouchableOpacity>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
