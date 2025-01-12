@@ -1,4 +1,6 @@
-﻿import React, { useState } from "react";
+﻿// Notifications.tsx
+
+import React, { useState, useEffect, useRef } from "react";
 import {
     View,
     Text,
@@ -10,35 +12,70 @@ import {
     Pressable,
     Button,
     Animated,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 
 /* IMPORT STYLES */
-
 import styles from '../styles/NotificationsPageStyles';
 
-const notifications = [
-    { id: "1", title: "Event Reminder", description: "Don't miss the 'Tech Conference' tomorrow!", unread: true, date: new Date(Date.now() - 6000) }, // 6 seconds ago
-    { id: "2", title: "Event Cancelled", description: "The event 'Cooking Class' has been cancelled.", unread: false, date: new Date(Date.now() - 6 * 60 * 1000) }, // 6 minutes ago
-    { id: "3", title: "Event Reminder", description: "The event 'Charity Run' is happening tomorrow.", unread: true, date: new Date(Date.now() - 17 * 60 * 1000) }, // 17 minutes ago
-    { id: "4", title: "Event Starting Soon", description: "The event 'Art Workshop' starts in 30 minutes.", unread: true, date: new Date(Date.now() - 30 * 60 * 1000) }, // 30 minutes ago
-    { id: "5", title: "Friend Request", description: "Alice sent you a friend request.", unread: true, date: new Date(Date.now() - 2 * 60 * 60 * 1000) }, // 2 hours ago
-    { id: "6", title: "Event Cancelled", description: "The event 'Hackathon' has been cancelled.", unread: false, date: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // 1 day ago
-    { id: "7", title: "New Message", description: "You have a new message from Bob.", unread: true, date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000) }, // 4 days ago
-    { id: "8", title: "Event Updated", description: "The event 'Team Meetup' has been rescheduled.", unread: false, date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) }, // 8 days ago
-    { id: "9", title: "Friend Request", description: "John sent you a friend request.", unread: false, date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }, // 10 days ago
-    { id: "10", title: "New Follower", description: "David is now following you.", unread: false, date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) }, // 14 days ago
-    { id: "11", title: "Achievement Unlocked", description: "Congratulations on completing 10 events!", unread: true, date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // 1 month ago
-    { id: "12", title: "Friend Joined", description: "Your friend Charlie just joined the app.", unread: false, date: new Date(Date.now() - 2 * 30 * 24 * 60 * 60 * 1000) }, // 2 months ago
-];
+// Import the NotificationService
+import { notificationService } from '../services/notificationservice'; // Adjust the path as necessary
+
+// Define the Notification interface matching the API response
+interface Notification {
+    id_User: number;
+    id_Notification: number;
+    unread: boolean;
+    date_Received: string;
+    notification: {
+        id_Notification: number;
+        title: string;
+        description: string;
+    };
+}
+
 export default function Notifications() {
-    const [data, setData] = useState(notifications);
+    const [data, setData] = useState<Notification[]>([]);
     const [filter, setFilter] = useState("all");
     const [popupVisible, setPopupVisible] = useState(false);
-    const [selectedNotification, setSelectedNotification] = useState<any>(null);
+    const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
     const [notificationPopupVisible, setNotificationPopupVisible] = useState(false);
-    const slideAnim = useState(new Animated.Value(100))[0];
+    const [loading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const slideAnim = useRef(new Animated.Value(100)).current; // Use useRef for Animated.Value
 
-    const handleNotificationClick = (notification: any) => {
+    // Function to fetch notifications
+    const fetchNotifications = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const notifications = await notificationService.getNotifications();
+            // Sort by date_Received descending
+            const sortedNotifications = notifications.sort((a, b) => new Date(b.date_Received).getTime() - new Date(a.date_Received).getTime());
+            setData(sortedNotifications);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch notifications.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // Initial fetch
+        fetchNotifications();
+
+        // Set up interval to fetch every minute (60000 ms)
+        const intervalId = setInterval(() => {
+            fetchNotifications();
+        }, 60000);
+
+        // Clean up the interval on component unmount
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const handleNotificationClick = (notification: Notification) => {
         setSelectedNotification(notification);
         setNotificationPopupVisible(true);
         Animated.timing(slideAnim, {
@@ -58,18 +95,34 @@ export default function Notifications() {
         });
     };
 
-    const markAsRead = () => {
-        setData((prevData) =>
-            prevData.map((item) =>
-                item.id === selectedNotification.id ? { ...item, unread: false } : item
-            )
-        );
-        closeNotificationPopup();
+    /**
+     * Marks the selected notification as read by calling the NotificationService
+     * and updates the local state to reflect the change.
+     */
+    const markAsRead = async () => {
+        if (!selectedNotification) return;
+
+        try {
+            await notificationService.markAsRead(selectedNotification.id_Notification);
+            // Update the local state to mark as read
+            setData((prevData) =>
+                prevData.map((item) =>
+                    item.id_Notification === selectedNotification.id_Notification
+                        ? { ...item, unread: false }
+                        : item
+                )
+            );
+            closeNotificationPopup();
+        } catch (err: any) {
+            Alert.alert('Error', err.message || 'Failed to mark notification as read.');
+            console.error(err);
+        }
     };
 
     const filteredData = filter === "all" ? data : data.filter((item) => item.unread);
 
-    const formatTime = (date: Date) => {
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const minutes = Math.floor(diff / 60000);
@@ -80,23 +133,37 @@ export default function Notifications() {
         return `${days} days ago`;
     };
 
-    const renderNotification = ({ item }: any) => (
+    const renderNotification = ({ item }: { item: Notification }) => (
         <Pressable
             onPress={() => handleNotificationClick(item)}
-            onLongPress={() => {
-                setSelectedNotification(item);
-                setPopupVisible(true);
-            }}
             style={[styles.notification, item.unread && styles.unreadNotification]}
         >
             {item.unread && <View style={styles.unreadDot} />}
             <View style={styles.textContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.description}>{item.description}</Text>
-                <Text style={styles.time}>{formatTime(item.date)}</Text>
+                <Text style={styles.title}>{item.notification.title}</Text>
+                <Text style={styles.description}>{item.notification.description}</Text>
+                <Text style={styles.time}>{formatTime(item.date_Received)}</Text>
             </View>
         </Pressable>
     );
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text>Loading notifications...</Text>
+            </View>
+        );
+    }
+
+    if (error) {
+        return (
+            <View style={[styles.container, styles.errorContainer]}>
+                <Text style={styles.errorText}>{error}</Text>
+                <Button title="Retry" onPress={fetchNotifications} />
+            </View>
+        );
+    }
 
     return (
         <TouchableWithoutFeedback>
@@ -116,47 +183,12 @@ export default function Notifications() {
                 <FlatList
                     data={filteredData}
                     renderItem={renderNotification}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.id_Notification.toString()} // Use id_Notification as key
                     contentContainerStyle={{ paddingBottom: 8 }}
+                    ListEmptyComponent={<Text style={styles.emptyText}>No notifications to display.</Text>}
+                    refreshing={loading}
+                    onRefresh={fetchNotifications}
                 />
-
-                <Modal
-                    visible={popupVisible && selectedNotification !== null}
-                    transparent
-                    animationType="fade"
-                    onRequestClose={() => setPopupVisible(false)}
-                >
-                    <TouchableWithoutFeedback onPress={() => setPopupVisible(false)}>
-                        <View style={styles.modalOverlay}>
-                            <View style={styles.modalContent}>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setData((prev) =>
-                                            prev.map((item) =>
-                                                item.id === selectedNotification.id
-                                                    ? { ...item, unread: true }
-                                                    : item
-                                            )
-                                        );
-                                        setPopupVisible(false);
-                                    }}
-                                >
-                                    <Text style={styles.modalOption}>Mark as Unread</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setData((prev) =>
-                                            prev.filter((item) => item.id !== selectedNotification.id)
-                                        );
-                                        setPopupVisible(false);
-                                    }}
-                                >
-                                    <Text style={styles.modalOption}>Delete</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </Modal>
 
                 {/* Notification Popup */}
                 <Modal
@@ -167,8 +199,8 @@ export default function Notifications() {
                 >
                     <View style={styles.popupOverlay}>
                         <Animated.View style={[styles.popupContent, { transform: [{ translateY: slideAnim }] }]}>
-                            <Text style={styles.popupTitle}>{selectedNotification?.title}</Text>
-                            <Text style={styles.popupDescription}>{selectedNotification?.description}</Text>
+                            <Text style={styles.popupTitle}>{selectedNotification?.notification.title}</Text>
+                            <Text style={styles.popupDescription}>{selectedNotification?.notification.description}</Text>
                             <Button title="OK" onPress={markAsRead} />
                         </Animated.View>
                     </View>
