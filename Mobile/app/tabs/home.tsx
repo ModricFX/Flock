@@ -19,6 +19,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import DateTimePickerComponent from '../../components/DateTimePicker';
 
+import Toast from 'react-native-toast-message';
+
 import { authService } from '../services/authservice';
 import { router } from 'expo-router';
 import { EventService } from '../services/EventService';
@@ -237,7 +239,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
+                const dayKey = getDateFrom(date_option.date_start).toISOString() + '.' + getHoursFrom(date_option.date_start) + '.' + getHoursFrom(date_option.date_end);
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -351,59 +353,78 @@ export default function HomeScreen() {
 
     function transformEvents(events: EventData[], currentUserId: string) {
         events.forEach(ev => {
+
+            // Validate `ev.id_user`
+            if (!ev.id_user) {
+                console.warn(`Event is missing id_user:`, ev);
+                ev.id_user = 'unknown'; // Default fallback
+            }
+
             ev.date_created = makeDateUTC(ev.date_created);
             ev.date_updated = makeDateUTC(ev.date_updated);
             ev.end_voting_date = makeDateUTC(ev.end_voting_date);
 
             if (ev.chosen_date_end) {
                 ev.chosen_date_end = makeDateUTC(ev.chosen_date_end);
-                if (ev.chosen_date_end.getUTCFullYear() < 2000)
+                if (ev.chosen_date_end.getUTCFullYear() < 2000) {
                     ev.chosen_date_end = undefined;
-            }
-            if (ev.chosen_date_start) {
-                ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
-                if (ev.chosen_date_start.getUTCFullYear() < 2000)
-                    ev.chosen_date_start = undefined;
+                }
             }
 
-            ev.date_options = ev.date_options.map(dateOption => {
-                return {
-                    id_date_option: dateOption.id_date_option || 0,
-                    id_event: dateOption.id_event || 0,
-                    date_start: makeDateUTC(dateOption.date_start),
-                    date_end: makeDateUTC(dateOption.date_end)
+            if (ev.chosen_date_start) {
+                ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
+                if (ev.chosen_date_start.getUTCFullYear() < 2000) {
+                    ev.chosen_date_start = undefined;
                 }
-            });
+            }
+
+            ev.date_options = ev.date_options.map(dateOption => ({
+                id_date_option: dateOption.id_date_option || 0,
+                id_event: dateOption.id_event || 0,
+                date_start: makeDateUTC(dateOption.date_start),
+                date_end: makeDateUTC(dateOption.date_end),
+            }));
 
             if (ev.invitations) {
                 ev.invitations.forEach(inv => {
-                    let invitedFriend = inv.user;
+                    const invitedFriend = inv.user;
+
+                    // Skip invitations with missing user or id_user
+                    if (!invitedFriend || !invitedFriend.id_user) {
+                        //console.warn('Invitation is missing user or id_user:', inv);
+                        return; // Skip this invitation
+                    }
+
                     let status: "pending" | "accepted" | "declined" =
-                        ev.votes?.some(vote => vote.id_user === invitedFriend?.id_user) ? "accepted" : "pending";
+                        ev.votes?.some(vote => vote.id_user === invitedFriend.id_user) ? "accepted" : "pending";
 
                     ev.participants = ev.participants || []; // Ensure participants array is initialized
                     ev.participants.push({
-                        id: invitedFriend?.id_user || '',
-                        email: invitedFriend?.email || '',
-                        username: invitedFriend?.username || '',
-                        pfp_url: invitedFriend?.pfp_url || '',
-                        status: status
+                        id: invitedFriend.id_user,
+                        email: invitedFriend.email || '',
+                        username: invitedFriend.username || '',
+                        pfp_url: invitedFriend.pfp_url || '',
+                        status: status,
                     });
 
-                    //console.log(ev.votes);
-
-                    if (invitedFriend.id_user == currentUserId) {
-                        ev.votes?.forEach((vote) => {
-                            if (vote.id_user == currentUserId) {
-                                let date_option = ev.date_options.find(dt => dt.id_date_option?.toString() == vote.id_date_option);
+                    if (invitedFriend.id_user === currentUserId) {
+                        ev.votes?.forEach(vote => {
+                            if (vote.id_user === currentUserId) {
+                                const date_option = ev.date_options.find(
+                                    dt => dt.id_date_option?.toString() === vote.id_date_option
+                                );
 
                                 if (date_option) {
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
 
-                                    const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
+                                    const dayKey =
+                                        getDateFrom(date_option.date_start).toISOString() +
+                                        '.' +
+                                        getHoursFrom(date_option.date_start) +
+                                        '.' +
+                                        getHoursFrom(date_option.date_end);
 
                                     if (availability[dayKey]) {
-                                        //console.log(availability[dayKey]);
                                         mergedAvailability[dayKey] = {
                                             ...availability[dayKey],
                                         };
@@ -414,14 +435,12 @@ export default function HomeScreen() {
                                         const endTime = new Date(date_option.date_end);
                                         endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
-                                        //console.log(vote.status);
-
                                         mergedAvailability[dayKey] = {
                                             startTime,
                                             endTime,
                                             selectedTimes: [],
-                                            isAvailable: vote.status == "accepted",
-                                            id_date_option: date_option.id_date_option
+                                            isAvailable: vote.status === "accepted",
+                                            id_date_option: date_option.id_date_option,
                                         };
                                     }
 
@@ -433,10 +452,12 @@ export default function HomeScreen() {
                     }
                 });
             }
+
         });
 
         return events;
     }
+
 
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
@@ -500,20 +521,29 @@ export default function HomeScreen() {
         }
     }
 
+
     async function finalizeCreateEvent() {
         if (!createTitle.trim()) {
-            Alert.alert('Missing Title', 'Provide a title.');
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Title',
+                text2: 'Please provide a title for your event.',
+            });
             return;
         }
-        // Check if `EndVoting` is in the future
+    
         const currentTime = new Date();
         const endVotingTime = new Date(endVotingDate);
-
+    
         if (endVotingTime <= currentTime) {
-            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid End Voting Time',
+                text2: 'The end voting time must be in the future.',
+            });
             return;
         }
-        // Add current user to invitees
+    
         const updatedInvitees = [...invitees];
         if (currentUser?.id_user) {
             const isCurrentUserAlreadyAdded = updatedInvitees.some(
@@ -529,38 +559,63 @@ export default function HomeScreen() {
                 });
             }
         }
-
+    
         const newEvt = {
             name: createTitle,
             description: createDesc,
             location: createLoc,
             end_voting_date: endVotingDate.toISOString(),
             id_user: currentUser?.id_user || 'unknown',
-            date_options: createDays.map(day => {
-                return {
-                    date_start: new Date(day.date_start).toISOString(),
-                    date_end: new Date(day.date_end).toISOString()
-                }
-            }),
+            date_options: createDays.map(day => ({
+                date_start: new Date(day.date_start).toISOString(),
+                date_end: new Date(day.date_end).toISOString(),
+            })),
             tag_ids: [],
             participant_ids: updatedInvitees
                 .filter(inv => inv.id)
                 .map(inv => inv.id),
+        };
+    
+        setLoading(true);
+    
+        try {
+            const response = await eventService.createEvent(newEvt);
+    
+            if (response.success && response.data) {
+                const currentUserId = newEvt.id_user;
+                const events = transformEvents([response.data], currentUserId);
+                setEvents(prev => [...prev, events[0]]);
+    
+                Toast.show({
+                    type: 'success',
+                    text1: 'Event Created',
+                    text2: 'Your event has been successfully created.',
+                });
+            } else {
+                console.error(response.error);
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Failed to create the event. Please try again.',
+                });
+            }
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'An unexpected error occurred. Please try again later.',
+            });
+        } finally {
+            setLoading(false);
+            fetchUserData();
+            closeCreateEvent();
         }
-        //console.log(newEvt);
-
-        let response = await eventService.createEvent(newEvt)
-
-        if (response.success && response.data) {
-            let events = transformEvents([response.data], currentUser?.id_user ? currentUser.id_user : '');
-            setEvents(prev => [...prev, events[0]]);
-        }
-        else {
-            console.log(response.error);
-        }
-
-        closeCreateEvent();
     }
+    
+
+
+
 
     /* Step2 -> dayTimes => addDayModalCreate */
     function openAddDayModalCreate(index?: number) {
@@ -1763,7 +1818,7 @@ export default function HomeScreen() {
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
-                                                const dayKey = getDateFrom(dayTime.date_start).toISOString()+'.'+getHoursFrom(dayTime.date_start)+'.'+getHoursFrom(dayTime.date_end);
+                                                const dayKey = getDateFrom(dayTime.date_start).toISOString() + '.' + getHoursFrom(dayTime.date_start) + '.' + getHoursFrom(dayTime.date_end);
                                                 const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
 
                                                 //console.log(isAvailable);

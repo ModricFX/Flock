@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -27,26 +28,32 @@ export default function RootLayout() {
   }
 
   return (
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack initialRouteName="index">
-          <Stack.Screen name="auth/login" options={{ headerShown: false }} />
-          <Stack.Screen name="auth/register" options={{ headerShown: false }} />
-          <Stack.Screen
-              name="index"
-              options={{
-                headerLeft: () => null,
-                headerShown: false
-              }}
-          />
-            <Stack.Screen
-                name="tabs"
-                options={{
-                    headerShown: false,
-                    animation: 'slide_from_right'
-                }}
-            />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      {/* Navigation Stack */}
+      <Stack initialRouteName="index">
+        <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="index"
+          options={{
+            headerLeft: () => null,
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="tabs"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+      </Stack>
+      
+      {/* Toast Component */}
+      <Toast />
+
+      {/* Status Bar */}
+      <StatusBar style="auto" />
+    </ThemeProvider>
   );
 }
