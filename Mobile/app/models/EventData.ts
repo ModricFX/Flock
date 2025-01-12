@@ -1,6 +1,7 @@
 import { SingleDay } from './SingleDay';
 import { Participant } from './Participant';
 import { Vote } from './Vote';
+import { UserAttendance } from './UserAttendance';
 
 export interface EventData {
     id_event: string;
@@ -17,4 +18,5 @@ export interface EventData {
     date_created: Date;
     date_updated: Date;
     votes?: Vote[];
+    user_attendances?: UserAttendance[]
 }

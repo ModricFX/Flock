@@ -289,6 +289,7 @@ namespace flock.Controllers
                         ev.Invitations = await _eventRepository.GetInvitations(ev.Id_event);
                         ev.Votes = await _eventRepository.GetVotes(ev.Id_event);
                         ev.Date_options = await _eventRepository.GetDateOptions(ev.Id_event);
+                        ev.User_attendances = await _eventRepository.GetAttendance(ev.Id_event);
                     }
                 }
                 return Ok(events);
@@ -345,6 +346,28 @@ namespace flock.Controllers
             try
             {
                 await _eventRepository.DeleteVote(chose);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+        
+        [Route("/api/event/attendance")]
+        [HttpPost()]
+        public async Task<IActionResult> UpdateAttedance(CreateUserAttendance attendance)
+        {
+            try
+            {
+                UserAttendance newAttendance = new UserAttendance
+                {
+                    Id_user = attendance.Id_user,
+                    Id_event = attendance.Id_event,
+                    Will_attend = attendance.Will_attend,
+                };
+                
+                await _eventRepository.UpdateUserAttendace(newAttendance);
                 return Ok();
             }
             catch (Exception e)

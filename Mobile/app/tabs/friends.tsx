@@ -116,8 +116,10 @@ export default function Friends() {
     };
 
     const handleRemoveFriend = async (friendId: number) => {
-        let response = await friendService.updateRelationshipStatus(friendId, 'blocked');
-        if (response.status === 200) {
+
+        let response = await friendService.updateRelationshipStatus(friendId, 'remove');
+
+        if(response.status == 200) {
             setFriends((prev) => prev.filter((f) => f.id !== friendId));
         } else {
             console.log("Failed to remove friend.");

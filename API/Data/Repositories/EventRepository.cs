@@ -108,6 +108,21 @@ public class EventRepository : IEventRepository
         }
     }
 
+    public async Task<List<UserAttendance>?> GetAttendance(int event_id)
+    {
+        var query = @"
+        SELECT *
+        FROM user_attendance
+        WHERE id_event = @Event_id";
+
+        using (var connection = _context.CreateConnection())
+        {
+            var result = await connection.QueryAsync<UserAttendance>(query, new { Event_id = event_id });
+            
+            return result.ToList();
+        }
+    }
+
     public async Task<bool> DeleteVote(Chose chose)
     {
         var query = "REPLACE INTO chose (id_user, id_date_option, status) VALUES (@Id_user, @Id_date_option, @Status);";
@@ -288,6 +303,20 @@ public class EventRepository : IEventRepository
         using (var connection = _context.CreateConnection())
         {
             await connection.ExecuteAsync(query, new { Id = id });
+        }
+        
+        return true;
+    }
+
+    public async Task<bool> UpdateUserAttendace(UserAttendance userAttendance)
+    {
+        var query =
+            "REPLACE INTO user_attendance(id_user, id_event, will_attend) VALUES(@Id_user, @Id_event, @Will_attend);";
+        
+        
+        using (var connection = _context.CreateConnection())
+        {
+            await connection.ExecuteAsync(query, userAttendance);
         }
         
         return true;

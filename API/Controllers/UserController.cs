@@ -131,7 +131,7 @@ namespace flock.Controllers
                     return Unauthorized();
                 }
                 
-                var userEmail = User.Identity.Name; // This should be populated from the token
+                var userEmail = User.Identity.Name;
                 if (string.IsNullOrEmpty(userEmail))
                     return Unauthorized("Invalid token.");
                 

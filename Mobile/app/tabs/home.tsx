@@ -19,6 +19,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import DateTimePickerComponent from '../../components/DateTimePicker';
 
+import Toast from 'react-native-toast-message';
+
 import { authService } from '../services/authservice';
 import { router } from 'expo-router';
 import { EventService } from '../services/EventService';
@@ -47,6 +49,7 @@ import { Vote } from '../models/Vote';
 
 import { date } from 'yup';
 import { FriendService } from '../services/FriendService';
+import { UserAttendance } from '../models/UserAttendance';
 
 const api = apiService.getApi();
 
@@ -62,9 +65,9 @@ function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in
         return 'voting';
     }
 
-    if (e.chosen_date_start) {
+    if (e.chosen_date_start && e.chosen_date_end) {
         const eventStart = e.chosen_date_start.getTime();
-        const eventEnd = eventStart + 3 * 60 * 60 * 1000; // TODO: get eventEnd from winning day!
+        const eventEnd = e.chosen_date_end.getTime();
 
         if (now >= eventStart && now <= eventEnd) {
             return 'in progress';
@@ -237,7 +240,7 @@ export default function HomeScreen() {
             const mergedAvailability: { [key: string]: any } = {};
 
             selectedEvent.date_options.forEach((date_option) => {
-                const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
+                const dayKey = date_option.id_date_option? date_option.id_date_option : 0;
 
                 // If we already have availability for dayKey, preserve it
                 if (availability[dayKey]) {
@@ -267,7 +270,7 @@ export default function HomeScreen() {
     }, [selectedEvent]);
 
 
-    const [participationStatus, setParticipationStatus] = useState<string | null>(null);
+    const [participationStatus, setParticipationStatus] = useState<Record<string, number>>({});
 
     /* =============== CREATE EVENT =============== */
     const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -351,59 +354,76 @@ export default function HomeScreen() {
 
     function transformEvents(events: EventData[], currentUserId: string) {
         events.forEach(ev => {
+
+            // Validate `ev.id_user`
+            if (!ev.id_user) {
+                console.warn(`Event is missing id_user:`, ev);
+                ev.id_user = 'unknown'; // Default fallback
+            }
+
             ev.date_created = makeDateUTC(ev.date_created);
             ev.date_updated = makeDateUTC(ev.date_updated);
             ev.end_voting_date = makeDateUTC(ev.end_voting_date);
 
             if (ev.chosen_date_end) {
                 ev.chosen_date_end = makeDateUTC(ev.chosen_date_end);
-                if (ev.chosen_date_end.getUTCFullYear() < 2000)
+                if (ev.chosen_date_end.getUTCFullYear() < 2000) {
                     ev.chosen_date_end = undefined;
-            }
-            if (ev.chosen_date_start) {
-                ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
-                if (ev.chosen_date_start.getUTCFullYear() < 2000)
-                    ev.chosen_date_start = undefined;
+                }
             }
 
-            ev.date_options = ev.date_options.map(dateOption => {
-                return {
-                    id_date_option: dateOption.id_date_option || 0,
-                    id_event: dateOption.id_event || 0,
-                    date_start: makeDateUTC(dateOption.date_start),
-                    date_end: makeDateUTC(dateOption.date_end)
+            if (ev.chosen_date_start) {
+                ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
+                if (ev.chosen_date_start.getUTCFullYear() < 2000) {
+                    ev.chosen_date_start = undefined;
                 }
-            });
+            }
+
+            ev.date_options = ev.date_options.map(dateOption => ({
+                id_date_option: dateOption.id_date_option || 0,
+                id_event: dateOption.id_event || 0,
+                date_start: makeDateUTC(dateOption.date_start),
+                date_end: makeDateUTC(dateOption.date_end),
+            }));
 
             if (ev.invitations) {
                 ev.invitations.forEach(inv => {
-                    let invitedFriend = inv.user;
+                    const invitedFriend = inv.user;
+
+                    // Skip invitations with missing user or id_user
+                    if (!invitedFriend || !invitedFriend.id_user) {
+                        //console.warn('Invitation is missing user or id_user:', inv);
+                        return; // Skip this invitation
+                    }
+
                     let status: "pending" | "accepted" | "declined" =
-                        ev.votes?.some(vote => vote.id_user === invitedFriend?.id_user) ? "accepted" : "pending";
+                        ev.votes?.some(vote => vote.id_user === invitedFriend.id_user) ? "accepted" : "pending";
 
                     ev.participants = ev.participants || []; // Ensure participants array is initialized
                     ev.participants.push({
-                        id: invitedFriend?.id_user || '',
-                        email: invitedFriend?.email || '',
-                        username: invitedFriend?.username || '',
-                        pfp_url: invitedFriend?.pfp_url || '',
-                        status: status
+                        id: invitedFriend.id_user,
+                        email: invitedFriend.email || '',
+                        username: invitedFriend.username || '',
+                        pfp_url: invitedFriend.pfp_url || '',
+                        status: status,
                     });
 
-                    //console.log(ev.votes);
+                    if (invitedFriend.id_user === currentUserId) {
+                        console.log(ev.votes);
+                        ev.votes?.forEach(vote => {
+                            if (vote.id_user === currentUserId) {
+                                const date_option = ev.date_options.find(
+                                    dt => dt.id_date_option?.toString() == vote.id_date_option
+                                );
 
-                    if (invitedFriend.id_user == currentUserId) {
-                        ev.votes?.forEach((vote) => {
-                            if (vote.id_user == currentUserId) {
-                                let date_option = ev.date_options.find(dt => dt.id_date_option?.toString() == vote.id_date_option);
-
-                                if (date_option) {
+                                if (date_option && date_option.id_date_option) {
                                     const mergedAvailability: { [key: string]: any } = currentDbavailability;
+                                    
+                                    const dayKey = date_option.id_date_option;
 
-                                    const dayKey = getDateFrom(date_option.date_start).toISOString()+'.'+getHoursFrom(date_option.date_start)+'.'+getHoursFrom(date_option.date_end);
+                                    //console.log(dayKey);
 
                                     if (availability[dayKey]) {
-                                        //console.log(availability[dayKey]);
                                         mergedAvailability[dayKey] = {
                                             ...availability[dayKey],
                                         };
@@ -414,14 +434,12 @@ export default function HomeScreen() {
                                         const endTime = new Date(date_option.date_end);
                                         endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
-                                        //console.log(vote.status);
-
                                         mergedAvailability[dayKey] = {
                                             startTime,
                                             endTime,
                                             selectedTimes: [],
-                                            isAvailable: vote.status == "accepted",
-                                            id_date_option: date_option.id_date_option
+                                            isAvailable: vote.status === "accepted",
+                                            id_date_option: date_option.id_date_option,
                                         };
                                     }
 
@@ -433,10 +451,23 @@ export default function HomeScreen() {
                     }
                 });
             }
+
+            if(ev.user_attendances){
+                ev.user_attendances.forEach((attendance) => {
+                    if(attendance.id_user == currentUserId){
+                        let newParticipations = participationStatus;
+                        newParticipations[ev.id_event] = attendance.will_attend;
+
+                        setParticipationStatus(newParticipations);
+                    }
+                });
+            }
+
         });
 
         return events;
     }
+
 
     function startCreateEvent() {
         setCreateStep(1); // Reset the creation step to 1
@@ -500,20 +531,29 @@ export default function HomeScreen() {
         }
     }
 
+
     async function finalizeCreateEvent() {
         if (!createTitle.trim()) {
-            Alert.alert('Missing Title', 'Provide a title.');
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Title',
+                text2: 'Please provide a title for your event.',
+            });
             return;
         }
-        // Check if `EndVoting` is in the future
+    
         const currentTime = new Date();
         const endVotingTime = new Date(endVotingDate);
-
+    
         if (endVotingTime <= currentTime) {
-            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid End Voting Time',
+                text2: 'The end voting time must be in the future.',
+            });
             return;
         }
-        // Add current user to invitees
+    
         const updatedInvitees = [...invitees];
         if (currentUser?.id_user) {
             const isCurrentUserAlreadyAdded = updatedInvitees.some(
@@ -529,38 +569,63 @@ export default function HomeScreen() {
                 });
             }
         }
-
+    
         const newEvt = {
             name: createTitle,
             description: createDesc,
             location: createLoc,
             end_voting_date: endVotingDate.toISOString(),
             id_user: currentUser?.id_user || 'unknown',
-            date_options: createDays.map(day => {
-                return {
-                    date_start: new Date(day.date_start).toISOString(),
-                    date_end: new Date(day.date_end).toISOString()
-                }
-            }),
+            date_options: createDays.map(day => ({
+                date_start: new Date(day.date_start).toISOString(),
+                date_end: new Date(day.date_end).toISOString(),
+            })),
             tag_ids: [],
             participant_ids: updatedInvitees
                 .filter(inv => inv.id)
                 .map(inv => inv.id),
+        };
+    
+        setLoading(true);
+    
+        try {
+            const response = await eventService.createEvent(newEvt);
+    
+            if (response.success && response.data) {
+                const currentUserId = newEvt.id_user;
+                const events = transformEvents([response.data], currentUserId);
+                setEvents(prev => [...prev, events[0]]);
+    
+                Toast.show({
+                    type: 'success',
+                    text1: 'Event Created',
+                    text2: 'Your event has been successfully created.',
+                });
+            } else {
+                console.error(response.error);
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: 'Failed to create the event. Please try again.',
+                });
+            }
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'An unexpected error occurred. Please try again later.',
+            });
+        } finally {
+            setLoading(false);
+            fetchUserData();
+            closeCreateEvent();
         }
-        //console.log(newEvt);
-
-        let response = await eventService.createEvent(newEvt)
-
-        if (response.success && response.data) {
-            let events = transformEvents([response.data], currentUser?.id_user ? currentUser.id_user : '');
-            setEvents(prev => [...prev, events[0]]);
-        }
-        else {
-            console.log(response.error);
-        }
-
-        closeCreateEvent();
     }
+    
+
+
+
 
     /* Step2 -> dayTimes => addDayModalCreate */
     function openAddDayModalCreate(index?: number) {
@@ -589,7 +654,7 @@ export default function HomeScreen() {
         if (isIOS) setCreateModalVisible(true);
     }
 
-    const handleAvailabilityResponse = (dayKey: string, isAvailable: boolean) => {
+    const handleAvailabilityResponse = (dayKey: number, isAvailable: boolean) => {
         // 1) Update the local "availability" state
         setAvailability((prevAvailability) => {
             const updated = { ...prevAvailability };
@@ -674,10 +739,10 @@ export default function HomeScreen() {
         const dateEnd = new Date(`${tempDate.toISOString().split('T')[0]}T${tempEnd}:00`);
 
         if (tempDayIndex === null) {  // new
-            setCreateDays(prev => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+            setCreateDays(prev => [...prev, { id_date_option: 0, date_start: dateStart, date_end: dateEnd }]);
         } else {  // edit
             const copy = [...createDays];
-            copy[tempDayIndex] = { date_start: dateStart, date_end: dateEnd };
+            copy[tempDayIndex] = { id_date_option: 0,date_start: dateStart, date_end: dateEnd };
             setCreateDays(copy);
         }
         closeAddDayModalCreate();
@@ -746,7 +811,25 @@ export default function HomeScreen() {
     function addTypedInvite() {
         if (!typedInvite.trim()) return;
         if (!invitees.find(i => i.email === typedInvite)) {
-            // TODO?
+            if (friends) {
+                let friend = friends.find(i => i.email === typedInvite || i.username === typedInvite);
+                if(friend)
+                    setInvitees([...invitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+                else{
+                    Toast.show({
+                        type: 'error',
+                        text1: 'No friend with this email / username found',
+                        text2: 'Please check for spelling and your friends list.',
+                    });
+                }
+            }
+            else{
+                Toast.show({
+                    type: 'error',
+                    text1: 'No friend with this email / username found',
+                    text2: 'Please check for spelling and your friends list.',
+                });
+            }
         }
         setTypedInvite('');
     }
@@ -784,7 +867,7 @@ export default function HomeScreen() {
 
     const [isVotingModalVisible, setIsVotingModalVisible] = useState(false);
     const [availability, setAvailability] = useState<{
-        [key: string]: {
+        [key: number]: {
             startTime: Date;
             endTime: Date;
             selectedTimes: Date[];
@@ -794,7 +877,7 @@ export default function HomeScreen() {
     }>({});
 
     const [currentDbavailability, setCurrentDbavailability] = useState<{
-        [key: string]: {
+        [key: number]: {
             startTime: Date;
             endTime: Date;
             selectedTimes: Date[];
@@ -868,7 +951,7 @@ export default function HomeScreen() {
             date_options: editDays.map(day => ({
                 date_start: day.date_start.toISOString(),
                 date_end: day.date_end.toISOString(),
-                id_date_option: day.id_date_option ? day.id_date_option : 0,
+                id_date_option: day.id_date_option,
                 id_event: day.id_event ? day.id_event : 0
             })),
             participant_ids: editInvitees
@@ -932,10 +1015,10 @@ export default function HomeScreen() {
 
         // Proceed with saving data if validation passes
         if (tempDayIndexEdit === null) {  // new
-            setEditDays((prev) => [...prev, { date_start: dateStart, date_end: dateEnd }]);
+            setEditDays((prev) => [...prev, { id_date_option: 0, date_start: dateStart, date_end: dateEnd }]);
         } else {  // edit
             const copy = [...editDays];
-            copy[tempDayIndexEdit] = { date_start: dateStart, date_end: dateEnd };
+            copy[tempDayIndexEdit] = { id_date_option: 0, date_start: dateStart, date_end: dateEnd };
             setEditDays(copy);
         }
 
@@ -960,13 +1043,15 @@ export default function HomeScreen() {
         setIsEventModalVisible(true);
 
         Object.entries(availability).forEach(async ([key, value]) => {
+            let daykey = Number(key);
+
             let vote: Vote = {
                 id_date_option: value.id_date_option,
                 id_user: currentUser ? currentUser.id_user : 'undefined'
             }
 
-            if (currentDbavailability[key]) {
-                if (currentDbavailability[key].isAvailable != value.isAvailable) {
+            if (currentDbavailability[daykey]) {
+                if (currentDbavailability[daykey].isAvailable != value.isAvailable) {
                     if (value.isAvailable) {
                         vote.status = "accepted";
                         let response = await eventService.castVote(vote);
@@ -974,7 +1059,10 @@ export default function HomeScreen() {
                         if (!response.success) {
                             console.log(response.error)
                         } else {
-                            console.log(response.data)
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Succesfully cast vote',
+                            });
                         }
                     } else {
                         vote.status = "declined";
@@ -983,7 +1071,10 @@ export default function HomeScreen() {
                         if (!response.success) {
                             console.log(response.error)
                         } else {
-                            console.log(response.data)
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Succesfully removed vote',
+                            });
                         }
                     }
                 }
@@ -1028,14 +1119,25 @@ export default function HomeScreen() {
     function addTypedInviteEdit() {
         if (!editTypedInvite.trim()) return;
         if (!editInvitees.find(i => i.email === editTypedInvite)) {
-            const newPart: Participant = {
-                id: Math.random().toString(),
-                username: editTypedInvite.split('@')[0],
-                email: editTypedInvite,
-                status: 'pending',
-                pfp_url: 'https://i.pravatar.cc/100?img=48'
-            };
-            setEditInvitees([...editInvitees, newPart]);
+            if (friends) {
+                let friend = friends.find(i => i.email === editTypedInvite || i.username === editTypedInvite);
+                if(friend)
+                    setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+                else{
+                    Toast.show({
+                        type: 'error',
+                        text1: 'No friend with this email / username found',
+                        text2: 'Please check for spelling and your friends list.',
+                    });
+                }
+            }
+            else{
+                Toast.show({
+                    type: 'error',
+                    text1: 'No friend with this email / username found',
+                    text2: 'Please check for spelling and your friends list.',
+                });
+            }
         }
         setEditTypedInvite('');
     }
@@ -1059,6 +1161,38 @@ export default function HomeScreen() {
     function saveVotingDateEdit() {
         setVotingPickerEditVisible(false);
         if (isIOS) setEditModalVisible(true);
+    }
+
+    async function updateUserEventAttendance(id_event: string, will_attend: number){
+        if(!currentUser){
+            Toast.show({
+                type: 'error',
+                text1: 'Error with updating attendance',
+                text2: 'Couldnt get current user data',
+            });
+
+            return;
+        }
+
+        let userAttendance: UserAttendance = {
+            id_event: id_event,
+            id_user: currentUser.id_user,
+            will_attend: will_attend
+        }
+
+        let response = await eventService.updateAttendance(userAttendance);
+        if(!response.success){
+            Toast.show({
+                type: 'error',
+                text1: 'Error with updating attendance',
+                text2: response.error,
+            });
+        }
+
+        const copy = {...participationStatus};
+        copy[id_event] = will_attend;
+
+        setParticipationStatus(copy);
     }
 
     /* =============== VIEW / VOTE =============== */
@@ -1412,7 +1546,7 @@ export default function HomeScreen() {
                                                             {eventStatus === 'upcoming' && (
                                                                 <>
                                                                     <Text style={styles.modalLabel}>Confirm participation:</Text>
-                                                                    {participationStatus === 'confirmed' ? (
+                                                                    {participationStatus[selectedEvent.id_event] === 1 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1420,13 +1554,13 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Deny</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
-                                                                    ) : participationStatus === 'denied' ? (
+                                                                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1434,29 +1568,29 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Confirm</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
                                                                     ) : (
-                                                                        <>
+                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
                                                                             <TouchableOpacity
-                                                                                style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Confirm</Text>
                                                                             </TouchableOpacity>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
                                                                             </TouchableOpacity>
-                                                                        </>
+                                                                        </View>
                                                                     )}
                                                                 </>
                                                             )}
@@ -1464,7 +1598,7 @@ export default function HomeScreen() {
                                                             {eventStatus === 'in progress' && (
                                                                 <>
                                                                     <Text style={styles.modalLabel}>Confirm participation:</Text>
-                                                                    {participationStatus === 'confirmed' ? (
+                                                                    {participationStatus[selectedEvent.id_event] === 1 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1472,13 +1606,13 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Deny</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
-                                                                    ) : participationStatus === 'denied' ? (
+                                                                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
                                                                         <View style={styles.statusContainer}>
                                                                             <Text style={styles.statusTextParticipation}>
                                                                                 Participation:{' '}
@@ -1486,65 +1620,59 @@ export default function HomeScreen() {
                                                                             </Text>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Change to Confirm</Text>
                                                                             </TouchableOpacity>
                                                                         </View>
                                                                     ) : (
-                                                                        <>
+                                                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between',alignItems: 'center' }}>
                                                                             <TouchableOpacity
-                                                                                style={[styles.actionButton, styles.confirmButton]}
-                                                                                onPress={() => setParticipationStatus('confirmed')}
+                                                                                style={[styles.actionButton, styles.confirmButton, { marginRight: 10 }]}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
                                                                             >
                                                                                 <MaterialIcons name="check-circle" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Confirm</Text>
                                                                             </TouchableOpacity>
                                                                             <TouchableOpacity
                                                                                 style={[styles.actionButton, styles.denyButton]}
-                                                                                onPress={() => setParticipationStatus('denied')}
+                                                                                onPress={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
                                                                             >
                                                                                 <MaterialIcons name="cancel" size={20} color="#fff" />
                                                                                 <Text style={styles.buttonText}>Deny</Text>
                                                                             </TouchableOpacity>
-                                                                        </>
+                                                                        </View>
                                                                     )}
                                                                 </>
                                                             )}
 
                                                             {/* If currentUser is the creator, show an "Edit" button. */}
                                                             {isCreator && (
-                                                                <TouchableOpacity
-                                                                    style={[styles.actionButton, styles.editButton]}
-                                                                    onPress={() => {
-                                                                        setIsEventModalVisible(false);
-                                                                        openEdit(selectedEvent);
-                                                                    }}
-                                                                >
-                                                                    <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                    <Text style={styles.buttonText}>Edit</Text>
-                                                                </TouchableOpacity>
-                                                            )}
-                                                            <TouchableOpacity
-                                                                style={[styles.actionButton, styles.closeButton]}
-                                                                onPress={closeView}
-                                                            >
-                                                                <MaterialIcons name="close" size={20} color="#fff" />
-                                                                <Text style={styles.buttonText}>Close</Text>
-                                                            </TouchableOpacity>
-
-                                                            {/* If currentUser is the creator, show an "Edit" button. */}
-                                                            {isCreator && (
-                                                                <TouchableOpacity
-                                                                    style={[styles.actionButton, styles.deleteButton]}
-                                                                    onPress={() => {
-                                                                        deleteEvent(selectedEvent, Number(currentUser?.id_user));
-                                                                    }}
-                                                                >
-                                                                    <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
-                                                                    <Text style={styles.buttonText}>Delete</Text>
-                                                                </TouchableOpacity>
+                                                                <>
+                                                                <View style={{ width:'100%', height: 2, backgroundColor: '#e3e3e3', marginTop: 5 }} /> 
+                                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.editButton, { marginRight: 10 }]}
+                                                                        onPress={() => {
+                                                                            setIsEventModalVisible(false);
+                                                                            openEdit(selectedEvent);
+                                                                        }}
+                                                                    >
+                                                                        <MaterialIcons name="edit" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                        <Text style={styles.buttonText}>Edit</Text>
+                                                                    </TouchableOpacity>
+                                                                    <TouchableOpacity
+                                                                        style={[styles.actionButton, styles.deleteButton]}
+                                                                        onPress={() => {
+                                                                            deleteEvent(selectedEvent, Number(currentUser?.id_user));
+                                                                        }}
+                                                                    >
+                                                                        <MaterialIcons name="delete" size={20} color="#fff" style={{ marginRight: 4 }} />
+                                                                        <Text style={styles.buttonText}>Delete</Text>
+                                                                    </TouchableOpacity>
+                                                                </View>
+                                                                </>
                                                             )}
                                                         </View>
 
@@ -1763,8 +1891,8 @@ export default function HomeScreen() {
                                         <ScrollView contentContainerStyle={styles.votingModalContent}>
                                             {/* Availability Selection for Each Day */}
                                             {selectedEvent && selectedEvent.date_options.map((dayTime, index) => {
-                                                const dayKey = getDateFrom(dayTime.date_start).toISOString()+'.'+getHoursFrom(dayTime.date_start)+'.'+getHoursFrom(dayTime.date_end);
-                                                const isAvailable = availability[dayKey]?.isAvailable; // to check if user has already chosen
+                                                const dayKey = dayTime.id_date_option;
+                                                const isAvailable = dayKey != 0? availability[dayKey].isAvailable : false; // to check if user has already chosen
 
                                                 //console.log(isAvailable);
 
