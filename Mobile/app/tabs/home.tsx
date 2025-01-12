@@ -448,6 +448,7 @@ export default function HomeScreen() {
 
                         setAvailability(mergedAvailability);
                         setCurrentDbavailability(mergedAvailability);
+                        //console.log(availability);
                     }
                 });
             }
