@@ -68,39 +68,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const [friends, setFriends] = useState<User[]>();
   const [events, setEvents] = useState<EventData[]>([]);
 
-  const [createStep, setCreateStep] = useState(1);
-
-  // Step1
-  const [createTitle, setCreateTitle] = useState('');
-  const [createDesc, setCreateDesc] = useState('');
-  const [createLoc, setCreateLoc] = useState('');
-
-  // Step2
-  const [createDays, setCreateDays] = useState<SingleDay[]>([]);
-
-  // AddDay Modal
-  const [addDayModalVisible, setAddDayModalVisible] = useState(false);
-  const [tempDayIndex, setTempDayIndex] = useState<number | null>(null);
-  const [tempDate, setTempDate] = useState(new Date());
-  const [tempStart, setTempStart] = useState('08:00');
-  const [tempEnd, setTempEnd] = useState('22:00');
-
-  // Additional modals for date/time picking
-  const [pickDateModalVisible, setPickDateModalVisible] = useState(false);
-  const [pickStartModalVisible, setPickStartModalVisible] = useState(false);
-  const [pickEndModalVisible, setPickEndModalVisible] = useState(false);
-
   // Step3
   const [invitees, setInvitees] = useState<Participant[]>([]);
   const [typedInvite, setTypedInvite] = useState('');
 
   // Step4
-  const [endVotingDate, setEndVotingDate] = useState<Date>(() => {
-    const oneWeekLater = new Date();
-    oneWeekLater.setDate(oneWeekLater.getDate() + 7);
-    return oneWeekLater;
-  });
-
   useEffect(() => {
     if (!location.state) return;
     const { scrollTo } = location.state as { scrollTo?: string };
@@ -122,20 +94,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
 
   const [open, setOpen] = useState<boolean>(false);
   const [step, setStep] = useState<number>(1);
-  const [editEventIndex, setEditEventIndex] = useState<number | null>(null);
 
   const [addDayDialogOpen, setAddDayDialogOpen] = useState(false);
-  const [addDeadlineDialogOpen, setAddDeadlineDialogOpen] = useState(false);
-
-  const [username, setUsername] = useState("");
-  const [invitedUsers, setInvitedUsers] = useState<User[]>([]);
 
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedDeadline, setSelectedDeadlineDate] = useState("");
-  const [DeadlineTime, setDeadlineTime] = useState("");
-  const [editDays, setEditDays] = useState<SingleDay[]>([]);
   const [editTypedInvite, setEditTypedInvite] = useState('');
 
 
@@ -170,24 +134,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setTypedInvite('');
   }
 
-  function addTypedInviteEdit() {
-    if (!editTypedInvite.trim()) return;
-    if (!editInvitees.find(i => i.email === editTypedInvite)) {
-      if (friends) {
-        let friend = friends.find(i => i.email === editTypedInvite || i.username === editTypedInvite);
-        if (friend)
-          setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
-        else {
-          toast.error('No friend with this email / username found');
-        }
-      }
-      else {
-        toast.error('No friends found');
-      }
-    }
-    setEditTypedInvite('');
-  }
-
   useEffect(() => {
     const homeTypo = document.getElementById("home-typo");
     if (homeTypo) {
@@ -207,8 +153,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const [isMine, setIsMine] = useState<boolean>(false);
   const [participationStatus, setParticipationStatus] = useState<Record<string, number>>({});
 
-
-  const [editTitle, setEditTitle] = useState('');
   const [availability, setAvailability] = useState<{
     [key: number]: {
       startTime: Date;
@@ -252,10 +196,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
 
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
   const [editEventId, setEditEventId] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [editLoc, setEditLoc] = useState('');
   const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
 
   const fetchData = async () => {
@@ -428,6 +369,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setDetailsModalOpen(true);
   }
 
+
   function closeEventDetails() {
     setDetailsModalOpen(false);
     setSelectedEvent(null);
@@ -448,21 +390,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setVotingModalOpen(false);
   }
 
-  function handleToggleDay(idx: number, val: boolean) {
-    setVotingResponses((prev) => ({
-      ...prev,
-      [idx]: val,
-    }));
-  }
-
   function handleSubmitVoting() {
     toast.success("Vote submitted!");
     setVotingModalOpen(false);
     setDetailsModalOpen(false);
   }
-
-  const [editChosenDateStart, setEditChosenDateStart] = useState<Date>();
-  const [editChosenDateEnd, setEditChosenDateEnd] = useState<Date>();
 
   function openEdit(e: EventData) {
     setIsEditing(true);
@@ -513,39 +445,24 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     return `${hours}:${minutes}`;
   }
 
-  function parseTimeToDate(dateString: string, timeString: string): Date | null {
-    if (!dateString || !timeString) {
-      return null;
-    }
-    const [hours, minutes] = timeString.split(":").map(Number);
-    const date = new Date(dateString);
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  }
-
   function startCreateEvent() {
     setEditEvent(null);
-    setEditEventIndex(null);
+    setIsEditing(false);
     setStep(1);
-    setNewEvent({
+    setEventForm({
       title: "",
       description: "",
       location: "",
       days: [],
-      deadline: [],
+      end_voting_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      invitees: [],
     });
-    setInvitees([]);
-    setTypedInvite("");
-    setEndVotingDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     setOpen(true);
   }
-  
-
 
   function handleClose() {
     setOpen(false);
     setStep(1);
-    setEditEventIndex(null);
     setEditEvent(null);
   }
 
@@ -681,18 +598,55 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     handleClose();
   }
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteEventId, setDeleteEventId] = useState<number | null>(null);
+
+
+  const handleDeleteClick = (id_event: number | Number) => {
+    setDeleteEventId(Number(id_event)); // Convert `Number` to primitive `number`
+    setDeleteDialogOpen(true);
+  };
+
+
+  const handleDeleteConfirm = async () => {
+    if (deleteEventId === null || !currentUser) {
+      toast.error("Invalid event or user details.");
+      return;
+    }
+
+    try {
+      const response = await eventService.deleteEvent(
+        Number(deleteEventId), // Ensure deleteEventId is a number
+        Number(currentUser.id_user) // Convert currentUser.id_user to a number
+      );
+
+      if (response.success) {
+        setEvents((prevEvents) =>
+          prevEvents.filter((event) => Number(event.id_event) !== Number(deleteEventId))
+        );
+        toast.success("Event deleted successfully!");
+        closeEventDetails();
+      } else {
+        toast.error("Failed to delete event. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Unexpected error occurred while deleting event.");
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteEventId(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setDeleteEventId(null);
+  };
 
   function handleRemoveDay(index: number) {
     const updatedDays = [...eventForm.days];
     updatedDays.splice(index, 1);
     setEventForm({ ...eventForm, days: updatedDays });
-  }
-
-
-  function handleRemoveDeadline(index: number) {
-    const updatedDeadline = [...newEvent.deadline];
-    updatedDeadline.splice(index, 1);
-    setNewEvent({ ...newEvent, deadline: updatedDeadline });
   }
 
   function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
@@ -766,13 +720,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
       });
     } else {
       toast.info('Friend already invited.', { position: "top-center", autoClose: 2000 });
-    }
-  }
-
-
-  function addFriendInviteEdit(friend: User) {
-    if (!editInvitees.find(i => i.email === friend.email)) {
-      setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfp_url: friend.pfp_url }]);
     }
   }
 
@@ -914,6 +861,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                         }
                         primaryTypographyProps={{ component: 'div' }}
                         secondaryTypographyProps={{ component: 'div' }}
+
                       />
                     </ListItem>
                   </Paper>
@@ -923,6 +871,29 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           )}
         </Paper>
       </div>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete this event? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
 
       <Box sx={{ textAlign: "center", paddingBottom: 6 }}>
         <Button
@@ -1097,6 +1068,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
             ? `Edit Event (Step ${step}/4)`
             : `Create Event (Step ${step}/4)`}
         </DialogTitle>
+
         <DialogContent sx={{ minHeight: 300 }}>
           {step === 1 && (
             <Box>
@@ -1519,199 +1491,210 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               </Button>
             )}
           </Box>
-      </DialogActions>
+        </DialogActions>
 
-    </Dialog>
+      </Dialog>
 
 
-      {/* Event Details Modal */ }
-  <Dialog
-    open={detailsModalOpen}
-    onClose={closeEventDetails}
-    fullWidth
-    maxWidth="sm"
-  >
-    <DialogTitle>{selectedEvent?.name}</DialogTitle>
-    <DialogContent>
-      {selectedEvent && (
-        <>
-          <DialogContentText sx={{ marginBottom: 2 }}>
-            {selectedEvent.description}
-          </DialogContentText>
-          <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-            <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-            <strong>Location:&nbsp;</strong>
-            {selectedEvent.location}
-          </Typography>
-          <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-            <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-            <strong>Days:</strong>
-          </Typography>
-          <Typography component="div">
-            <ul>
-              {selectedEvent.date_options.map((d, idx) => (
-                <li key={idx} style={{ marginBottom: "6px" }}>
-                  {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
-                  {getHoursFrom(d.date_end)})
-                </li>
-              ))}
-            </ul>
-          </Typography>
-          <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-            <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-            <strong>Participants: {selectedEvent.participants?.length}</strong>
-          </Typography>
-          <Box sx={{ marginTop: 2 }}>
-            {getEventStatus(selectedEvent) === "voting" && (
-              <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                <strong>Voting Ends:&nbsp;</strong>
-                {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
-                {getHoursFrom(selectedEvent.end_voting_date)}
-              </Typography>
-            )}
-          </Box>
-        </>
-      )}
-    </DialogContent>
-    <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
-      {selectedEvent && isMine && (
-        <Button
-          variant="outlined"
-          onClick={handleEditFromDetails}
-          sx={{ textTransform: "none" }}
-        >
-          Edit
-        </Button>
-      )}
-      {selectedEvent && (
-        <>
-          {(() => {
-            const status = selectedEvent ? getEventStatus(selectedEvent) : "upcoming";
-            if (status === "voting") {
-              return (
-                <>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleVote}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Vote
-                  </Button>
-                  <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
-                    Close
-                  </Button>
-                </>
-              );
-            } else if (status === "in progress" || status === "upcoming") {
-              return (
-                <>
-                  <Box sx={{ marginRight: "auto" }}>
-                    <Typography>Confirm Participation:</Typography>
-                    {participationStatus[selectedEvent.id_event] === 1 ? (
-                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                        <Typography sx={{ marginRight: 2 }}>
-                          Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
-                        </Typography>
-
-                        <Button
-                          variant="contained"
-                          color="error"
-                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
-                          sx={{ textTransform: "none", marginRight: 1 }}
-                        >
-                          Change to Deny
-                        </Button>
-                      </Box>
-                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
-                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                        <Typography sx={{ marginRight: 2 }}>
-                          Participation: <strong style={{ color: "red" }}>DENIED</strong>
-                        </Typography>
-
-                        <Button
-                          variant="contained"
-                          color="success"
-                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                          sx={{ textTransform: "none", marginRight: 1 }}
-                        >
-                          Change to Confirm
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                          sx={{ textTransform: "none", marginRight: 1 }}
-                        >
-                          Confirm
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
-                          sx={{ textTransform: "none" }}
-                        >
-                          Deny
-                        </Button>
-                      </Box>
-                    )}
-                    <Button onClick={closeEventDetails} sx={{ textTransform: "none", marginTop: 1 }}>
-                      Close
-                    </Button>
-                  </Box>
-                </>
-              );
-            }
-          })()}
-        </>
-      )}
-    </DialogActions>
-  </Dialog>
-
-  {/* Voting Modal */ }
-  <Dialog
-    open={votingModalOpen}
-    onClose={closeVotingModal}
-    fullWidth
-    maxWidth="sm"
-  >
-    <DialogTitle>Vote Availability</DialogTitle>
-    <DialogContent>
-      {selectedEvent &&
-        selectedEvent.date_options.map((dayTime, idx) => {
-          const dayName = format(dayTime.date_start, "EEEE");
-          const dateLabel = format(dayTime.date_start, "dd.MM.yyyy");
-          const hoursStart = getHoursFrom(dayTime.date_start);
-          const hoursEnd = getHoursFrom(dayTime.date_end);
-
-          return (
-            <Typography key={idx} component="div">
-              <ul>
-                <li>{`${dayName}, ${dateLabel}: ${hoursStart} - ${hoursEnd}`}</li>
-              </ul>
-            </Typography>
-          );
-        })}
-    </DialogContent>
-
-    <DialogActions>
-      <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
-        Cancel
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        sx={{ textTransform: "none" }}
-        onClick={handleSubmitVoting}
+      {/* Event Details Modal */}
+      <Dialog
+        open={detailsModalOpen}
+        onClose={closeEventDetails}
+        fullWidth
+        maxWidth="sm"
       >
-        Submit
-      </Button>
-    </DialogActions>
-  </Dialog>
+        <DialogTitle>{selectedEvent?.name}</DialogTitle>
+        <DialogContent>
+          {selectedEvent && (
+            <>
+              <DialogContentText sx={{ marginBottom: 2 }}>
+                {selectedEvent.description}
+              </DialogContentText>
+              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+                <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Location:&nbsp;</strong>
+                {selectedEvent.location}
+              </Typography>
+              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Days:</strong>
+              </Typography>
+              <Typography component="div">
+                <ul>
+                  {selectedEvent.date_options.map((d, idx) => (
+                    <li key={idx} style={{ marginBottom: "6px" }}>
+                      {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
+                      {getHoursFrom(d.date_end)})
+                    </li>
+                  ))}
+                </ul>
+              </Typography>
+              <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Participants: {selectedEvent.participants?.length}</strong>
+              </Typography>
+              <Box sx={{ marginTop: 2 }}>
+                {getEventStatus(selectedEvent) === "voting" && (
+                  <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                    <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                    <strong>Voting Ends:&nbsp;</strong>
+                    {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
+                    {getHoursFrom(selectedEvent.end_voting_date)}
+                  </Typography>
+                )}
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
+          {selectedEvent && isMine && (
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={handleEditFromDetails}
+                sx={{ textTransform: "none" }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => handleDeleteClick(Number(selectedEvent.id_event))}
+                sx={{ textTransform: "none" }}
+              >
+                Delete
+              </Button>
+            </Box>
+          )}
+
+          {selectedEvent && (
+            <>
+              {(() => {
+                const status = selectedEvent ? getEventStatus(selectedEvent) : "upcoming";
+                if (status === "voting") {
+                  return (
+                    <>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleVote}
+                        sx={{ textTransform: "none" }}
+                      >
+                        Vote
+                      </Button>
+                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                        Close
+                      </Button>
+                    </>
+                  );
+                } else if (status === "in progress" || status === "upcoming") {
+                  return (
+                    <>
+                      <Box sx={{ marginRight: "auto" }}>
+                        <Typography>Confirm Participation:</Typography>
+                        {participationStatus[selectedEvent.id_event] === 1 ? (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Typography sx={{ marginRight: 2 }}>
+                              Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
+                            </Typography>
+
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Change to Deny
+                            </Button>
+                          </Box>
+                        ) : participationStatus[selectedEvent.id_event] === 0 ? (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Typography sx={{ marginRight: 2 }}>
+                              Participation: <strong style={{ color: "red" }}>DENIED</strong>
+                            </Typography>
+
+                            <Button
+                              variant="contained"
+                              color="success"
+                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Change to Confirm
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                              sx={{ textTransform: "none", marginRight: 1 }}
+                            >
+                              Confirm
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                              sx={{ textTransform: "none" }}
+                            >
+                              Deny
+                            </Button>
+                          </Box>
+                        )}
+                        <Button onClick={closeEventDetails} sx={{ textTransform: "none", marginTop: 1 }}>
+                          Close
+                        </Button>
+                      </Box>
+                    </>
+                  );
+                }
+              })()}
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Voting Modal */}
+      <Dialog
+        open={votingModalOpen}
+        onClose={closeVotingModal}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Vote Availability</DialogTitle>
+        <DialogContent>
+          {selectedEvent &&
+            selectedEvent.date_options.map((dayTime, idx) => {
+              const dayName = format(dayTime.date_start, "EEEE");
+              const dateLabel = format(dayTime.date_start, "dd.MM.yyyy");
+              const hoursStart = getHoursFrom(dayTime.date_start);
+              const hoursEnd = getHoursFrom(dayTime.date_end);
+
+              return (
+                <Typography key={idx} component="div">
+                  <ul>
+                    <li>{`${dayName}, ${dateLabel}: ${hoursStart} - ${hoursEnd}`}</li>
+                  </ul>
+                </Typography>
+              );
+            })}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            sx={{ textTransform: "none" }}
+            onClick={handleSubmitVoting}
+          >
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container >
   );
 
