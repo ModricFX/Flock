@@ -153,7 +153,10 @@ export default function HomeScreen() {
                         const response = await eventService.deleteEvent(id_event, currentUserId);
 
                         if (response.success) {
-                            alert('Event deleted successfully');
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Succesfully deleted the event!',
+                            });
                             closeView(); // Close the modal if it's open
                             // Fetch the updated events list from the server
                             await fetchData();
