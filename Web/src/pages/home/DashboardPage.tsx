@@ -92,8 +92,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     }
   }, [location.state]);
 
-  const [editEvent, setEditEvent] = useState<EventData | null>(null);
-
   const [open, setOpen] = useState<boolean>(false);
   const [step, setStep] = useState<number>(1);
 
@@ -102,16 +100,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [editTypedInvite, setEditTypedInvite] = useState('');
-
-
-  const [newEvent, setNewEvent] = useState<any>({
-    title: "",
-    description: "",
-    location: "",
-    days: [],
-    deadline: [],
-  });
 
   useEffect(() => {
     fetchUserData();
@@ -199,7 +187,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [editEventId, setEditEventId] = useState('');
-  const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
 
   const fetchData = async () => {
     try {
@@ -457,7 +444,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   }
 
   function startCreateEvent() {
-    setEditEvent(null);
     setIsEditing(false);
     setStep(1);
     setEventForm({
@@ -474,7 +460,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   function handleClose() {
     setOpen(false);
     setStep(1);
-    setEditEvent(null);
   }
 
   function handleNext() {
@@ -1514,7 +1499,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>{selectedEvent?.name}</DialogTitle>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            m: 0,
+            p: 2,
+          }}
+        >
+          {selectedEvent?.name}
+          <IconButton
+            aria-label="close"
+            onClick={closeEventDetails}
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
           {selectedEvent && (
             <>
@@ -1534,8 +1538,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 <ul>
                   {selectedEvent.date_options.map((d, idx) => (
                     <li key={idx} style={{ marginBottom: "6px" }}>
-                      {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
-                      {getHoursFrom(d.date_end)})
+                      {format(d.date_start, "dd.MM.yyyy")} (
+                      {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
                     </li>
                   ))}
                 </ul>
@@ -1562,32 +1566,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
-
-          {selectedEvent && isMine && getEventStatus(selectedEvent) !== "completed" && (
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleEditFromDetails}
-                sx={{ textTransform: "none" }}
-              >
-                Edit
-              </Button>
-            </Box>
-          )}
-          {selectedEvent && isMine && (
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => handleDeleteClick(Number(selectedEvent.id_event))}
-                sx={{ textTransform: "none" }}
-              >
-                Delete
-              </Button>
-            </Box>
-          )}
-
+        <DialogActions sx={{ flexDirection: "column", alignItems: "stretch", gap: 2, paddingX: 3, paddingY: 2 }}>
           {selectedEvent && (
             <>
               {(() => {
@@ -1610,71 +1589,85 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   );
                 } else if (status === "in progress" || status === "upcoming") {
                   return (
-                    <>
-                      <Box sx={{ marginRight: "auto" }}>
-                        <Typography>Confirm Participation:</Typography>
-                        {participationStatus[selectedEvent.id_event] === 1 ? (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Typography sx={{ marginRight: 2 }}>
-                              Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
-                            </Typography>
-
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Change to Deny
-                            </Button>
-                          </Box>
-                        ) : participationStatus[selectedEvent.id_event] === 0 ? (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Typography sx={{ marginRight: 2 }}>
-                              Participation: <strong style={{ color: "red" }}>DENIED</strong>
-                            </Typography>
-
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Change to Confirm
-                            </Button>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
-                              sx={{ textTransform: "none" }}
-                            >
-                              Deny
-                            </Button>
-                          </Box>
-                        )}
-                        <Button onClick={closeEventDetails} sx={{ textTransform: "none", marginTop: 1 }}>
-                          Close
-                        </Button>
-                      </Box>
-                    </>
+                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+                      <Typography>Confirm Participation:</Typography>
+                      {participationStatus[selectedEvent.id_event] === 1 ? (
+                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <Typography sx={{ marginRight: 2 }}>
+                            Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                            sx={{ textTransform: "none", marginRight: 1 }}
+                          >
+                            Change to Deny
+                          </Button>
+                        </Box>
+                      ) : participationStatus[selectedEvent.id_event] === 0 ? (
+                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <Typography sx={{ marginRight: 2 }}>
+                            Participation: <strong style={{ color: "red" }}>DENIED</strong>
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                            sx={{ textTransform: "none", marginRight: 1 }}
+                          >
+                            Change to Confirm
+                          </Button>
+                        </Box>
+                      ) : (
+                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                            sx={{ textTransform: "none", marginRight: 1 }}
+                          >
+                            Confirm
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                            sx={{ textTransform: "none" }}
+                          >
+                            Deny
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
                   );
                 }
               })()}
             </>
           )}
+
+          {selectedEvent && isMine && (
+            <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+              <Button
+                variant="outlined"
+                onClick={handleEditFromDetails}
+                sx={{ textTransform: "none" }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => handleDeleteClick(Number(selectedEvent.id_event))}
+                sx={{ textTransform: "none" }}
+              >
+                Delete
+              </Button>
+            </Box>
+          )}
         </DialogActions>
       </Dialog>
+
 
       {/* Participants Modal */}
       <Dialog
@@ -1687,10 +1680,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         <DialogContent>
           {selectedEvent?.participants?.length ? (
             <>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Voted: {selectedEvent.participants.filter(p => p.status !== "pending").length}{" | "}
-                Pending: {selectedEvent.participants.filter(p => p.status === "pending").length}
-              </Typography>
+              {selectedEvent && getEventStatus(selectedEvent) === "voting" ? (
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Voted: {selectedEvent.participants.filter(p => p.status !== "pending").length}{" | "}
+                  Pending: {selectedEvent.participants.filter(p => p.status === "pending").length}
+                </Typography>
+              ) : (
+                <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                  Accepted: {selectedEvent.participants.filter(p => p.status === "accepted").length}{" | "}
+                  Denied: {selectedEvent.participants.filter(p => p.status === "declined").length}{" | "}
+                  Pending: {selectedEvent.participants.filter(p => p.status === "pending").length}
+                </Typography>
+              )}
               <List>
                 {selectedEvent.participants.map((participant) => (
                   <ListItem key={participant.id}>
@@ -1699,7 +1700,18 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                     </ListItemAvatar>
                     <ListItemText
                       primary={`${participant.username} (${participant.email})`}
-                      secondary={`Status: ${participant.status}`}
+                      secondary={
+                        selectedEvent && getEventStatus(selectedEvent) === "voting"
+                          ? `Status: ${participant.status !== "pending" ? "Voted" : "Pending"}`
+                          : (currentUser && Number(participant.id) === Number(currentUser.id_user))
+                            ? `Status: ${participationStatus[selectedEvent.id_event] === 1
+                              ? "Accepted"
+                              : participationStatus[selectedEvent.id_event] === 0
+                                ? "Denied"
+                                : "Pending"
+                            }`
+                            : `Status: ${participant.status}`
+                      }
                     />
                   </ListItem>
                 ))}
@@ -1715,6 +1727,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+
+
 
       {/* Voting Modal */}
       <Dialog
