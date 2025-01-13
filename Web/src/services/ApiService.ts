@@ -1,13 +1,13 @@
 ﻿import axios, { AxiosInstance } from 'axios';
-import { tokenStorage } from '../storage';
-import config from '../config';
+import config from '../config'; // Import the config file
+import { tokenStorage } from '../storage'; // Use the centralized tokenStorage
 
 class ApiService {
     private api: AxiosInstance;
 
     constructor() {
         this.api = axios.create({
-            baseURL: config.apiBaseUrl,
+            baseURL: config.apiBaseUrl, // Use the URL from config
         });
 
         // Intercept requests to add token
@@ -18,6 +18,27 @@ class ApiService {
             }
             return config;
         });
+
+        this.api.interceptors.response.use(
+            (response) => response,
+            (error) => error.response
+        );
+    }
+
+    get(endpoint: string, config?: object) {
+        return this.api.get(endpoint, config);
+    }
+
+    post(endpoint: string, data: object, config?: object) {
+        return this.api.post(endpoint, data, config);
+    }
+
+    put(endpoint: string, data: object, config?: object) {
+        return this.api.put(endpoint, data, config);
+    }
+
+    delete(endpoint: string, config?: object) {
+        return this.api.delete(endpoint, config);
     }
 
     getApi(): AxiosInstance {

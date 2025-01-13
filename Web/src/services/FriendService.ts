@@ -1,4 +1,5 @@
-﻿import { AxiosInstance } from 'axios';
+﻿// services/FriendService.ts
+import { AxiosInstance } from 'axios';
 
 export class FriendService {
     private api: AxiosInstance;
@@ -6,6 +7,14 @@ export class FriendService {
     constructor(api: AxiosInstance) {
         this.api = api;
     }
+
+    // Example method to get friend list
+    // async getFriends() {
+    //   const response = await this.api.get('/friends');
+    //   return response.data;
+    // }
+
+    // Add methods for friend-related operations
 
     async getFriends(id_user: string, status: string) {
         const response = await this.api.get(`/user/relationship/${id_user}/${status}`);
@@ -24,7 +33,7 @@ export class FriendService {
 
     async sendFriendRequest(text: string) : Promise<{ success: boolean; data?: any; error?: string }>{
         const response = await this.api.post(`/user/relationship/${text}`);
-
+        
         if(!response){
             return { success: false, error: 'Failed to send friend request' };
         }

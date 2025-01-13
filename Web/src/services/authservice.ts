@@ -8,8 +8,7 @@ interface DecodedToken extends JwtPayload {
 }
 
 class AuthService {
-    // No need to pass storage or api; we have singletons
-
+    
     async register(data: {
         first_name: string;
         last_name: string;
@@ -26,11 +25,20 @@ class AuthService {
         return response.data;
     }
 
-    async login(text: string, password: string) {
-        const response = await apiService.getApi().post('/auth/token', { Email: text, Password: password });
-        const token = response.data.token;
-        await tokenStorage.setToken(token);
-        return response.data;
+    async login(email: string, password: string) {
+        try {
+            const response = await apiService.getApi().post('/auth/token', { Email: email, Password: password });
+            if (response.status === 401) {
+                throw new Error('Wrong password. Please try again.');
+            } else if (response.status !== 200) {
+                throw new Error('Server error. Please try again later.');
+            }
+            const token = response.data.token;
+            await tokenStorage.setToken(token);
+            return response.data;
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to log in.');
+        }
     }
 
     async logout() {
@@ -77,6 +85,84 @@ class AuthService {
             // assume the user needs to log in again
             return { success: false, error: error.message || 'Failed to renew token.' };
         }
+    }
+
+    async updatePassword(oldPassword: string, newPassword: string) {
+        try {
+            const token = await this.checkAndRenewToken();
+            if (!token) {
+                throw new Error('Invalid user session. Please log in again.');
+            }
+
+            await apiService.getApi().put('/user/password', {
+                oldPassword,
+                newPassword
+            }, {
+                headers: {
+                    Authorization: token
+                },
+            });
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to update password.');
+        }
+    }
+
+    async updateProfile(username: string, email: string) {
+        try {
+            const token = await this.checkAndRenewToken();
+            if (!token) {
+                throw new Error('Invalid user session. Please log in again.');
+            }
+
+            await apiService.getApi().put('/user/profile', {
+                username,
+                email
+            }, {
+                headers: {
+                    Authorization: token
+                },
+            });
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to update profile.');
+        }
+    }
+
+    async deleteAccount() {
+        try {
+            const token = await this.checkAndRenewToken();
+            if (!token) {
+                throw new Error('Invalid user session. Please log in again.');
+            }
+
+            await apiService.getApi().delete('/user/me', {
+                headers: {
+                    Authorization: token
+                },
+            });
+
+            await tokenStorage.removeToken();
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to delete account.');
+        }
+    }
+
+    async checkAndRenewToken(): Promise<string> {
+        const token = await tokenStorage.getToken();
+        if (!token) {
+            throw new Error('Invalid user session. Please log in again.');
+        }
+
+        const decoded = jwtDecode<DecodedToken>(token);
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+
+        if (!decoded.exp || decoded.exp < nowInSeconds) {
+            const renewResponse = await apiService.getApi().post('/auth/token/renew', { oldToken: token });
+            const newToken = renewResponse.data.token;
+            await tokenStorage.setToken(newToken);
+            return newToken;
+        }
+
+        return token;
     }
 }
 

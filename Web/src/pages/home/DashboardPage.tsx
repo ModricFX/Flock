@@ -1,9 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  forwardRef,
-} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Chip,
@@ -26,8 +21,7 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import { format } from "date-fns";
-import { authService } from "../../services/authservice";
+import { format, getDate, getDay } from "date-fns";
 import InfoIcon from "@mui/icons-material/Info";
 import EventIcon from "@mui/icons-material/Event";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -44,267 +38,24 @@ import InProgressIcon from "@mui/icons-material/Autorenew";
 import UpcomingIcon from "@mui/icons-material/AccessTime";
 import { toast } from "react-toastify";
 
-interface Participant {
-  username: string;
-  email: string;
-  pfpUrl: string;
-  status: "pending" | "accepted" | "declined";
-}
+import { authService } from '../../services/authservice';
+import { EventService } from '../../services/EventService';
+import { apiService } from '../../services/ApiService';
 
-interface SingleDay {
-  dateStart: Date;
-  dateEnd: Date;
-}
+import { User } from '../../models/User';
+import { Participant } from '../../models/Participant';
+import { EventData } from '../../models/EventData';
+import { SingleDay } from '../../models/SingleDay';
+import { Vote } from '../../models/Vote';
+import { FriendService } from '../../services/FriendService';
+import { UserAttendance } from '../../models/UserAttendance';
 
-interface EventData {
-  id_event: string;
-  name: string;
-  description: string;
-  location: string;
-  end_voting_date: Date;
-  id_user: string;
-  date_options: SingleDay[];
-  participants: Participant[];
-  eventDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  votes?: Record<string, any>;
-}
+const api = apiService.getApi();
+const friendService = new FriendService(api);
+const eventService = new EventService(api);
 
 interface DashboardPageProps {
   darkMode: boolean;
-}
-
-const initialOtherEvents: EventData[] = [
-  {
-    id_event: "evt-1",
-    id_user: "1",
-    name: "My Birthday Party",
-    description: "Pizza and cake!",
-    location: "My House",
-    date_options: [
-      {
-        dateStart: new Date(2024, 0, 15, 8, 0),
-        dateEnd: new Date(2024, 0, 15, 11, 0),
-      },
-    ],
-    participants: [
-      {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=12",
-      },
-      {
-        username: "Alice",
-        email: "alice@example.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=28",
-      },
-      {
-        username: "Bob",
-        email: "bob@example.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=36",
-      },
-    ],
-    end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id_event: "evt-2",
-    id_user: "u-004",
-    name: "Yoga Retreat",
-    description: "Relaxing yoga for all levels",
-    location: "Health & Wellness Center",
-    date_options: [
-      {
-        dateStart: new Date(2024, 1, 5, 9, 0),
-        dateEnd: new Date(2024, 1, 5, 12, 0),
-      },
-    ],
-    participants: [
-      {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=36",
-      },
-      {
-        username: "Charlie",
-        email: "charlie@example.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=28",
-      },
-    ],
-    end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id_event: "evt-3",
-    id_user: "u-004",
-    name: "Test event",
-    description: "Testing the events",
-    location: "Home alone",
-    date_options: [
-      {
-        dateStart: new Date(2024, 1, 5, 9, 0),
-        dateEnd: new Date(2024, 1, 5, 13, 0),
-      },
-      {
-        dateStart: new Date(2024, 1, 6, 15, 0),
-        dateEnd: new Date(2024, 1, 6, 20, 0),
-      },
-    ],
-    participants: [
-      {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=11",
-      },
-      {
-        username: "Charlie",
-        email: "charlie@example.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=10",
-      },
-      {
-        username: "Bob1",
-        email: "bob@gmail.com",
-        status: "declined",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob2",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob3",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob4",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob5",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob6",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob7",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob8",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob9",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-      {
-        username: "Bob10",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=08",
-      },
-    ],
-    end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
-    eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id_event: "evt-4",
-    id_user: "u-003",
-    name: "Beach Day",
-    description: "Fun in the sun!",
-    location: "Sunny Beach",
-    date_options: [
-      {
-        dateStart: new Date(2024, 1, 5, 9, 0),
-        dateEnd: new Date(2024, 1, 5, 12, 0),
-      },
-    ],
-    participants: [
-      {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=07",
-      },
-      {
-        username: "Bob",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=06",
-      },
-    ],
-    end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-    eventDate: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id_event: "evt-5",
-    id_user: "u-002",
-    name: "Neki Day",
-    description: "Fun",
-    location: "House apartment",
-    date_options: [
-      {
-        dateStart: new Date(2024, 1, 5, 9, 0),
-        dateEnd: new Date(2024, 1, 5, 12, 0),
-      },
-    ],
-    participants: [
-      {
-        username: "MyUser",
-        email: "myuser@domain.com",
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=05",
-      },
-      {
-        username: "Bob",
-        email: "bob@gmail.com",
-        status: "accepted",
-        pfpUrl: "https://i.pravatar.cc/100?img=04",
-      },
-    ],
-    end_voting_date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
-    eventDate: new Date(Date.now() - 500 * 60),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-interface Friend {
-  name: string;
-  email: string;
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
@@ -313,6 +64,42 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
 
   const yourEventsRef = useRef<HTMLDivElement | null>(null);
   const otherEventsRef = useRef<HTMLDivElement | null>(null);
+
+  const [friends, setFriends] = useState<User[]>();
+  const [events, setEvents] = useState<EventData[]>([]);
+
+  const [createStep, setCreateStep] = useState(1);
+
+  // Step1
+  const [createTitle, setCreateTitle] = useState('');
+  const [createDesc, setCreateDesc] = useState('');
+  const [createLoc, setCreateLoc] = useState('');
+
+  // Step2
+  const [createDays, setCreateDays] = useState<SingleDay[]>([]);
+
+  // AddDay Modal
+  const [addDayModalVisible, setAddDayModalVisible] = useState(false);
+  const [tempDayIndex, setTempDayIndex] = useState<number | null>(null);
+  const [tempDate, setTempDate] = useState(new Date());
+  const [tempStart, setTempStart] = useState('08:00');
+  const [tempEnd, setTempEnd] = useState('22:00');
+
+  // Additional modals for date/time picking
+  const [pickDateModalVisible, setPickDateModalVisible] = useState(false);
+  const [pickStartModalVisible, setPickStartModalVisible] = useState(false);
+  const [pickEndModalVisible, setPickEndModalVisible] = useState(false);
+
+  // Step3
+  const [invitees, setInvitees] = useState<Participant[]>([]);
+  const [typedInvite, setTypedInvite] = useState('');
+
+  // Step4
+  const [endVotingDate, setEndVotingDate] = useState<Date>(() => {
+    const oneWeekLater = new Date();
+    oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+    return oneWeekLater;
+  });
 
   useEffect(() => {
     if (!location.state) return;
@@ -331,113 +118,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     }
   }, [location.state]);
 
-  const [myEvents, setMyEvents] = useState<EventData[]>([
-    {
-      id_event: "evt-1",
-      id_user: "u-001",
-      name: "Team Meeting",
-      description: "Monthly team catch-up and planning session.",
-      location: "Office Room 101",
-      date_options: [
-        {
-          dateStart: new Date(2024, 0, 10, 10, 0),
-          dateEnd: new Date(2024, 0, 10, 11, 30),
-        },
-      ],
-      participants: [
-        {
-          username: "Alice",
-          email: "alice@example.com",
-          status: "accepted",
-          pfpUrl: "https://i.pravatar.cc/100?img=1",
-        },
-        {
-          username: "Bob",
-          email: "bob@example.com",
-          status: "pending",
-          pfpUrl: "https://i.pravatar.cc/100?img=2",
-        },
-      ],
-      end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 24),
-      eventDate: new Date(2024, 0, 10, 10, 0),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id_event: "evt-2",
-      id_user: "u-002",
-      name: "Yoga Session",
-      description: "Relax and unwind with a guided yoga session.",
-      location: "Community Hall",
-      date_options: [
-        {
-          dateStart: new Date(2024, 0, 12, 18, 0),
-          dateEnd: new Date(2024, 0, 12, 19, 30),
-        },
-      ],
-      participants: [
-        {
-          username: "Jane",
-          email: "jane@example.com",
-          status: "accepted",
-          pfpUrl: "https://i.pravatar.cc/100?img=3",
-        },
-        {
-          username: "Charlie",
-          email: "charlie@example.com",
-          status: "declined",
-          pfpUrl: "https://i.pravatar.cc/100?img=4",
-        },
-      ],
-      end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 48),
-      eventDate: new Date(2024, 0, 12, 18, 0),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
-      id_event: "evt-3",
-      id_user: "u-004",
-      name: "Test Event",
-      description: "Testing new event management features.",
-      location: "Home Alone",
-      date_options: [
-        {
-          dateStart: new Date(2024, 1, 5, 9, 0),
-          dateEnd: new Date(2024, 1, 5, 13, 0),
-        },
-        {
-          dateStart: new Date(2024, 1, 6, 15, 0),
-          dateEnd: new Date(2024, 1, 6, 20, 0),
-        },
-      ],
-      participants: [
-        {
-          username: "MyUser",
-          email: "myuser@domain.com",
-          status: "pending",
-          pfpUrl: "https://i.pravatar.cc/100?img=5",
-        },
-        {
-          username: "Charlie",
-          email: "charlie@example.com",
-          status: "pending",
-          pfpUrl: "https://i.pravatar.cc/100?img=6",
-        },
-        {
-          username: "Bob",
-          email: "bob@example.com",
-          status: "accepted",
-          pfpUrl: "https://i.pravatar.cc/100?img=7",
-        },
-      ],
-      end_voting_date: new Date(Date.now() + 1000 * 60 * 60 * 2),
-      eventDate: new Date(Date.now() + 1000 * 60 * 60 * 48),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ]);
-
-  const [others, setOthers] = useState<EventData[]>(initialOtherEvents);
+  const [editEvent, setEditEvent] = useState<EventData | null>(null);
 
   const [open, setOpen] = useState<boolean>(false);
   const [step, setStep] = useState<number>(1);
@@ -447,18 +128,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   const [addDeadlineDialogOpen, setAddDeadlineDialogOpen] = useState(false);
 
   const [username, setUsername] = useState("");
-  const [invitedUsers, setInvitedUsers] = useState<Friend[]>([]);
-  const exampleFriends: Friend[] = [
-    { name: "Alice", email: "alice@example.com" },
-    { name: "Bob", email: "bob@example.com" },
-    { name: "Jane", email: "jane@example.com" },
-  ];
+  const [invitedUsers, setInvitedUsers] = useState<User[]>([]);
 
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDeadline, setSelectedDeadlineDate] = useState("");
   const [DeadlineTime, setDeadlineTime] = useState("");
+  const [editDays, setEditDays] = useState<SingleDay[]>([]);
+  const [editTypedInvite, setEditTypedInvite] = useState('');
+
 
   const [newEvent, setNewEvent] = useState<any>({
     title: "",
@@ -467,6 +146,47 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     days: [],
     deadline: [],
   });
+
+  useEffect(() => {
+    fetchUserData();
+    fetchData();
+  }, []);
+
+  function addTypedInvite() {
+    if (!typedInvite.trim()) return;
+    if (!invitees.find(i => i.email === typedInvite)) {
+      if (friends) {
+        let friend = friends.find(i => i.email === typedInvite || i.username === typedInvite);
+        if (friend)
+          setInvitees([...invitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+        else {
+          toast.error('No friend with this email / username found');
+        }
+      }
+      else {
+        toast.error('No friends found');
+      }
+    }
+    setTypedInvite('');
+  }
+
+  function addTypedInviteEdit() {
+    if (!editTypedInvite.trim()) return;
+    if (!editInvitees.find(i => i.email === editTypedInvite)) {
+      if (friends) {
+        let friend = friends.find(i => i.email === editTypedInvite || i.username === editTypedInvite);
+        if (friend)
+          setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, pfp_url: friend.pfp_url, status: 'pending' }]);
+        else {
+          toast.error('No friend with this email / username found');
+        }
+      }
+      else {
+        toast.error('No friends found');
+      }
+    }
+    setEditTypedInvite('');
+  }
 
   useEffect(() => {
     const homeTypo = document.getElementById("home-typo");
@@ -482,46 +202,240 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     checkUserData();
   }, [navigate]);
 
-  // For details modal
   const [detailsModalOpen, setDetailsModalOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
   const [isMine, setIsMine] = useState<boolean>(false);
-  const [participationStatus, setParticipationStatus] = useState<"confirmed" | "denied" | null>(
-    null
-  );
+  const [participationStatus, setParticipationStatus] = useState<Record<string, number>>({});
 
-  // Voting Modal
+
+  const [editTitle, setEditTitle] = useState('');
+  const [availability, setAvailability] = useState<{
+    [key: number]: {
+      startTime: Date;
+      endTime: Date;
+      selectedTimes: Date[];
+      isAvailable?: boolean;
+      id_date_option: number;
+    }
+  }>({});
+  const [currentDbavailability, setCurrentDbavailability] = useState<{
+    [key: number]: {
+      startTime: Date;
+      endTime: Date;
+      selectedTimes: Date[];
+      isAvailable?: boolean;
+      id_date_option: number;
+    }
+  }>({});
+
+  async function updateUserEventAttendance(id_event: string, will_attend: number) {
+    if (!currentUser) {
+      alert('User not logged in');
+      return;
+    }
+
+    let userAttendance: UserAttendance = {
+      id_event: id_event,
+      id_user: currentUser.id_user,
+      will_attend: will_attend
+    };
+
+    let response = await eventService.updateAttendance(userAttendance);
+    if (!response.success) {
+      alert('Error updating attendance');
+    }
+
+    const copy = { ...participationStatus };
+    copy[id_event] = will_attend;
+    setParticipationStatus(copy);
+  }
+
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [editEndVoting, setEditEndVoting] = useState<Date>(new Date());
+  const [editEventId, setEditEventId] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLoc, setEditLoc] = useState('');
+  const [editInvitees, setEditInvitees] = useState<Participant[]>([]);
+
+  const fetchData = async () => {
+    try {
+      await fetchUserData();
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  function makeDateUTC(date: Date) {
+    return new Date(date.toString()[date.toString().length - 1] === 'Z' ? date : date + 'Z');
+  }
+
+  function transformEvents(events: EventData[], currentUserId: string) {
+    events.forEach(ev => {
+      if (!ev.id_user) {
+        console.warn(`Event is missing id_user:`, ev);
+        ev.id_user = 'unknown';
+      }
+
+      ev.date_created = makeDateUTC(ev.date_created);
+      ev.date_updated = makeDateUTC(ev.date_updated);
+      ev.end_voting_date = makeDateUTC(ev.end_voting_date);
+
+      if (ev.chosen_date_end) {
+        ev.chosen_date_end = makeDateUTC(ev.chosen_date_end);
+        if (ev.chosen_date_end.getUTCFullYear() < 2000) {
+          ev.chosen_date_end = undefined;
+        }
+      }
+
+      if (ev.chosen_date_start) {
+        ev.chosen_date_start = makeDateUTC(ev.chosen_date_start);
+        if (ev.chosen_date_start.getUTCFullYear() < 2000) {
+          ev.chosen_date_start = undefined;
+        }
+      }
+
+      ev.date_options = ev.date_options.map(dateOption => ({
+        id_date_option: dateOption.id_date_option,
+        id_event: dateOption.id_event,
+        date_start: makeDateUTC(dateOption.date_start),
+        date_end: makeDateUTC(dateOption.date_end),
+      }));
+
+      if (ev.invitations) {
+        ev.invitations.forEach(inv => {
+          const invitedFriend = inv.user;
+          if (!invitedFriend || !invitedFriend.id_user) return;
+          let status: "pending" | "accepted" | "declined" =
+            ev.votes?.some(vote => vote.id_user === invitedFriend.id_user) ? "accepted" : "pending";
+
+          ev.participants = ev.participants || [];
+          ev.participants.push({
+            id: invitedFriend.id_user,
+            email: invitedFriend.email || '',
+            username: invitedFriend.username || '',
+            pfp_url: invitedFriend.pfp_url || '',
+            status: status,
+          });
+
+          if (invitedFriend.id_user === currentUserId) {
+            const mergedAvailability: { [key: number]: any } = currentDbavailability;
+
+            ev.votes?.forEach(vote => {
+              if (vote.id_user === currentUserId) {
+                const date_option = ev.date_options.find(
+                  dt => dt.id_date_option == vote.id_date_option
+                );
+
+                if (date_option) {
+                  const dayKey = date_option.id_date_option;
+
+                  if (currentDbavailability[dayKey]) {
+                    mergedAvailability[dayKey] = {
+                      ...currentDbavailability[dayKey],
+                    };
+                  } else {
+                    const startTime = new Date(date_option.date_start);
+                    startTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+
+                    const endTime = new Date(date_option.date_end);
+                    endTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+                    mergedAvailability[dayKey] = {
+                      startTime,
+                      endTime,
+                      selectedTimes: [],
+                      isAvailable: vote.status == "accepted",
+                      id_date_option: date_option.id_date_option,
+                    };
+                  }
+                }
+              }
+            });
+
+            setAvailability(mergedAvailability);
+            setCurrentDbavailability(mergedAvailability);
+          }
+        });
+      }
+
+      if (ev.user_attendances) {
+        ev.user_attendances.forEach((attendance) => {
+          if (attendance.id_user == currentUserId) {
+            let newParticipations = participationStatus;
+            newParticipations[ev.id_event] = attendance.will_attend;
+            setParticipationStatus(newParticipations);
+          }
+        });
+      }
+    });
+
+    return events;
+  }
+
+  const fetchUserData = async () => {
+    try {
+      const user = await authService.getUserData();
+      if (user.success && user.data) {
+        setCurrentUser(user.data);
+
+        if (user.data?.id_user) {
+          const relationships = await friendService.getFriends(user.data.id_user, 'accepted');
+          const friends: User[] = [];
+
+          for (const rel of relationships) {
+            const id = rel.id_user === user.data.id_user ? rel.use_id_user : rel.id_user;
+            const friend = await friendService.getFriendData(id);
+
+            if (friend) {
+              friends.push({
+                id_user: friend.id_user,
+                username: friend.username,
+                email: friend.email,
+                pfp_url: friend.pfp_url || '',
+              });
+            }
+          }
+
+          setFriends(friends);
+
+          const eventResponse = await eventService.getMyEvents(user.data.id_user);
+
+          if (eventResponse.success && eventResponse.data) {
+            const events = transformEvents(eventResponse.data, user.data.id_user);
+            setEvents(events);
+          } else {
+            console.error('Error fetching events:', eventResponse.error);
+          }
+        }
+      } else {
+        navigate('/auth/login');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      navigate('/auth/login');
+    }
+  };
+
   const [votingModalOpen, setVotingModalOpen] = useState<boolean>(false);
-  // We store user responses as dayIndex => boolean (available or not).
   const [votingResponses, setVotingResponses] = useState<{ [key: number]: boolean }>({});
 
   function openEventDetails(e: EventData, mine: boolean) {
     setSelectedEvent(e);
     setIsMine(mine);
     setDetailsModalOpen(true);
-    const me = e.participants.find((p) => p.email === "myuser@domain.com");
-    if (me && me.status === "accepted") setParticipationStatus("confirmed");
-    else if (me && me.status === "declined") setParticipationStatus("denied");
-    else setParticipationStatus(null);
   }
 
   function closeEventDetails() {
     setDetailsModalOpen(false);
     setSelectedEvent(null);
     setIsMine(false);
-    setParticipationStatus(null);
   }
-
-  const handleConfirmParticipation = () => {
-    setParticipationStatus("confirmed");
-  };
-  const handleDenyParticipation = () => {
-    setParticipationStatus("denied");
-  };
 
   function handleVote() {
     if (!selectedEvent) return;
-    // Initialize the votingResponses with false for each day index
     const initResp: { [key: number]: boolean } = {};
     selectedEvent.date_options.forEach((_, idx) => {
       initResp[idx] = false;
@@ -542,19 +456,54 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   }
 
   function handleSubmitVoting() {
-    // Just an example
     toast.success("Vote submitted!");
     setVotingModalOpen(false);
     setDetailsModalOpen(false);
   }
 
+  const [editChosenDateStart, setEditChosenDateStart] = useState<Date>();
+  const [editChosenDateEnd, setEditChosenDateEnd] = useState<Date>();
+
+  function openEdit(e: EventData) {
+    setIsEditing(true);
+    setEditEventId(e.id_event);
+    setEventForm({
+      title: e.name || '',
+      description: e.description || '',
+      location: e.location || '',
+      days: e.date_options,
+      end_voting_date: e.end_voting_date ? new Date(e.end_voting_date) : new Date(),
+      invitees: e.invitations?.map(inv => ({
+        id: inv.user?.id_user,
+        username: inv.user?.username,
+        email: inv.user?.email,
+        pfp_url: inv.user?.pfp_url,
+        status: inv.status || 'pending',
+      })) || [],
+    });
+    setStep(1);
+    setOpen(true);
+  }
+
+
+
+  const [eventForm, setEventForm] = useState<any>({
+    title: "",
+    description: "",
+    location: "",
+    days: [],
+    end_voting_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Default to one week later
+    invitees: [],
+  });
+
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+
+
   const handleEditFromDetails = () => {
     if (!selectedEvent) return;
-    const indexInMine = myEvents.findIndex((evt) => evt.id_event === selectedEvent.id_event);
-    if (indexInMine >= 0) {
-      handleOpen(indexInMine);
-      setDetailsModalOpen(false);
-    }
+    setDetailsModalOpen(false);
+    openEdit(selectedEvent);
+    return;
   };
 
   function getHoursFrom(dateTime: Date) {
@@ -574,53 +523,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     return date;
   }
 
-  function handleOpen(eventIndex: number | null = null): void {
-    if (eventIndex !== null) {
-      setEditEventIndex(eventIndex);
-      const eventToEdit = myEvents[eventIndex];
-      setNewEvent({
-        title: eventToEdit.name,
-        description: eventToEdit.description,
-        location: eventToEdit.location,
-        days: eventToEdit.date_options.map((opt) => ({
-          date: opt.dateStart.toISOString().slice(0, 10),
-          startTime: getHoursFrom(opt.dateStart),
-          endTime: getHoursFrom(opt.dateEnd),
-        })),
-        deadline: [
-          {
-            date: eventToEdit.end_voting_date.toISOString().slice(0, 10),
-            DeadlineTime: getHoursFrom(eventToEdit.end_voting_date),
-          },
-        ],
-      });
-      setInvitedUsers(
-        eventToEdit.participants.map((p) => ({
-          name: p.username,
-          email: p.email,
-        }))
-      );
-    } else {
-      setInvitedUsers([]);
-      setSelectedDate("");
-      setStartTime("");
-      setEndTime("");
-      setNewEvent({
-        title: "",
-        description: "",
-        location: "",
-        days: [],
-        deadline: [],
-      });
-      setEditEventIndex(null);
-    }
+  function startCreateEvent() {
+    setEditEvent(null);
+    setEditEventIndex(null);
     setStep(1);
+    setNewEvent({
+      title: "",
+      description: "",
+      location: "",
+      days: [],
+      deadline: [],
+    });
+    setInvitees([]);
+    setTypedInvite("");
+    setEndVotingDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
     setOpen(true);
   }
+  
+
 
   function handleClose() {
     setOpen(false);
+    setStep(1);
     setEditEventIndex(null);
+    setEditEvent(null);
   }
 
   function handleNext() {
@@ -631,82 +557,137 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setStep((prev) => Math.max(prev - 1, 1));
   }
 
-  function handleSave() {
-    if (!newEvent.title || !newEvent.description || !newEvent.location) {
-      toast.error("Please fill out all basic info (Title, Description, Location).", {
-        position: "top-center",
-        autoClose: 2000,
-      });
+  async function handleSave() {
+    // Common Validations
+    if (!eventForm.title.trim()) {
+      toast.error('Please enter a title for your event.', { position: "top-center", autoClose: 2000 });
+      return;
+    }
+    if (eventForm.days.length === 0) {
+      toast.error('Please add at least one day for your event.', { position: "top-center", autoClose: 2000 });
+      return;
+    }
+    if (!eventForm.end_voting_date) {
+      toast.error('Please set a voting deadline for your event.', { position: "top-center", autoClose: 2000 });
       return;
     }
 
-    if (!newEvent.days || newEvent.days.length === 0) {
-      toast.error("Please add at least one day.", {
-        position: "top-center",
-        autoClose: 2000,
-      });
-      return;
-    }
+    const currentTime = new Date();
 
-    if (!newEvent.deadline || newEvent.deadline.length === 0) {
-      toast.error("Please add the voting deadline.", {
-        position: "top-center",
-        autoClose: 2000,
-      });
-      return;
-    }
+    if (isEditing) {
+      // Editing Existing Event
+      const endVotingTime = new Date(eventForm.end_voting_date);
+      if (endVotingTime <= currentTime) {
+        toast.error('Please select a valid voting deadline in the future.', { position: "top-center", autoClose: 2000 });
+        return;
+      }
 
-    const endVotingDate =
-      parseTimeToDate(newEvent.deadline[0].date, newEvent.deadline[0].DeadlineTime) || new Date();
-    const firstEventDate =
-      parseTimeToDate(newEvent.days[0].date, newEvent.days[0].startTime) || new Date();
+      const UpdatedEvent = {
+        id_event: editEventId,
+        id_user: currentUser?.id_user || 'unknown',
+        name: eventForm.title,
+        description: eventForm.description,
+        location: eventForm.location,
+        end_voting_date: eventForm.end_voting_date,
+        sysrowstate: 1,
+        date_options: (eventForm.days as any[]).map(day => ({
+          date_start: day.date_start,
+          date_end: day.date_end,
+          id_date_option: day.id_date_option || 0,
+          id_event: day.id_event || 0,
+        })),
+        participant_ids: eventForm.invitees
+          .filter((invite: Participant) => invite.id)
+          .map((invite: Participant) => invite.id),
+      };
 
-    const transformedEvent: EventData = {
-      id_event: editEventIndex !== null ? myEvents[editEventIndex].id_event : `evt-${Date.now()}`,
-      id_user: "u-001",
-      name: newEvent.title,
-      description: newEvent.description,
-      location: newEvent.location,
-      date_options: newEvent.days.map((day: any) => ({
-        dateStart: parseTimeToDate(day.date, day.startTime) || new Date(),
-        dateEnd: parseTimeToDate(day.date, day.endTime) || new Date(),
-      })),
-      participants: invitedUsers.map((friend) => ({
-        username: friend.name,
-        email: friend.email,
-        status: "pending",
-        pfpUrl: "https://i.pravatar.cc/100?img=1",
-      })),
-      end_voting_date: endVotingDate,
-      eventDate: firstEventDate,
-      createdAt: editEventIndex !== null ? myEvents[editEventIndex].createdAt : new Date(),
-      updatedAt: new Date(),
-    };
+      try {
+        const response = await eventService.updateEvent(UpdatedEvent);
 
-    if (editEventIndex !== null) {
-      const updated = [...myEvents];
-      updated[editEventIndex] = transformedEvent;
-      setMyEvents(updated);
-      toast.success("Event saved successfully!", {
-        position: "top-center",
-        autoClose: 2000,
-      });
+        if (response.success && response.data) {
+          const updatedEvents = transformEvents([response.data], currentUser?.id_user || '');
+          setEvents(events.map(ev => ev.id_event === updatedEvents[0].id_event ? updatedEvents[0] : ev));
+          toast.success('Event updated successfully!', { position: "top-center", autoClose: 2000 });
+        } else {
+          console.error(response.error);
+          toast.error('Error updating event. Please try again later.', { position: "top-center", autoClose: 2000 });
+        }
+      } catch (error) {
+        console.error('Error updating event:', error);
+        toast.error('Unexpected error. Please try again later.', { position: "top-center", autoClose: 2000 });
+      }
     } else {
-      setMyEvents([...myEvents, transformedEvent]);
-      toast.success("Event created successfully!", {
-        position: "top-center",
-        autoClose: 2000,
-      });
+      // Creating New Event
+      const endVotingTime = new Date(eventForm.end_voting_date);
+      if (endVotingTime <= currentTime) {
+        toast.error('Please select a valid voting deadline in the future.', { position: "top-center", autoClose: 2000 });
+        return;
+      }
+
+      // Ensure current user is in invitees
+      const updatedInvitees = [...eventForm.invitees];
+      if (currentUser?.id_user) {
+        const isCurrentUserAdded = updatedInvitees.some(inv => inv.id === currentUser.id_user);
+        if (!isCurrentUserAdded) {
+          updatedInvitees.push({
+            id: currentUser.id_user,
+            username: currentUser.username,
+            email: currentUser.email,
+            pfp_url: currentUser.pfp_url || '',
+            status: 'pending',
+          });
+        }
+      }
+
+      const newEvt = {
+        name: eventForm.title,
+        description: eventForm.description,
+        location: eventForm.location,
+        end_voting_date: eventForm.end_voting_date,
+        id_user: currentUser?.id_user || 'unknown',
+        date_options: (eventForm.days as any[]).map(day => ({
+          date_start: day.date_start,
+          date_end: day.date_end,
+          id_date_option: day.id_date_option || 0,
+          id_event: day.id_event || 0,
+        })),
+        tag_ids: [], // Add tags if necessary
+        participant_ids: updatedInvitees
+          .filter((inv: Participant) => inv.id)
+          .map((inv: Participant) => inv.id),
+      };
+
+      setLoading(true);
+
+      try {
+        const response = await eventService.createEvent(newEvt);
+
+        if (response.success && response.data) {
+          const createdEvents = transformEvents([response.data], currentUser?.id_user || '');
+          setEvents(prev => [...prev, createdEvents[0]]);
+          toast.success('Event created successfully!', { position: "top-center", autoClose: 2000 });
+        } else {
+          console.error(response.error);
+          toast.error('Error creating event. Please try again later.', { position: "top-center", autoClose: 2000 });
+        }
+      } catch (error) {
+        console.error('Error creating event:', error);
+        toast.error('Unexpected error. Please try again later.', { position: "top-center", autoClose: 2000 });
+      } finally {
+        setLoading(false);
+      }
     }
 
     handleClose();
   }
 
+
   function handleRemoveDay(index: number) {
-    const updatedDays = [...newEvent.days];
+    const updatedDays = [...eventForm.days];
     updatedDays.splice(index, 1);
-    setNewEvent({ ...newEvent, days: updatedDays });
+    setEventForm({ ...eventForm, days: updatedDays });
   }
+
 
   function handleRemoveDeadline(index: number) {
     const updatedDeadline = [...newEvent.deadline];
@@ -714,29 +695,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setNewEvent({ ...newEvent, deadline: updatedDeadline });
   }
 
-  function handleAddUser(friend: Friend) {
-    if (friend.name.trim() && !invitedUsers.some((user) => user.email === friend.email)) {
-      setInvitedUsers([...invitedUsers, friend]);
-      setUsername("");
-    }
-  }
-
-  function getEventStatus(e: EventData): "voting" | "upcoming" | "completed" | "in progress" {
+  function getEventStatus(e: EventData): 'voting' | 'upcoming' | 'completed' | 'in progress' {
     const now = Date.now();
-    if (e.end_voting_date && e.end_voting_date.getTime() > now) {
-      return "voting";
+
+    if (e.end_voting_date && e.end_voting_date instanceof Date && e.end_voting_date.getTime() > now) {
+      return 'voting';
     }
-    if (e.eventDate) {
-      const eventStart = e.eventDate.getTime();
-      const eventEnd = eventStart + 3 * 60 * 60 * 1000;
+
+    if (e.chosen_date_start && e.chosen_date_end) {
+      const eventStart = e.chosen_date_start.getTime();
+      const eventEnd = e.chosen_date_end.getTime();
+
       if (now >= eventStart && now <= eventEnd) {
-        return "in progress";
+        return 'in progress';
       }
+
       if (now > eventEnd) {
-        return "completed";
+        return 'completed';
       }
     }
-    return "upcoming";
+
+    return 'upcoming';
   }
 
   function getStatusIcon(status: string) {
@@ -767,11 +746,41 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     }
   }
 
+  const myEvents = events.filter(e => e.id_user === currentUser?.id_user);
+  const otherEvents = events.filter(e => e.id_user !== currentUser?.id_user);
+
+  function addFriendInvite(friend: User) {
+    if (!eventForm.invitees.find((i: Participant) => i.email === friend.email)) {
+      setEventForm({
+        ...eventForm,
+        invitees: [
+          ...eventForm.invitees,
+          {
+            id: friend.id_user,
+            username: friend.username,
+            email: friend.email,
+            pfp_url: friend.pfp_url,
+            status: 'pending',
+          },
+        ],
+      });
+    } else {
+      toast.info('Friend already invited.', { position: "top-center", autoClose: 2000 });
+    }
+  }
+
+
+  function addFriendInviteEdit(friend: User) {
+    if (!editInvitees.find(i => i.email === friend.email)) {
+      setEditInvitees([...editInvitees, { id: friend.id_user, username: friend.username, email: friend.email, status: 'pending', pfp_url: friend.pfp_url }]);
+    }
+  }
+
   return (
     <Container maxWidth="md" sx={{ marginTop: 5 }}>
       <Paper elevation={10} sx={{ padding: 3, marginBottom: 3 }}>
         <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
-          Hi User!
+          Hi {currentUser?.username || 'User'}!
         </Typography>
         <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
           Welcome to your account. Below are your created events.
@@ -779,7 +788,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
       </Paper>
 
       <div ref={yourEventsRef} style={{ cursor: "pointer" }}>
-        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
+        <Paper
+          elevation={5}
+          sx={{
+            padding: 2,
+            marginBottom: 3,
+            backgroundColor: darkMode ? '#333' : '#fff',
+            color: darkMode ? '#fff' : '#000',
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
             Your Events
           </Typography>
@@ -832,7 +849,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                           </Typography>
                         }
                         secondary={
-                          <>
+                          <div>
                             <Typography sx={{ display: "flex", alignItems: "center" }}>
                               {evt.description}
                             </Typography>
@@ -858,20 +875,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                                 <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                                 <strong>Days:</strong>
                               </Typography>
-                              <ul>
-                                {evt.date_options && evt.date_options.length > 0 ? (
-                                  evt.date_options.map((d, i) => (
-                                    <Typography key={i}>
-                                      <li>
-                                        {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
-                                        {getHoursFrom(d.dateEnd)})
-                                      </li>
-                                    </Typography>
-                                  ))
-                                ) : (
-                                  <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
-                                )}
-                              </ul>
+                              <Typography component="div">
+                                <ul>
+                                  {evt.date_options.map((d, i) => (
+                                    <li key={i}>
+                                      {format(d.date_start, "dd.MM.yyyy")} (
+                                      {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
+                                    </li>
+                                  ))}
+                                </ul>
+                              </Typography>
                             </Box>
                             <Typography
                               sx={{
@@ -881,7 +894,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
+                              <strong>Participants:&nbsp;</strong> {evt.invitations?.length}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -897,8 +910,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                                 {getHoursFrom(evt.end_voting_date)}
                               </Typography>
                             )}
-                          </>
+                          </div>
                         }
+                        primaryTypographyProps={{ component: 'div' }}
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
                   </Paper>
@@ -919,22 +934,30 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
             backgroundColor: "#4CAF50",
             color: "#fff",
           }}
-          onClick={() => handleOpen()}
+          onClick={() => startCreateEvent()}
         >
           +
         </Button>
       </Box>
 
       <div ref={otherEventsRef} style={{ cursor: "pointer" }}>
-        <Paper elevation={5} sx={{ padding: 2, marginBottom: 3, backgroundColor: darkMode ? '#333' : '#fff', color: darkMode ? '#fff' : '#000' }}>
+        <Paper
+          elevation={5}
+          sx={{
+            padding: 2,
+            marginBottom: 3,
+            backgroundColor: darkMode ? '#333' : '#fff',
+            color: darkMode ? '#fff' : '#000',
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: "bold", marginBottom: 2 }}>
             Other Events
           </Typography>
-          {others.length === 0 ? (
+          {otherEvents.length === 0 ? (
             <Typography>No other events available.</Typography>
           ) : (
             <List>
-              {others.map((evt, index) => {
+              {otherEvents.map((evt, index) => {
                 const status = getEventStatus(evt);
                 const icon = getStatusIcon(status);
                 return (
@@ -979,7 +1002,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                           </Typography>
                         }
                         secondary={
-                          <>
+                          <div>
                             <Typography sx={{ display: "flex", alignItems: "center" }}>
                               {evt.description}
                             </Typography>
@@ -1005,20 +1028,23 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                                 <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                                 <strong>Days:</strong>
                               </Typography>
-                              <ul>
-                                {evt.date_options && evt.date_options.length > 0 ? (
-                                  evt.date_options.map((d, i) => (
-                                    <Typography key={i}>
-                                      <li>
-                                        {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
-                                        {getHoursFrom(d.dateEnd)})
-                                      </li>
-                                    </Typography>
-                                  ))
-                                ) : (
-                                  <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
-                                )}
-                              </ul>
+                              <Typography component="div">
+                                <ul>
+                                  {evt.date_options && evt.date_options.length > 0 ? (
+                                    evt.date_options.map((d, i) => (
+                                      <Typography key={i} component="div">
+                                        <li>
+                                          {format(d.date_start, "dd.MM.yyyy")} (
+                                          {getHoursFrom(d.date_start)} -{" "}
+                                          {getHoursFrom(d.date_end)})
+                                        </li>
+                                      </Typography>
+                                    ))
+                                  ) : (
+                                    <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
+                                  )}
+                                </ul>
+                              </Typography>
                             </Box>
                             <Typography
                               sx={{
@@ -1028,7 +1054,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                               }}
                             >
                               <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                              <strong>Participants:&nbsp;</strong> {evt.participants.length}
+                              <strong>Participants:&nbsp;</strong> {evt.invitations?.length}
                             </Typography>
                             {status === "voting" && (
                               <Typography
@@ -1044,8 +1070,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                                 {getHoursFrom(evt.end_voting_date)}
                               </Typography>
                             )}
-                          </>
+                          </div>
                         }
+                        primaryTypographyProps={{ component: 'div' }}
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
                     </ListItem>
                   </Paper>
@@ -1062,14 +1090,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         onClose={handleClose}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            minHeight: 500,
-          },
-        }}
+        PaperProps={{ sx: { minHeight: 500 } }}
       >
         <DialogTitle>
-          {editEventIndex !== null ? `Edit Event (Step ${step}/4)` : `Create Event (Step ${step}/4)`}
+          {isEditing
+            ? `Edit Event (Step ${step}/4)`
+            : `Create Event (Step ${step}/4)`}
         </DialogTitle>
         <DialogContent sx={{ minHeight: 300 }}>
           {step === 1 && (
@@ -1084,8 +1110,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 label="Event Title"
                 fullWidth
                 variant="outlined"
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                value={eventForm.title}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, title: e.target.value })
+                }
                 placeholder="Title"
                 InputProps={{
                   startAdornment: (
@@ -1102,8 +1130,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 rows={3}
                 fullWidth
                 variant="outlined"
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                value={eventForm.description}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, description: e.target.value })
+                }
                 placeholder="Description"
                 InputProps={{
                   startAdornment: (
@@ -1118,8 +1148,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 label="Event Location"
                 fullWidth
                 variant="outlined"
-                value={newEvent.location}
-                onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                value={eventForm.location}
+                onChange={(e) =>
+                  setEventForm({ ...eventForm, location: e.target.value })
+                }
                 placeholder="Location"
                 InputProps={{
                   startAdornment: (
@@ -1131,57 +1163,40 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               />
             </Box>
           )}
+
           {step === 2 && (
             <Box>
               <Box display="flex" alignItems="center" marginBottom={2}>
-                <DescriptionIcon sx={{ color: "#4CAF50", marginRight: 1 }} />
+                <TimerIcon sx={{ color: "#4CAF50", marginRight: 1 }} />
                 <Typography variant="h6">Days</Typography>
               </Box>
-              {newEvent.days && newEvent.days.length > 0 ? (
+              {eventForm.days && eventForm.days.length > 0 ? (
                 <List>
-                  {newEvent.days.map((day: any, index: number) => {
-                    const date = new Date(day.date);
-                    const formattedDate = date.toLocaleDateString("en-GB", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    });
-                    return (
-                      <ListItem
-                        key={index}
-                        sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}
-                      >
-                        <ListItemText
-                          primary={`Date: ${formattedDate}`}
-                          secondary={`Start: ${day.startTime} | End: ${day.endTime}`}
-                        />
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={() => handleRemoveDay(index)}
-                        >
-                          <CloseIcon style={{ color: "#ff6666" }} />
-                        </IconButton>
-                      </ListItem>
-                    );
-                  })}
+                  {eventForm.days.map((day: SingleDay, index: number) => (
+                    <ListItem key={index} sx={{ borderBottom: "1px solid #ddd", paddingBottom: 2 }}>
+                      <ListItemText
+                        primary={`Date: ${format(day.date_start, "dd.MM.yyyy")}`}
+                        secondary={`Start: ${getHoursFrom(day.date_start)} | End: ${getHoursFrom(day.date_end)}`}
+                      />
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveDay(index)}>
+                        <CloseIcon style={{ color: "#ff6666" }} />
+                      </IconButton>
+                    </ListItem>
+                  ))}
                 </List>
+
+
               ) : (
                 <Typography variant="body2" sx={{ color: "#9E9E9E", marginBottom: 2 }}>
                   No days added yet.
                 </Typography>
               )}
 
+
               <Box sx={{ display: "flex", justifyContent: "center", marginTop: "16px" }}>
                 <Button
                   variant="contained"
-                  onClick={() => {
-                    setAddDayDialogOpen(true);
-                    setSelectedDate("");
-                    setStartTime("");
-                    setEndTime("");
-                  }}
+                  onClick={() => setAddDayDialogOpen(true)}
                   sx={{
                     backgroundColor: "#4CAF50",
                     color: "#fff",
@@ -1198,6 +1213,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 </Button>
               </Box>
 
+              {/* Add Day Dialog */}
               <Dialog
                 open={addDayDialogOpen}
                 onClose={() => setAddDayDialogOpen(false)}
@@ -1313,11 +1329,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                         });
                         return;
                       }
-                      const today = new Date();
                       const chosenDate = new Date(selectedDate);
+                      const now = new Date();
                       chosenDate.setHours(0, 0, 0, 0);
-                      today.setHours(0, 0, 0, 0);
-                      if (chosenDate < today) {
+                      now.setHours(0, 0, 0, 0);
+                      if (chosenDate < now) {
                         toast.error("Date cannot be in the past.", {
                           position: "top-center",
                           autoClose: 3000,
@@ -1333,13 +1349,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                         });
                         return;
                       }
-                      const newDay = {
-                        date: selectedDate,
-                        startTime,
-                        endTime,
+                      const newDay: SingleDay = {
+                        date_start: new Date(`${selectedDate}T${startTime}`),
+                        date_end: new Date(`${selectedDate}T${endTime}`),
+                        id_date_option: 0,  // Set default or dynamic values as needed
+                        id_event: 0,        // Set default or dynamic values as needed
                       };
-                      const updatedDays = [...(newEvent.days || []), newDay];
-                      setNewEvent({ ...newEvent, days: updatedDays });
+                      const updatedDays = [...eventForm.days, newDay];
+                      setEventForm({ ...eventForm, days: updatedDays });
                       setAddDayDialogOpen(false);
                       toast.success("Day added successfully!", {
                         position: "top-center",
@@ -1365,8 +1382,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               </Dialog>
             </Box>
           )}
+
           {step === 3 && (
-            <>
+            <Box>
               <Box display="flex" alignItems="center">
                 <PersonAddIcon style={{ color: "#4CAF50" }} />
                 <Typography variant="body1" style={{ marginLeft: 8 }}>
@@ -1375,15 +1393,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               </Box>
 
               <Box display="flex" alignItems="center" marginTop={2} flexWrap="wrap" gap={1}>
-                {exampleFriends.map((friend, index) => (
+                {friends?.map((friend, index) => (
                   <Chip
-                    key={index}
+                    key={friend.id_user}
                     label={
                       <Typography variant="body1" style={{ fontSize: "1rem" }}>
-                        {friend.name}
+                        {friend.username}
                       </Typography>
                     }
-                    onClick={() => handleAddUser(friend)}
+                    onClick={() => addFriendInvite(friend)}
                     sx={{ margin: 0 }}
                   />
                 ))}
@@ -1394,14 +1412,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   label="Type username/email"
                   variant="outlined"
                   size="small"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={typedInvite}
+                  onChange={(e) => setTypedInvite(e.target.value)}
                   style={{ marginRight: 8, flexGrow: 1 }}
                 />
                 <Button
                   variant="contained"
                   style={{ backgroundColor: "#4CAF50", color: "#fff", height: "40px" }}
-                  onClick={() => handleAddUser({ name: username, email: username })}
+                  onClick={addTypedInvite}
                 >
                   +
                 </Button>
@@ -1435,507 +1453,268 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   },
                 }}
               >
-                {invitedUsers.map((user, index) => (
+                {eventForm.invitees.map((user: Participant, index: number) => (
                   <Chip
                     key={index}
                     label={
                       <Typography variant="body1" style={{ fontSize: "1rem" }}>
-                        {`${user.name} (${user.email})`}
+                        {`${user.username} (${user.email})`}
                       </Typography>
                     }
                     onDelete={() => {
-                      const updated = [...invitedUsers];
-                      updated.splice(index, 1);
-                      setInvitedUsers(updated);
+                      const updatedInvitees = [...eventForm.invitees];
+                      updatedInvitees.splice(index, 1);
+                      setEventForm({ ...eventForm, invitees: updatedInvitees });
                     }}
                     deleteIcon={<CloseIcon style={{ color: "#ff6666" }} />}
                   />
                 ))}
               </Box>
-            </>
+            </Box>
           )}
+
           {step === 4 && (
-            <div>
-              <Box display="flex" alignItems="center">
-                <CalendarMonthIcon sx={{ color: "#4caf50" }} />
-                <Typography variant="body1" style={{ marginLeft: 8 }}>
-                  Voting deadline
-                </Typography>
-              </Box>
-
-              {newEvent.deadline && newEvent.deadline.length > 0 ? (
-                <List sx={{ maxWidth: 600, margin: "0 auto" }}>
-                  {newEvent.deadline.map((dl: any, index: number) => (
-                    <ListItem
-                      key={index}
-                      sx={{
-                        borderBottom: "1px solid #ddd",
-                        paddingBottom: 2,
-                        justifyContent: "center",
-                        textAlign: "center",
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                            Date:{" "}
-                            {new Date(dl.date).toLocaleDateString("en-GB", {
-                              weekday: "long",
-                            })}
-                            ,{" "}
-                            {new Date(dl.date).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })}{" "}
-                            at {dl.DeadlineTime}
-                          </Typography>
-                        }
-                      />
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleRemoveDeadline(index)}
-                      >
-                        <CloseIcon style={{ color: "#ff6666" }} />
-                      </IconButton>
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Box
-                  display="flex"
-                  flexDirection="row"
-                  alignItems="center"
-                  justifyContent="center"
-                  marginY={4}
-                  sx={{ paddingTop: 4 }}
-                >
-                  <EventIcon sx={{ color: "#4caf50", fontSize: 32 }} />
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      cursor: "pointer",
-                      fontSize: "1.1rem",
-                      marginLeft: 1,
-                      padding: "10px 15px",
-                      backgroundColor: darkMode ? "#555" : "f0f0f0",
-                      color: darkMode ? "#fff" : "#000",
-                      borderRadius: "5px",
-                      border: darkMode ? "1px solid #777" : "1px solid #ccc",
-                      textAlign: "center",
-                      "&:hover": {
-                        backgroundColor: darkMode ? "#666" : "#e0e0e0",
-                      },
-                    }}
-                    onClick={() => {
-                      setAddDeadlineDialogOpen(true);
-                      setDeadlineTime("");
-                      setSelectedDeadlineDate("");
-                    }}
-                  >
-                    Select voting deadline
-                  </Typography>
-                </Box>
-              )}
-
-              <Dialog
-                open={addDeadlineDialogOpen}
-                onClose={() => setAddDeadlineDialogOpen(false)}
-              >
-                <DialogTitle>Set Voting Deadline</DialogTitle>
-                <DialogContent>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-                    <TextField
-                      type="date"
-                      value={selectedDeadline}
-                      onChange={(e) => setSelectedDeadlineDate(e.target.value)}
-                      sx={{
-                        marginLeft: 2,
-                        flexGrow: 1,
-                        maxWidth: "200px",
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": { borderColor: "#4CAF50" },
-                          "&:hover fieldset": { borderColor: "#4CAF50" },
-                          "&.Mui-focused fieldset": { borderColor: "#4CAF50" },
-                        },
-                      }}
-                    />
-                    <TextField
-                      type="time"
-                      value={DeadlineTime}
-                      onChange={(e) => setDeadlineTime(e.target.value)}
-                      sx={{
-                        marginLeft: 2,
-                        flexGrow: 1,
-                        maxWidth: "200px",
-                        "& .MuiOutlinedInput-root": {
-                          "& fieldset": { borderColor: "#4CAF50" },
-                          "&:hover fieldset": { borderColor: "#4CAF50" },
-                          "&.Mui-focused fieldset": { borderColor: "#4CAF50" },
-                        },
-                      }}
-                    />
-                  </Box>
-                </DialogContent>
-                <DialogActions>
-                  <Button
-                    onClick={() => setAddDeadlineDialogOpen(false)}
-                    sx={{
-                      backgroundColor: "#E0E0E0",
-                      color: "#000",
-                      textTransform: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      "&:hover": {
-                        backgroundColor: "#BDBDBD",
-                      },
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (!selectedDeadline || !DeadlineTime) {
-                        toast.error("Please select both a date and a time.", {
-                          position: "top-center",
-                          autoClose: 2000,
-                        });
-                        return;
-                      }
-                      const selectedDateTime = new Date(`${selectedDeadline}T${DeadlineTime}:00`);
-                      const now = new Date();
-                      if (selectedDateTime < now) {
-                        toast.error("Deadline cannot be in the past.", {
-                          position: "top-center",
-                          autoClose: 2000,
-                        });
-                        return;
-                      }
-                      const dl = { date: selectedDeadline, DeadlineTime };
-                      const updated = [...(newEvent.deadline || []), dl];
-                      setNewEvent({ ...newEvent, deadline: updated });
-                      setAddDeadlineDialogOpen(false);
-                      toast.success("Voting deadline added successfully!", {
-                        position: "top-center",
-                        autoClose: 2000,
-                      });
-                    }}
-                    sx={{
-                      backgroundColor: "#4CAF50",
-                      color: "#fff",
-                      textTransform: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      "&:hover": {
-                        backgroundColor: "#388E3C",
-                      },
-                      marginLeft: "16px",
-                    }}
-                  >
-                    Save
-                  </Button>
-                </DialogActions>
-              </Dialog>
-            </div>
+            <Box>
+              <Typography variant="h6" sx={{ marginBottom: 2 }}>
+                Voting Deadline
+              </Typography>
+              <TextField
+                label="Voting End Date"
+                type="datetime-local"
+                value={format(eventForm.end_voting_date, "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => setEventForm({ ...eventForm, end_voting_date: new Date(e.target.value) })}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
           )}
         </DialogContent>
         <DialogActions>
-          {step === 1 && (
-            <Button
-              onClick={handleClose}
-              color="primary"
-              disableRipple
-              sx={{
-                textTransform: "none",
-                marginRight: "auto",
-                fontSize: "1rem",
-                padding: "10px 20px",
-                "&:focus": {
-                  outline: "none",
-                },
-                "&:active, &:hover, &:focus-visible": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Cancel
-            </Button>
-          )}
-          {step > 1 && (
-            <Button
-              onClick={handleBack}
-              color="primary"
-              disableRipple
-              sx={{
-                textTransform: "none",
-                marginRight: "auto",
-                fontSize: "1rem",
-                padding: "10px 20px",
-                "&:focus": {
-                  outline: "none",
-                },
-                "&:active, &:hover, &:focus-visible": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Back
-            </Button>
-          )}
-          {step < 4 ? (
-            <Button
-              onClick={handleNext}
-              color="primary"
-              disableRipple
-              sx={{
-                textTransform: "none",
-                fontSize: "1rem",
-                padding: "10px 20px",
-                "&:focus": {
-                  outline: "none",
-                },
-                "&:active, &:hover, &:focus-visible": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSave}
-              color="primary"
-              disableRipple
-              sx={{
-                textTransform: "none",
-                fontSize: "1rem",
-                padding: "10px 20px",
-                "&:focus": {
-                  outline: "none",
-                },
-                "&:active, &:hover, &:focus-visible": {
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Finish
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+          <Box sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+          }}>
+            {step > 1 && (
+              <Button onClick={handleBack} color="primary" disableRipple>
+                Back
+              </Button>
+            )}
+            {step === 1 && (
+              <Button
+                onClick={handleClose} // Call handleClose to cancel and close the dialog
+                color="error"
+                disableRipple
+              >
+                Cancel
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button onClick={handleNext} color="primary" disableRipple>
+                Next
+              </Button>
+            ) : (
+              <Button onClick={handleSave} color="primary" disableRipple>
+                Finish
+              </Button>
+            )}
+          </Box>
+      </DialogActions>
 
-      {/* Event Details Modal */}
-      <Dialog
-        open={detailsModalOpen}
-        onClose={closeEventDetails}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>{selectedEvent?.name}</DialogTitle>
-        <DialogContent>
-          {selectedEvent && (
-            <>
-              <DialogContentText sx={{ marginBottom: 2 }}>
-                {selectedEvent.description}
-              </DialogContentText>
-              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                <strong>Location:&nbsp;</strong>
-                {selectedEvent.location}
-              </Typography>
-              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                <strong>Days:</strong>
-              </Typography>
-              <ul>
-                {selectedEvent.date_options.map((d, idx) => (
-                  <li key={idx} style={{ marginBottom: "6px" }}>
-                    {format(d.dateStart, "dd.MM.yyyy")} ({getHoursFrom(d.dateStart)} -{" "}
-                    {getHoursFrom(d.dateEnd)})
-                  </li>
-                ))}
-              </ul>
+    </Dialog>
+
+
+      {/* Event Details Modal */ }
+  <Dialog
+    open={detailsModalOpen}
+    onClose={closeEventDetails}
+    fullWidth
+    maxWidth="sm"
+  >
+    <DialogTitle>{selectedEvent?.name}</DialogTitle>
+    <DialogContent>
+      {selectedEvent && (
+        <>
+          <DialogContentText sx={{ marginBottom: 2 }}>
+            {selectedEvent.description}
+          </DialogContentText>
+          <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+            <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+            <strong>Location:&nbsp;</strong>
+            {selectedEvent.location}
+          </Typography>
+          <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
+            <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+            <strong>Days:</strong>
+          </Typography>
+          <Typography component="div">
+            <ul>
+              {selectedEvent.date_options.map((d, idx) => (
+                <li key={idx} style={{ marginBottom: "6px" }}>
+                  {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
+                  {getHoursFrom(d.date_end)})
+                </li>
+              ))}
+            </ul>
+          </Typography>
+          <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+            <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+            <strong>Participants: {selectedEvent.participants?.length}</strong>
+          </Typography>
+          <Box sx={{ marginTop: 2 }}>
+            {getEventStatus(selectedEvent) === "voting" && (
               <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                <strong>Participants: {selectedEvent.participants.length}</strong>
+                <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                <strong>Voting Ends:&nbsp;</strong>
+                {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
+                {getHoursFrom(selectedEvent.end_voting_date)}
               </Typography>
-              <Box sx={{ marginTop: 2 }}>
-                {getEventStatus(selectedEvent) === "voting" && (
-                  <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                    <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                    <strong>Voting Ends:&nbsp;</strong>
-                    {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
-                    {getHoursFrom(selectedEvent.end_voting_date)}
-                  </Typography>
-                )}
-              </Box>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
-          {selectedEvent && isMine && (
-            <Button
-              variant="outlined"
-              onClick={handleEditFromDetails}
-              sx={{ textTransform: "none" }}
-            >
-              Edit
-            </Button>
-          )}
-          {selectedEvent && (
-            <>
-              {(() => {
-                const status = selectedEvent ? getEventStatus(selectedEvent) : "upcoming";
-                if (status === "voting") {
-                  return (
-                    <>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleVote}
-                        sx={{ textTransform: "none" }}
-                      >
-                        Vote
-                      </Button>
-                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
-                        Close
-                      </Button>
-                    </>
-                  );
-                } else if (status === "in progress" || status === "upcoming") {
-                  return (
-                    <>
-                      <Box sx={{ marginRight: "auto" }}>
-                        <Typography>Confirm Participation:</Typography>
-                        {participationStatus === "confirmed" && (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Typography sx={{ marginRight: 2 }}>
-                              Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
-                            </Typography>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={handleDenyParticipation}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Change to Deny
-                            </Button>
-                          </Box>
-                        )}
-                        {participationStatus === "denied" && (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Typography sx={{ marginRight: 2 }}>
-                              Participation: <strong style={{ color: "red" }}>DENIED</strong>
-                            </Typography>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={handleConfirmParticipation}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Change to Confirm
-                            </Button>
-                          </Box>
-                        )}
-                        {!participationStatus && (
-                          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={handleConfirmParticipation}
-                              sx={{ textTransform: "none", marginRight: 1 }}
-                            >
-                              Confirm
-                            </Button>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              onClick={handleDenyParticipation}
-                              sx={{ textTransform: "none" }}
-                            >
-                              Deny
-                            </Button>
-                          </Box>
-                        )}
+            )}
+          </Box>
+        </>
+      )}
+    </DialogContent>
+    <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
+      {selectedEvent && isMine && (
+        <Button
+          variant="outlined"
+          onClick={handleEditFromDetails}
+          sx={{ textTransform: "none" }}
+        >
+          Edit
+        </Button>
+      )}
+      {selectedEvent && (
+        <>
+          {(() => {
+            const status = selectedEvent ? getEventStatus(selectedEvent) : "upcoming";
+            if (status === "voting") {
+              return (
+                <>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleVote}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Vote
+                  </Button>
+                  <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                    Close
+                  </Button>
+                </>
+              );
+            } else if (status === "in progress" || status === "upcoming") {
+              return (
+                <>
+                  <Box sx={{ marginRight: "auto" }}>
+                    <Typography>Confirm Participation:</Typography>
+                    {participationStatus[selectedEvent.id_event] === 1 ? (
+                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                        <Typography sx={{ marginRight: 2 }}>
+                          Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
+                        </Typography>
+
+                        <Button
+                          variant="contained"
+                          color="error"
+                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                          sx={{ textTransform: "none", marginRight: 1 }}
+                        >
+                          Change to Deny
+                        </Button>
                       </Box>
-                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
-                        Close
-                      </Button>
-                    </>
-                  );
-                } else if (status === "completed") {
-                  return (
-                    <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                    ) : participationStatus[selectedEvent.id_event] === 0 ? (
+                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                        <Typography sx={{ marginRight: 2 }}>
+                          Participation: <strong style={{ color: "red" }}>DENIED</strong>
+                        </Typography>
+
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                          sx={{ textTransform: "none", marginRight: 1 }}
+                        >
+                          Change to Confirm
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
+                          sx={{ textTransform: "none", marginRight: 1 }}
+                        >
+                          Confirm
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          Deny
+                        </Button>
+                      </Box>
+                    )}
+                    <Button onClick={closeEventDetails} sx={{ textTransform: "none", marginTop: 1 }}>
                       Close
                     </Button>
-                  );
-                }
-                return null;
-              })()}
-            </>
-          )}
-        </DialogActions>
-      </Dialog>
+                  </Box>
+                </>
+              );
+            }
+          })()}
+        </>
+      )}
+    </DialogActions>
+  </Dialog>
 
-      {/* Voting Modal */}
-      <Dialog
-        open={votingModalOpen}
-        onClose={closeVotingModal}
-        fullWidth
-        maxWidth="sm"
+  {/* Voting Modal */ }
+  <Dialog
+    open={votingModalOpen}
+    onClose={closeVotingModal}
+    fullWidth
+    maxWidth="sm"
+  >
+    <DialogTitle>Vote Availability</DialogTitle>
+    <DialogContent>
+      {selectedEvent &&
+        selectedEvent.date_options.map((dayTime, idx) => {
+          const dayName = format(dayTime.date_start, "EEEE");
+          const dateLabel = format(dayTime.date_start, "dd.MM.yyyy");
+          const hoursStart = getHoursFrom(dayTime.date_start);
+          const hoursEnd = getHoursFrom(dayTime.date_end);
+
+          return (
+            <Typography key={idx} component="div">
+              <ul>
+                <li>{`${dayName}, ${dateLabel}: ${hoursStart} - ${hoursEnd}`}</li>
+              </ul>
+            </Typography>
+          );
+        })}
+    </DialogContent>
+
+    <DialogActions>
+      <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
+        Cancel
+      </Button>
+      <Button
+        variant="contained"
+        color="primary"
+        sx={{ textTransform: "none" }}
+        onClick={handleSubmitVoting}
       >
-        <DialogTitle>Vote Availability</DialogTitle>
-        <DialogContent>
-          {selectedEvent && selectedEvent.date_options.map((dayTime, idx) => {
-            const dayName = format(dayTime.dateStart, "EEEE");
-            const dateLabel = format(dayTime.dateStart, "dd.MM.yyyy");
-            const hoursStart = getHoursFrom(dayTime.dateStart);
-            const hoursEnd = getHoursFrom(dayTime.dateEnd);
-            const checked = votingResponses[idx] || false;
-            return (
-              <Paper
-                key={idx}
-                variant="outlined"
-                sx={{ padding: 2, marginBottom: 2, borderRadius: 2 }}
-              >
-                <Typography sx={{ fontWeight: "bold" }}>
-                  {dayName}, {dateLabel}: {hoursStart} - {hoursEnd}
-                </Typography>
-                <Box sx={{ marginTop: 1 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={checked}
-                        onChange={(e) => handleToggleDay(idx, e.target.checked)}
-                        color="primary"
-                      />
-                    }
-                    label="I am available"
-                  />
-                </Box>
-              </Paper>
-            );
-          })}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{ textTransform: "none" }}
-            onClick={handleSubmitVoting}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        Submit
+      </Button>
+    </DialogActions>
+  </Dialog>
+    </Container >
   );
+
 };
 
 export default DashboardPage;
