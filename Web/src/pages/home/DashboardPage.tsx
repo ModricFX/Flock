@@ -20,6 +20,8 @@ import {
   DialogContentText,
   Checkbox,
   FormControlLabel,
+  ListItemAvatar,
+  Avatar
 } from "@mui/material";
 import { format, getDate, getDay } from "date-fns";
 import InfoIcon from "@mui/icons-material/Info";
@@ -417,6 +419,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setOpen(true);
   }
 
+  const [participantsModalOpen, setParticipantsModalOpen] = useState<boolean>(false);
+
+  const openParticipantsModal = () => {
+    setParticipantsModalOpen(true);
+  };
+
+  const closeParticipantsModal = () => {
+    setParticipantsModalOpen(false);
+  };
 
 
   const [eventForm, setEventForm] = useState<any>({
@@ -1532,6 +1543,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
                 <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
                 <strong>Participants: {selectedEvent.participants?.length}</strong>
+                {selectedEvent?.participants?.length ? (
+                  <Button variant="text" onClick={openParticipantsModal} sx={{ marginLeft: 2 }}>
+                    View participants
+                  </Button>
+                ) : null}
               </Typography>
               <Box sx={{ marginTop: 2 }}>
                 {getEventStatus(selectedEvent) === "voting" && (
@@ -1547,7 +1563,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: "space-between", paddingX: 3, paddingY: 2 }}>
-          {selectedEvent && isMine && (
+
+          {selectedEvent && isMine && getEventStatus(selectedEvent) !== "completed" && (
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="outlined"
@@ -1556,6 +1573,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               >
                 Edit
               </Button>
+            </Box>
+          )}
+          {selectedEvent && isMine && (
+            <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="outlined"
                 color="error"
@@ -1652,6 +1673,46 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
               })()}
             </>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Participants Modal */}
+      <Dialog
+        open={participantsModalOpen}
+        onClose={closeParticipantsModal}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Participants</DialogTitle>
+        <DialogContent>
+          {selectedEvent?.participants?.length ? (
+            <>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Voted: {selectedEvent.participants.filter(p => p.status !== "pending").length}{" | "}
+                Pending: {selectedEvent.participants.filter(p => p.status === "pending").length}
+              </Typography>
+              <List>
+                {selectedEvent.participants.map((participant) => (
+                  <ListItem key={participant.id}>
+                    <ListItemAvatar>
+                      <Avatar src={participant.pfp_url} alt={participant.username} />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={`${participant.username} (${participant.email})`}
+                      secondary={`Status: ${participant.status}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          ) : (
+            <Typography>No participants.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeParticipantsModal} color="primary">
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
