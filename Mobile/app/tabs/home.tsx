@@ -1060,6 +1060,8 @@ export default function HomeScreen() {
                 id_user: currentUser ? currentUser.id_user : 'undefined'
             }
 
+            let error = undefined;
+
             if (currentDbavailability[daykey]) {
                 if (currentDbavailability[daykey].isAvailable != value.isAvailable) {
                     if (value.isAvailable) {
@@ -1067,24 +1069,14 @@ export default function HomeScreen() {
                         let response = await eventService.castVote(vote);
 
                         if (!response.success) {
-                            console.log(response.error)
-                        } else {
-                            Toast.show({
-                                type: 'success',
-                                text1: 'Succesfully cast vote',
-                            });
+                            error = response.error;
                         }
                     } else {
                         vote.status = "declined";
                         let response = await eventService.deleteVote(vote);
 
                         if (!response.success) {
-                            console.log(response.error)
-                        } else {
-                            Toast.show({
-                                type: 'success',
-                                text1: 'Succesfully removed vote',
-                            });
+                            error = response.error;
                         }
                     }
                 }
@@ -1095,12 +1087,15 @@ export default function HomeScreen() {
                     let response = await eventService.castVote(vote);
 
                     if (!response.success) {
-                        console.log(response.error)
-                    } else {
-                        console.log(response.data)
+                        error = response.error;
                     }
                 }
             }
+
+            Toast.show({
+                type: error? 'error':'success',
+                text1: error? 'Votes not updated, error:'+error:'Succesfully updated votes',
+            });
         });
 
         setCurrentDbavailability(availability);
