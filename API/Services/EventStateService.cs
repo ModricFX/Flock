@@ -67,13 +67,28 @@ namespace flock.Services
             var eventRepository = scope.ServiceProvider.GetRequiredService<IEventRepository>();
 
             var bestDateOption = await eventRepository.GetBestDateOption(e.Id_event);
-            // check if there are any votes
-            if (bestDateOption is null)
+            var allDateOptions = await eventRepository.GetDateOptions(e.Id_event);
+            
+            DateTime start, end;
+            if (bestDateOption.Date_start == DateTime.MinValue || bestDateOption.Date_end == DateTime.MinValue || bestDateOption is null)
             {
-                throw new Exception("No votes for this event");
+                if (allDateOptions.Count == 0)
+                {
+                    throw new Exception("No date options available for event " + e.Id_event);
+                }
+
+                start = allDateOptions[0].Date_start;
+                end = allDateOptions[0].Date_end;
             }
-            e.Chosen_date_end = bestDateOption.Date_end;
-            e.Chosen_date_start = bestDateOption.Date_start;
+            else
+            {
+                
+                start = bestDateOption.Date_start;
+                end = bestDateOption.Date_end;
+            }
+
+            e.Chosen_date_end = end;
+            e.Chosen_date_start = start;
             
             await eventRepository.UpdateEvent(e);
             Console.WriteLine($"Event {e.Id_event} has been updated with the chosen date: {e.Chosen_date_start} - {e.Chosen_date_end}");
