@@ -148,6 +148,12 @@ export default function Notifications() {
     /**
      * Marks the selected notification as read.
      */
+    const deleteNotification = async () => {
+        // TODO: Implement delete notification functionality
+        return null;
+    }
+
+
     const markAsRead = async () => {
         if (!selectedNotification) return;
 
@@ -162,7 +168,6 @@ export default function Notifications() {
                 )
             );
             closeNotificationPopup();
-            Alert.alert('Success', 'Notification marked as read.');
         } catch (err: any) {
             Alert.alert('Error', err.message || 'Failed to mark notification as read.');
             console.error('Mark As Read Error:', err);
@@ -241,7 +246,7 @@ export default function Notifications() {
             </View>
         </Pressable>
     );
-    
+
 
     /**
      * Displays a loading indicator while notifications are being fetched.
@@ -316,14 +321,19 @@ export default function Notifications() {
                         <View style={styles.popupOverlay}>
                             <Animated.View style={[styles.popupContent, { transform: [{ translateY: slideAnim }] }]}>
                                 <Text style={styles.popupTitle}>{selectedNotification?.notification.title}</Text>
-                                <Text style={styles.popupDescription}>{selectedNotification?.notification.description}</Text>
-                                <Text style={styles.popupExactTime}>
+                                <Text style={styles.popupDescription}>
+                                    {formatNotificationDescription(selectedNotification?.notification.description || '')}
+                                </Text><Text style={styles.popupExactTime}>
                                     Received at: {formatExactTime(selectedNotification?.date_Received || '')}
                                 </Text>
-                                <Button title="OK" onPress={markAsRead} />
+                                <View style={styles.buttonContainer}>
+                                    <Button title="Delete" onPress={deleteNotification} />
+                                    <Button title="OK" onPress={markAsRead} />
+                                </View>
                             </Animated.View>
                         </View>
                     </TouchableWithoutFeedback>
+
                 </Modal>
             </View>
         </TouchableWithoutFeedback>

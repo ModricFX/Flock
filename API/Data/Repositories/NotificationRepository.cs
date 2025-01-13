@@ -17,7 +17,7 @@ namespace flock.Data.Repositories
         {
             _context = context;
         }
-        
+
         public async Task<bool> MarkAsReadAsync(int userId, int notificationId)
         {
             const string sql = @"
@@ -105,10 +105,10 @@ namespace flock.Data.Repositories
                 // 2) Insert into usernotification bridging table
                 var bridgingParams = new
                 {
-                    Id_User        = dto.Id_User,
+                    Id_User = dto.Id_User,
                     Id_Notification = notificationId,
-                    Date_Received  =  DateTime.UtcNow,
-                    Unread         = true
+                    Date_Received = DateTime.UtcNow,
+                    Unread = true
                 };
 
                 await connection.ExecuteAsync(
@@ -123,15 +123,15 @@ namespace flock.Data.Repositories
                 // 4) Return the joined object with the newly generated IDs
                 return new UserNotificationJoined
                 {
-                    Id_User         = dto.Id_User,
+                    Id_User = dto.Id_User,
                     Id_Notification = notificationId,
-                    Unread          = true,
-                    Date_Received   = bridgingParams.Date_Received,
-                    Notification    = new Notification
+                    Unread = true,
+                    Date_Received = bridgingParams.Date_Received,
+                    Notification = new Notification
                     {
                         Id_Notification = notificationId,
-                        Title           = dto.Title,
-                        Description     = dto.Description
+                        Title = dto.Title,
+                        Description = dto.Description
                     }
                 };
             }
@@ -143,6 +143,4 @@ namespace flock.Data.Repositories
             }
         }
     }
-
-    
 }

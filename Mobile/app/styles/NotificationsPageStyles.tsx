@@ -104,6 +104,11 @@ const styles = StyleSheet.create({
         color: "#555",
         marginBottom: 20,
     },
+    buttonContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
