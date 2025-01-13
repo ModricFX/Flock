@@ -14,7 +14,6 @@ import {
     KeyboardAvoidingView,
     TouchableWithoutFeedback,
     Keyboard,
-    RefreshControl, // Import if needed
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import styles from '../styles/FriendsPageStyles';
