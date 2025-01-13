@@ -551,6 +551,7 @@ export default function HomeScreen() {
                 type: 'error',
                 text1: 'Missing Title',
                 text2: 'Please provide a title for your event.',
+                position: 'top', // Ensures the toast appears at the top
             });
             return;
         }
@@ -581,6 +582,16 @@ export default function HomeScreen() {
                     status: 'pending',
                 });
             }
+        }
+
+        // Check if `createDays` has at least one day
+        if (createDays.length === 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'No Dates Added',
+                text2: 'Please add at least one date to your event.',
+            });
+            return;
         }
     
         const newEvt = {
@@ -940,7 +951,11 @@ export default function HomeScreen() {
     async function finalizeEditEvent() {
         if (!editEvent) return;
         if (!editTitle.trim()) {
-            Alert.alert('Missing Title', 'Provide a title.');
+            Toast.show({
+                type: 'error',
+                text1: 'Missing Title',
+                text2: 'Please provide a title for your event.',
+            });
             return;
         }
 
@@ -949,7 +964,21 @@ export default function HomeScreen() {
         const endVotingTime = new Date(editEndVoting);
 
         if (endVotingTime <= currentTime) {
-            Alert.alert('Invalid End Voting Time', 'The end voting time must be in the future.');
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid End Voting Time',
+                text2: 'The end voting time must be in the future.',
+            });
+            return;
+        }
+
+        // Check if `editDays` has at least one day
+        if (editDays.length === 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'No Dates Added',
+                text2: 'Please add at least one date to your event.',
+            });
             return;
         }
 

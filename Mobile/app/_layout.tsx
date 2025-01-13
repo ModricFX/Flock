@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
+import { toastConfig } from './styles/toastConfig';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -48,9 +49,11 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-      
+
       {/* Toast Component */}
-      <Toast />
+      <Toast
+        config={toastConfig}
+      />
 
       {/* Status Bar */}
       <StatusBar style="auto" />
