@@ -18,18 +18,17 @@ import {
   IconButton,
   InputAdornment,
   DialogContentText,
-  Checkbox,
-  FormControlLabel,
   ListItemAvatar,
-  Avatar
+  Avatar,
+  CircularProgress,
+  Stack
 } from "@mui/material";
-import { format, getDate, getDay } from "date-fns";
+import { format } from "date-fns";
 import InfoIcon from "@mui/icons-material/Info";
 import EventIcon from "@mui/icons-material/Event";
 import DescriptionIcon from "@mui/icons-material/Description";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import TimerIcon from "@mui/icons-material/Timer";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
 import PeopleIcon from "@mui/icons-material/People";
@@ -150,8 +149,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
       selectedTimes: Date[];
       isAvailable?: boolean;
       id_date_option: number;
-    }
+    };
   }>({});
+
   const [currentDbavailability, setCurrentDbavailability] = useState<{
     [key: number]: {
       startTime: Date;
@@ -305,6 +305,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     return events;
   }
 
+
+  const handleCloseVoting = () => {
+    setVotingModalOpen(false);
+    setAvailability(currentDbavailability);
+  }
+
   const fetchUserData = async () => {
     try {
       const user = await authService.getUserData();
@@ -350,7 +356,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
   };
 
   const [votingModalOpen, setVotingModalOpen] = useState<boolean>(false);
-  const [votingResponses, setVotingResponses] = useState<{ [key: number]: boolean }>({});
 
   function openEventDetails(e: EventData, mine: boolean) {
     setSelectedEvent(e);
@@ -379,11 +384,112 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     setVotingModalOpen(false);
   }
 
-  function handleSubmitVoting() {
-    toast.success("Vote submitted!");
+  const [votingResponses, setVotingResponses] = useState<{ [key: number]: boolean }>({});
+
+
+  async function saveVotingData() {
+    // Close the Voting Modal
     setVotingModalOpen(false);
-    setDetailsModalOpen(false);
+    // Optionally reopen the event details modal if needed:
+    setDetailsModalOpen(true);
+
+    // Iterate over each availability entry and process votes
+    for (const [key, value] of Object.entries(availability)) {
+      const daykey = Number(key);
+      let vote: Vote = {
+        id_date_option: value.id_date_option,
+        id_user: currentUser ? currentUser.id_user : 'undefined',
+      };
+      let error;
+
+      if (currentDbavailability[daykey]) {
+        if (currentDbavailability[daykey].isAvailable !== value.isAvailable) {
+          if (value.isAvailable) {
+            vote.status = "accepted";
+            const response = await eventService.castVote(vote);
+            if (!response.success) {
+              error = response.error;
+            }
+          } else {
+            vote.status = "declined";
+            const response = await eventService.deleteVote(vote);
+            if (!response.success) {
+              error = response.error;
+            }
+          }
+        }
+      } else {
+        if (value.isAvailable) {
+          vote.status = "accepted";
+          const response = await eventService.castVote(vote);
+          if (!response.success) {
+            error = response.error;
+          }
+        }
+      }
+
+      if (error) {
+        console.error('Error saving voting data:', error);
+        return;
+      }
+    }
+
+    // Update the local currentDbavailability to reflect the latest responses
+    setCurrentDbavailability(availability);
+    toast.success('Voting data saved successfully!', { position: "top-center", autoClose: 2000 });
   }
+
+
+  const handleAvailabilityResponse = (dayKey: number, isAvailable: boolean) => {
+    // 1) Update the local "availability" state
+    setAvailability((prevAvailability) => {
+      const updated = { ...prevAvailability };
+      if (!updated[dayKey]) {
+        updated[dayKey] = {
+          startTime: new Date(),
+          endTime: new Date(),
+          selectedTimes: [],
+          isAvailable,
+          id_date_option: dayKey,
+        };
+      } else {
+        updated[dayKey] = { ...updated[dayKey], isAvailable };
+      }
+      return updated;
+    });
+
+    // 2) Update the selected event’s participants
+    setSelectedEvent((prevEvent) => {
+      if (!prevEvent) return null;
+      const newStatus: "accepted" | "declined" | "pending" = isAvailable ? "accepted" : "declined";
+      const updatedParticipants = prevEvent.participants?.map((p) => {
+        if (p.email === currentUser?.email) {
+          return { ...p, status: newStatus };
+        }
+        return p;
+      });
+      return { ...prevEvent, participants: updatedParticipants };
+    });
+
+    // 3) Update the global events array to reflect changes on the homepage
+    setEvents((prevEvents) =>
+      prevEvents.map((evt) => {
+        if (evt.id_event === selectedEvent?.id_event) {
+          return {
+            ...evt,
+            participants: evt.participants?.map((p) =>
+              p.email === currentUser?.email
+                ? { ...p, status: isAvailable ? "accepted" : "declined" }
+                : p
+            ),
+          } as EventData; // Ensure this is cast as EventData
+        }
+        return evt;
+      })
+    );
+
+  };
+
 
   function openEdit(e: EventData) {
     setIsEditing(true);
@@ -717,6 +823,27 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     } else {
       toast.info('Friend already invited.', { position: "top-center", autoClose: 2000 });
     }
+  }
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          // background color depending on darkmode
+          backgroundColor: darkMode ? '#333' : '#fff',
+        }}
+      >
+        <CircularProgress sx={{ color: "#4CAF50", marginBottom: 2 }} />
+        <Typography variant="h6" sx={{ color: darkMode ? '#fff' : '#000' }}>
+          Loading, please wait...
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -1498,75 +1625,107 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         onClose={closeEventDetails}
         fullWidth
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            bgcolor: "background.default",
+            color: "text.primary",
+            borderRadius: 3,
+            boxShadow: 10,
+          },
+        }}
       >
         <DialogTitle
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            m: 0,
-            p: 2,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            pb: 2,
           }}
         >
-          {selectedEvent?.name}
+          <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+            {selectedEvent?.name}
+          </Typography>
           <IconButton
             aria-label="close"
             onClick={closeEventDetails}
             sx={{
-              color: (theme) => theme.palette.grey[500],
+              color: "text.secondary",
+              "&:hover": { color: "error.main" },
             }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent dividers sx={{ px: 4, py: 2 }}>
           {selectedEvent && (
             <>
-              <DialogContentText sx={{ marginBottom: 2 }}>
+              <Typography variant="body1" sx={{ mb: 2, color: "text.secondary" }}>
                 {selectedEvent.description}
-              </DialogContentText>
-              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                <LocationOnIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+              </Typography>
+              <Typography sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <LocationOnIcon sx={{ mr: 1, color: "success.main" }} />
                 <strong>Location:&nbsp;</strong>
                 {selectedEvent.location}
               </Typography>
-              <Typography sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+              <Typography sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                <TimerIcon sx={{ mr: 1, color: "success.main" }} />
                 <strong>Days:</strong>
               </Typography>
-              <Typography component="div">
-                <ul>
-                  {selectedEvent.date_options.map((d, idx) => (
-                    <li key={idx} style={{ marginBottom: "6px" }}>
-                      {format(d.date_start, "dd.MM.yyyy")} (
-                      {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
-                    </li>
-                  ))}
-                </ul>
-              </Typography>
-              <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                <PeopleIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+              <Box component="ul" sx={{ pl: 3, mb: 2 }}>
+                {selectedEvent.date_options.map((d, idx) => (
+                  <li key={idx} style={{ marginBottom: "6px", color: "text.secondary" }}>
+                    {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
+                    {getHoursFrom(d.date_end)})
+                  </li>
+                ))}
+              </Box>
+              <Typography sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                <PeopleIcon sx={{ mr: 1, color: "success.main" }} />
                 <strong>Participants: {selectedEvent.participants?.length}</strong>
                 {selectedEvent?.participants?.length ? (
-                  <Button variant="text" onClick={openParticipantsModal} sx={{ marginLeft: 2 }}>
+                  <Button
+                    variant="text"
+                    onClick={openParticipantsModal}
+                    sx={{
+                      ml: 2,
+                      textTransform: "none",
+                      color: "primary.main",
+                    }}
+                  >
                     View participants
                   </Button>
                 ) : null}
               </Typography>
-              <Box sx={{ marginTop: 2 }}>
-                {getEventStatus(selectedEvent) === "voting" && (
-                  <Typography sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                    <HowToVoteIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                    <strong>Voting Ends:&nbsp;</strong>
-                    {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
-                    {getHoursFrom(selectedEvent.end_voting_date)}
-                  </Typography>
-                )}
-              </Box>
+              {getEventStatus(selectedEvent) === "voting" && (
+                <Typography
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    mt: 2,
+                    color: "warning.main",
+                  }}
+                >
+                  <HowToVoteIcon sx={{ mr: 1 }} />
+                  <strong>Voting Ends:&nbsp;</strong>
+                  {format(selectedEvent.end_voting_date, "dd.MM.yyyy")} at{" "}
+                  {getHoursFrom(selectedEvent.end_voting_date)}
+                </Typography>
+              )}
             </>
           )}
         </DialogContent>
-        <DialogActions sx={{ flexDirection: "column", alignItems: "stretch", gap: 2, paddingX: 3, paddingY: 2 }}>
+        <DialogActions
+          sx={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 2,
+            px: 4,
+            py: 2,
+            bgcolor: darkMode ? '#333' : '#f9f9f9',
+          }}
+        >
           {selectedEvent && (
             <>
               {(() => {
@@ -1582,57 +1741,69 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                       >
                         Vote
                       </Button>
-                      <Button onClick={closeEventDetails} sx={{ textTransform: "none" }}>
+                      <Button
+                        variant="outlined"
+                        onClick={closeEventDetails}
+                        sx={{ textTransform: "none", color: "text.secondary" }}
+                      >
                         Close
                       </Button>
                     </>
                   );
                 } else if (status === "in progress" || status === "upcoming") {
                   return (
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-                      <Typography>Confirm Participation:</Typography>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <Typography align="center">Confirm Participation:</Typography>
                       {participationStatus[selectedEvent.id_event] === 1 ? (
-                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                          <Typography sx={{ marginRight: 2 }}>
-                            Participation: <strong style={{ color: "green" }}>CONFIRMED</strong>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography sx={{ mr: 2, color: "success.main" }}>
+                            <strong>CONFIRMED</strong>
                           </Typography>
                           <Button
-                            variant="contained"
+                            variant="outlined"
                             color="error"
-                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
-                            sx={{ textTransform: "none", marginRight: 1 }}
+                            onClick={() =>
+                              updateUserEventAttendance(selectedEvent.id_event, 0)
+                            }
+                            sx={{ textTransform: "none" }}
                           >
                             Change to Deny
                           </Button>
                         </Box>
                       ) : participationStatus[selectedEvent.id_event] === 0 ? (
-                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
-                          <Typography sx={{ marginRight: 2 }}>
-                            Participation: <strong style={{ color: "red" }}>DENIED</strong>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Typography sx={{ mr: 2, color: "error.main" }}>
+                            <strong>DENIED</strong>
                           </Typography>
                           <Button
-                            variant="contained"
+                            variant="outlined"
                             color="success"
-                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                            sx={{ textTransform: "none", marginRight: 1 }}
+                            onClick={() =>
+                              updateUserEventAttendance(selectedEvent.id_event, 1)
+                            }
+                            sx={{ textTransform: "none" }}
                           >
                             Change to Confirm
                           </Button>
                         </Box>
                       ) : (
-                        <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+                        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                           <Button
                             variant="contained"
                             color="success"
-                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 1)}
-                            sx={{ textTransform: "none", marginRight: 1 }}
+                            onClick={() =>
+                              updateUserEventAttendance(selectedEvent.id_event, 1)
+                            }
+                            sx={{ textTransform: "none" }}
                           >
                             Confirm
                           </Button>
                           <Button
                             variant="contained"
                             color="error"
-                            onClick={() => updateUserEventAttendance(selectedEvent.id_event, 0)}
+                            onClick={() =>
+                              updateUserEventAttendance(selectedEvent.id_event, 0)
+                            }
                             sx={{ textTransform: "none" }}
                           >
                             Deny
@@ -1647,11 +1818,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           )}
 
           {selectedEvent && isMine && (
-            <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <Button
                 variant="outlined"
                 onClick={handleEditFromDetails}
-                sx={{ textTransform: "none" }}
+                sx={{
+                  textTransform: "none",
+                  color: "info.main",
+                  borderColor: "info.main",
+                }}
               >
                 Edit
               </Button>
@@ -1659,7 +1834,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 variant="outlined"
                 color="error"
                 onClick={() => handleDeleteClick(Number(selectedEvent.id_event))}
-                sx={{ textTransform: "none" }}
+                sx={{
+                  textTransform: "none",
+                }}
               >
                 Delete
               </Button>
@@ -1667,6 +1844,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           )}
         </DialogActions>
       </Dialog>
+
 
 
       {/* Participants Modal */}
@@ -1737,40 +1915,124 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         onClose={closeVotingModal}
         fullWidth
         maxWidth="sm"
+        PaperProps={{
+          sx: {
+            bgcolor: darkMode ? "grey.900" : "background.paper",
+            color: darkMode ? "grey.100" : "text.primary",
+          },
+        }}
       >
-        <DialogTitle>Vote Availability</DialogTitle>
-        <DialogContent>
-          {selectedEvent &&
-            selectedEvent.date_options.map((dayTime, idx) => {
-              const dayName = format(dayTime.date_start, "EEEE");
-              const dateLabel = format(dayTime.date_start, "dd.MM.yyyy");
-              const hoursStart = getHoursFrom(dayTime.date_start);
-              const hoursEnd = getHoursFrom(dayTime.date_end);
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: darkMode ? "1px solid grey.700" : "1px solid grey.300",
+          }}
+        >
+          <Typography variant="h6">
+            Select Availability For {selectedEvent?.name || "Event"}
+          </Typography>
+          <IconButton
+            aria-label="close"
+            onClick={closeVotingModal}
+            sx={{ color: darkMode ? "grey.400" : "grey.500" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-              return (
-                <Typography key={idx} component="div">
-                  <ul>
-                    <li>{`${dayName}, ${dateLabel}: ${hoursStart} - ${hoursEnd}`}</li>
-                  </ul>
-                </Typography>
-              );
-            })}
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            {selectedEvent &&
+              selectedEvent.date_options.map((dayTime) => {
+                const dayKey = dayTime.id_date_option;
+                const dayName = format(dayTime.date_start, "EEEE");
+                const dateLabel = format(dayTime.date_start, "dd.MM.yyyy");
+                const hoursStart = getHoursFrom(dayTime.date_start);
+                const hoursEnd = getHoursFrom(dayTime.date_end);
+
+                return (
+                  <Paper
+                    key={dayKey}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      bgcolor: darkMode ? "grey.800" : "background.paper",
+                      color: darkMode ? "grey.100" : "text.primary",
+                      borderColor: darkMode ? "grey.700" : "grey.300",
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      {dayName}, {dateLabel}: {hoursStart} - {hoursEnd}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Are you available?
+                    </Typography>
+                    {availability[dayKey] &&
+                      typeof availability[dayKey].isAvailable === "boolean" ? (
+                      <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                        <Typography>
+                          You said:{" "}
+                          {availability[dayKey].isAvailable ? (
+                            <Typography component="span" color="success.main" fontWeight="bold">YES</Typography>
+                          ) : (
+                            <Typography component="span" color="error.main" fontWeight="bold">NO</Typography>
+                          )}
+                        </Typography>
+                        <Button
+                          variant="text"
+                          onClick={() =>
+                            handleAvailabilityResponse(
+                              dayKey,
+                              !availability[dayKey].isAvailable
+                            )
+                          }
+                          sx={{ ml: 2 }}
+                        >
+                          Change Mind
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          onClick={() => handleAvailabilityResponse(dayKey, true)}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          onClick={() => handleAvailabilityResponse(dayKey, false)}
+                        >
+                          No
+                        </Button>
+                      </Box>
+                    )}
+                  </Paper>
+                );
+              })}
+          </Stack>
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={closeVotingModal} sx={{ textTransform: "none" }}>
+        <DialogActions sx={{ justifyContent: "flex-end", p: 2 }}>
+          <Button onClick={handleCloseVoting} sx={{ textTransform: "none" }}>
             Cancel
           </Button>
           <Button
             variant="contained"
             color="primary"
             sx={{ textTransform: "none" }}
-            onClick={handleSubmitVoting}
+            onClick={saveVotingData}
           >
-            Submit
+            Save
           </Button>
         </DialogActions>
       </Dialog>
+
+
     </Container >
   );
 
