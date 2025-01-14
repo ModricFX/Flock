@@ -1,4 +1,4 @@
-import React, { useState, useEffect, MouseEvent, useRef } from "react";
+import React, { useState, useEffect, MouseEvent } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
@@ -23,12 +23,8 @@ import {
     Badge,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import PersonAdd from "@mui/icons-material/PersonAdd";
 import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
-import YourEvents from "./pages/home/YourEvents";
-import AllEvents from "./pages/home/AllEvents";
-import Notifications from "./pages/home/Notifications";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import DashboardPage from "./pages/home/DashboardPage.tsx";
@@ -38,6 +34,7 @@ import AboutPage from "./pages/home/AboutPage.tsx";
 import logo from '/flock-logo-bel.svg';
 import { AppNotification } from "./types";
 import SettingsPage from "./pages/home/SettingsPage.tsx";
+import NotificationsPage from "./pages/home/Notifications.tsx";
 
 import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
@@ -47,18 +44,8 @@ import DarkModeToggle from "./components/dark-mode-toggle.tsx";
 
 const drawerWidth = 240;
 
-interface Notification {
-    id: string;
-    sender: string;
-    message: string;
-    time: string;
-}
+import { User } from './models/User';
 
-interface Event {
-    title: string;
-    startDate: string;
-    location: string;
-}
 
 interface AppProps {
     darkMode: boolean;
@@ -69,34 +56,48 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [userData, setUserData] = useState(null);
+    const [User, setUser] = useState<User | null>(null);
 
     const handleNavigateToNotifications = () => {
         navigate("/notifications");
     };
 
 
-    const dashboardRef = useRef<any>(null); // Create a ref for DashboardPage
-
-    const [userEvents, setUserEvents] = useState<Event[]>([]);
-    const [otherEvents] = useState<Event[]>([
-        { title: "Community Meetup", startDate: "2024-12-15", location: "City Park" },
-        { title: "Tech Talk: Future of AI", startDate: "2024-12-20", location: "Tech Hub" },
-    ]);
 
     useEffect(() => {
-        const checkUserData = async () => {
+        const fetchAndSetUserData = async () => {
             try {
                 const result = await authService.getUserData();
                 if (result.success) {
                     setUserData(result.data);
+                } else {
+                    console.error("Failed to fetch user data");
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
             }
         };
 
-        checkUserData();
+        fetchAndSetUserData();
     }, [navigate]);
+
+    useEffect(() => {
+        if (!userData) return; // Wait until userData is not null
+
+        const fetchUser = async () => {
+            try {
+                const result = await authService.getUserData();
+                if (result.success) {
+                    setUser(result.data);
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+            }
+        };
+
+        fetchUser();
+    }, [userData]);
+
 
     const [notifications, setNotifications] = useState<AppNotification[]>([
         { id: 1, sender: "Admin", message: "Your event was approved!", time: "2 hours ago", unread: true },
@@ -120,17 +121,6 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/auth/login");
     };
 
-    const handleNotificationClick = (): void => {
-        const unreadNotifications = notifications
-            .map((_, index) => index)
-            .filter((index) => !readNotifications.has(index));
-
-        const newReadNotifications = new Set(readNotifications);
-        unreadNotifications.forEach((index) => newReadNotifications.add(index));
-
-        setReadNotifications(newReadNotifications);
-    };
-
     const unreadNotificationsCount = notifications.length - readNotifications.size;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
@@ -138,20 +128,6 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
 
     const hideHeader = routesWithoutHeader.includes(location.pathname);
     const hideSidebar = routesWithoutSidebar.includes(location.pathname);
-
-    const scrollToOtherEvents = () => {
-        console.log("Scrolling to Other Events");
-        if (dashboardRef.current) {
-            dashboardRef.current.scrollToOtherEvents(); // Call scroll function from DashboardPage
-        }
-    };
-
-    const scrollToYourEvents = () => {
-        console.log("Scrolling to Your Events");
-        if (dashboardRef.current) {
-            dashboardRef.current.scrollToYourEvents(); // Call scroll function from DashboardPage
-        }
-    };
 
     const handleScrollToYourEvents = () => {
         // Programmatically navigate to /dashboard
@@ -169,7 +145,6 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/friends");
     }
 
-    console.log("Notifications:", notifications);
     return (
         <Box sx={{ display: "flex" }}>
             <ToastContainer />
@@ -220,15 +195,21 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                                         sx={{ marginRight: 2 }}
                                         component={Link}
                                         to="/notifications"
-                                        onClick={handleNotificationClick}
                                     >
                                         <Badge badgeContent={unreadNotificationsCount} color="error">
                                             <NotificationsIcon />
                                         </Badge>
                                     </IconButton>
+                                    <DarkModeToggle isDarkMode={darkMode} toggleDarkMode={toggleDarkMode} />
                                     <Tooltip title="Account settings">
                                         <IconButton onClick={handleClick} size="small" sx={{ ml: 2 }}>
-                                            <Avatar sx={{ width: 40, height: 40 }} />
+                                            <Avatar
+                                                sx={{ width: 40, height: 40 }}
+                                                src={User?.pfp_url || ""}
+                                                alt={User?.username || "User"}
+                                            >
+                                                {User?.username?.charAt(0).toUpperCase() || "U"}
+                                            </Avatar>
                                         </IconButton>
                                     </Tooltip>
                                 </>
@@ -318,35 +299,13 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     <Route path="/settings" element={<SettingsPage />} />
 
                     <Route path="/dashboard" element={<DashboardPage darkMode={darkMode} />}>
-                        <Route
-                            path="allevents"
-                            element={
-                                <AllEvents
-                                    userEvents={userEvents}
-                                    otherEvents={otherEvents}
-                                    setNotifications={setNotifications}
-                                />
-                            }
-                        />
-                        <Route
-                            path="yourevents"
-                            element={<YourEvents events={userEvents} setEvents={setUserEvents} />}
-                        />
+                        <Route path="allevents" />
+                        <Route path="yourevents" />
                     </Route>
-                    <Route
-                        path="notifications"
-                        element={
-                            <Notifications
-                                notifications={notifications.map((n) => ({
-                                    ...n,
-                                    id: n.id.toString(), // Pretvori id iz number v string
-                                }))}
-                            />
-                        }
-                    />
+                    <Route path="/notifications" element={<NotificationsPage />} />
 
                     {/* Fallback for any unknown route */}
-                    {/*<Route path="*" element={<Navigate to="/auth/login" />} />*/}
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
             </Box>
 
@@ -355,24 +314,75 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 open={open}
                 onClose={handleClose}
                 onClick={handleClose}
-                sx={{ width: "800px" }}
+                sx={{
+                    width: "250px",
+                    borderRadius: "8px",
+                    boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+                    padding: "8px 0",
+                }}
             >
-                <MenuItem onClick={() => navigate("/dashboard")}>
-                    <Avatar /> Profile
+                {/* Profile Section */}
+                <MenuItem
+                    onClick={() => navigate("/settings")}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        padding: "12px 16px",
+                    }}
+                >
+                    <Avatar
+                        sx={{ width: 36, height: 36 }}
+                        src={User?.pfp_url || ""}
+                        alt={User?.username || "User"}
+                    >
+                        {User?.username?.charAt(0).toUpperCase() || "U"}
+                    </Avatar>
+                    <Box>
+                        <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                            {User?.username || "User"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            View Profile
+                        </Typography>
+                    </Box>
                 </MenuItem>
-                <Divider />
-                <MenuItem onClick={() => navigate("/settings")}>
+
+                <Divider sx={{ margin: "8px 0" }} />
+
+                {/* Settings Option */}
+                <MenuItem
+                    onClick={() => navigate("/settings")}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        padding: "12px 16px",
+                    }}
+                >
                     <Settings fontSize="small" />
-                    Settings
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        Settings
+                    </Typography>
                 </MenuItem>
-                <MenuItem onClick={handleLogout}>
+
+                {/* Logout Option */}
+                <MenuItem
+                    onClick={handleLogout}
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                        padding: "12px 16px",
+                    }}
+                >
                     <Logout fontSize="small" />
-                    Logout
-                </MenuItem>
-                <MenuItem>
-                    <DarkModeToggle isDarkMode={darkMode} toggleDarkMode={toggleDarkMode} /> Theme
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        Logout
+                    </Typography>
                 </MenuItem>
             </Menu>
+
         </Box>
     );
 };

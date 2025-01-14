@@ -246,8 +246,7 @@ export default function Notifications() {
             </View>
         </Pressable>
     );
-
-
+    
     /**
      * Displays a loading indicator while notifications are being fetched.
      */
