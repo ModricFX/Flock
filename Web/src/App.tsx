@@ -43,6 +43,7 @@ import InboxIcon from "@mui/icons-material/MoveToInbox";
 import EventIcon from "@mui/icons-material/Event";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import FriendsPage from "./pages/home/FriendsPage.tsx";
+import DarkModeToggle from "./components/dark-mode-toggle.tsx";
 
 const drawerWidth = 240;
 
@@ -354,15 +355,12 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 open={open}
                 onClose={handleClose}
                 onClick={handleClose}
+                sx={{ width: "800px" }}
             >
                 <MenuItem onClick={() => navigate("/dashboard")}>
                     <Avatar /> Profile
                 </MenuItem>
                 <Divider />
-                <MenuItem>
-                    <PersonAdd fontSize="small" />
-                    Add another account
-                </MenuItem>
                 <MenuItem onClick={() => navigate("/settings")}>
                     <Settings fontSize="small" />
                     Settings
@@ -370,6 +368,9 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                 <MenuItem onClick={handleLogout}>
                     <Logout fontSize="small" />
                     Logout
+                </MenuItem>
+                <MenuItem>
+                    <DarkModeToggle isDarkMode={darkMode} toggleDarkMode={toggleDarkMode} /> Theme
                 </MenuItem>
             </Menu>
         </Box>

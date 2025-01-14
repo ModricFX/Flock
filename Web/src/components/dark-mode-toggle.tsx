@@ -1,6 +1,7 @@
 ﻿// src/settings/dark-mode-toggle.tsx
 import { IconButton } from '@mui/material';
-import { Brightness4, Brightness7 } from '@mui/icons-material';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
 
 type DarkModeToggleProps = {
     isDarkMode: boolean;
@@ -11,7 +12,7 @@ type DarkModeToggleProps = {
 const DarkModeToggle = ({ isDarkMode, toggleDarkMode, sx }: DarkModeToggleProps) => {
     return (
         <IconButton onClick={toggleDarkMode} color="inherit" sx={sx}>
-            {isDarkMode ? <Brightness7 /> : <Brightness4 />}
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
     );
 };
