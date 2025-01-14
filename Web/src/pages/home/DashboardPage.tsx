@@ -596,7 +596,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
     if (isEditing) {
       // Editing Existing Event
       const endVotingTime = new Date(eventForm.end_voting_date);
-      if (endVotingTime <= currentTime) {
+     // if event is in status voting, show error for endvoting time
+      if (selectedEvent && getEventStatus(selectedEvent) === 'voting' && endVotingTime <= currentTime) {
         toast.error('Please select a valid voting deadline in the future.', { position: "top-center", autoClose: 2000 });
         return;
       }
@@ -853,7 +854,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           Hi {currentUser?.username || 'User'}!
         </Typography>
         <Typography variant="body2" align="center" sx={{ fontSize: 16 }}>
-          Welcome to your account. Below are your created events.
+          Welcome to your dashboard where you can manage your events and view your friends' events.
         </Typography>
       </Paper>
 
@@ -934,28 +935,51 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                               <strong>Location:&nbsp;</strong>
                               <Typography component="span">{evt.location}</Typography>
                             </Typography>
-                            <Box sx={{ marginTop: 1 }}>
-                              <Typography
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  marginBottom: 1,
-                                }}
-                              >
-                                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                                <strong>Days:</strong>
-                              </Typography>
-                              <Typography component="div">
-                                <ul>
+
+                            {status === "voting" ? (
+                              <Box sx={{ marginTop: 1 }}>
+                                {/* Heading for Voting Status */}
+                                <Typography
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    marginBottom: 1,
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                                  Days:
+                                </Typography>
+
+                                {/* List of Available Dates */}
+                                <Box component="ul" sx={{ pl: 3, mb: 2 }}>
                                   {evt.date_options.map((d, i) => (
-                                    <li key={i}>
+                                    <li key={i} style={{ marginBottom: "6px", color: "text.secondary" }}>
                                       {format(d.date_start, "dd.MM.yyyy")} (
                                       {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
                                     </li>
                                   ))}
-                                </ul>
+                                </Box>
+                              </Box>
+                            ) : (
+                              <Typography
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  marginTop: 1,
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                                Chosen Date:&nbsp;
+                                {evt.chosen_date_start && format(evt.chosen_date_start, "dd.MM.yyyy")}{" "}
+                                {evt.chosen_date_start && evt.chosen_date_end &&
+                                  `(${getHoursFrom(evt.chosen_date_start)} - ${getHoursFrom(evt.chosen_date_end)})`}
                               </Typography>
-                            </Box>
+                            )}
+
+
+
                             <Typography
                               sx={{
                                 display: "flex",
@@ -1111,35 +1135,49 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                               <strong>Location:&nbsp;</strong>
                               <Typography component="span">{evt.location}</Typography>
                             </Typography>
-                            <Box sx={{ marginTop: 1 }}>
+                            
+                            {status === "voting" ? (
+                              <Box sx={{ marginTop: 1 }}>
+                                {/* Heading for Voting Status */}
+                                <Typography
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    marginBottom: 1,
+                                    fontWeight: "bold",
+                                  }}
+                                >
+                                  <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
+                                  Days:
+                                </Typography>
+
+                                {/* List of Available Dates */}
+                                <Box component="ul" sx={{ pl: 3, mb: 2 }}>
+                                  {evt.date_options.map((d, i) => (
+                                    <li key={i} style={{ marginBottom: "6px", color: "text.secondary" }}>
+                                      {format(d.date_start, "dd.MM.yyyy")} (
+                                      {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
+                                    </li>
+                                  ))}
+                                </Box>
+                              </Box>
+                            ) : (
                               <Typography
                                 sx={{
                                   display: "flex",
                                   alignItems: "center",
-                                  marginBottom: 1,
+                                  marginTop: 1,
+                                  fontWeight: "bold",
                                 }}
                               >
                                 <TimerIcon sx={{ marginRight: 1, color: "#4CAF50" }} />
-                                <strong>Days:</strong>
+                                Chosen Date:&nbsp;
+                                {evt.chosen_date_start && format(evt.chosen_date_start, "dd.MM.yyyy")}{" "}
+                                {evt.chosen_date_start && evt.chosen_date_end &&
+                                  `(${getHoursFrom(evt.chosen_date_start)} - ${getHoursFrom(evt.chosen_date_end)})`}
                               </Typography>
-                              <Typography component="div">
-                                <ul>
-                                  {evt.date_options && evt.date_options.length > 0 ? (
-                                    evt.date_options.map((d, i) => (
-                                      <Typography key={i} component="div">
-                                        <li>
-                                          {format(d.date_start, "dd.MM.yyyy")} (
-                                          {getHoursFrom(d.date_start)} -{" "}
-                                          {getHoursFrom(d.date_end)})
-                                        </li>
-                                      </Typography>
-                                    ))
-                                  ) : (
-                                    <Typography sx={{ marginLeft: 3 }}>N/A</Typography>
-                                  )}
-                                </ul>
-                              </Typography>
-                            </Box>
+                            )}
+                            
                             <Typography
                               sx={{
                                 display: "flex",
@@ -1669,18 +1707,51 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                 <strong>Location:&nbsp;</strong>
                 {selectedEvent.location}
               </Typography>
-              <Typography sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <TimerIcon sx={{ mr: 1, color: "success.main" }} />
-                <strong>Days:</strong>
-              </Typography>
-              <Box component="ul" sx={{ pl: 3, mb: 2 }}>
-                {selectedEvent.date_options.map((d, idx) => (
-                  <li key={idx} style={{ marginBottom: "6px", color: "text.secondary" }}>
-                    {format(d.date_start, "dd.MM.yyyy")} ({getHoursFrom(d.date_start)} -{" "}
-                    {getHoursFrom(d.date_end)})
-                  </li>
-                ))}
-              </Box>
+
+              {getEventStatus(selectedEvent) === "voting" ? (
+                <>
+                  {/* Heading for Voting Status */}
+                  <Typography
+                    sx={{ display: "flex", alignItems: "center", mb: 1, fontWeight: "bold" }}
+                  >
+                    <TimerIcon sx={{ mr: 1, color: "success.main" }} />
+                    Days:
+                  </Typography>
+
+                  {/* List of Available Dates */}
+                  <Box component="ul" sx={{ pl: 3, mb: 2 }}>
+                    {selectedEvent.date_options.map((d, idx) => (
+                      <li key={idx} style={{ marginBottom: "6px", color: "text.secondary" }}>
+                        {format(d.date_start, "dd.MM.yyyy")} (
+                        {getHoursFrom(d.date_start)} - {getHoursFrom(d.date_end)})
+                      </li>
+                    ))}
+                  </Box>
+                </>
+              ) : (
+                <>
+                  {/* Heading for Chosen Date */}
+                  <Typography
+                    sx={{ display: "flex", alignItems: "center", mb: 1 }}
+
+                  >
+                    <TimerIcon sx={{ mr: 1, color: "success.main" }} />
+                    Chosen Date:
+                  </Typography>
+
+                  {/* Display Chosen Date or N/A */}
+                  {selectedEvent.chosen_date_start && selectedEvent.chosen_date_end ? (
+                    <Typography sx={{ pl: 3, color: "text.secondary", fontWeight: "bold" }}>
+                      {format(selectedEvent.chosen_date_start, "dd.MM.yyyy")} (
+                      {getHoursFrom(selectedEvent.chosen_date_start)} -{" "}
+                      {getHoursFrom(selectedEvent.chosen_date_end)})
+                    </Typography>
+                  ) : (
+                    <Typography sx={{ pl: 3, color: "text.secondary" }}>N/A</Typography>
+                  )}
+                </>
+              )}
+
               <Typography sx={{ display: "flex", alignItems: "center", mt: 1 }}>
                 <PeopleIcon sx={{ mr: 1, color: "success.main" }} />
                 <strong>Participants: {selectedEvent.participants?.length}</strong>
