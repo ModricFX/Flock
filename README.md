@@ -1,5 +1,5 @@
 # FLOCK
-**Člani skupine:** Žiga Modrić, Timotej Robavs, Tomaž Čede, Miha Ciglar
+**Člani skupine:** Žiga Modrić, Timotej Robavs, Tomaž Čede, Miha Ciglar, Blaž Perko
 
 ## Opis:
 
