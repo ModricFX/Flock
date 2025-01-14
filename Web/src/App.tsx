@@ -22,6 +22,7 @@ import {
     Divider,
     Badge,
 } from "@mui/material";
+import { format, isValid } from 'date-fns';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import Settings from "@mui/icons-material/Settings";
 import Logout from "@mui/icons-material/Logout";
@@ -42,6 +43,10 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import FriendsPage from "./pages/home/FriendsPage.tsx";
 import DarkModeToggle from "./components/dark-mode-toggle.tsx";
 
+// Import the NotificationService
+import { notificationService } from './services/notificationservice'; // Adjust the path as necessary
+
+
 const drawerWidth = 240;
 
 import { User } from './models/User';
@@ -52,17 +57,163 @@ interface AppProps {
     toggleDarkMode: () => void;
 }
 
+
+// Define the Notification interface matching the API response
+interface Notification {
+    id_User: number;
+    id_Notification: number;
+    unread: boolean;
+    date_Received: string;
+    notification: {
+        id_Notification: number;
+        title: string;
+        description: string;
+    };
+}
+
 const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [userData, setUserData] = useState(null);
     const [User, setUser] = useState<User | null>(null);
+    const [data, setData] = useState<Notification[]>([]);
+
 
     const handleNavigateToNotifications = () => {
         navigate("/notifications");
     };
 
+    const parseISODate = (dateString: string): Date => {
+        if (!dateString || typeof dateString !== "string") {
+            console.warn(`Invalid date string: "${dateString}"`);
+            return new Date(NaN); // Return an invalid date
+        }
 
+        // Regex to validate and extract components of an ISO 8601 date string
+        const isoRegex = /^(\d{4})-(\d{2})-(\d{2})[T ]?(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$/;
+        const match = dateString.match(isoRegex);
+
+        if (!match) {
+            console.warn(`Date string does not match ISO format: "${dateString}"`);
+            return new Date(NaN); // Return an invalid date if regex doesn't match
+        }
+
+        // Extract date and time components
+        const [
+            ,
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            millisecond = "0", // Default to 0 if milliseconds are missing
+            timezone = "Z",    // Default to UTC if timezone is missing
+        ] = match;
+
+        // Convert components to numbers
+        const parsedYear = parseInt(year, 10);
+        const parsedMonth = parseInt(month, 10) - 1; // Months are 0-indexed in JS Date
+        const parsedDay = parseInt(day, 10);
+        const parsedHour = parseInt(hour, 10);
+        const parsedMinute = parseInt(minute, 10);
+        const parsedSecond = parseInt(second, 10);
+        const parsedMillisecond = parseInt(millisecond.padEnd(3, "0"), 10); // Ensure 3 digits
+
+        // Create a Date object
+        let date = new Date(
+            Date.UTC(
+                parsedYear,
+                parsedMonth,
+                parsedDay,
+                parsedHour,
+                parsedMinute,
+                parsedSecond,
+                parsedMillisecond
+            )
+        );
+
+        // Adjust for time zone if specified
+        if (timezone !== "Z") {
+            const [sign, tzHour, tzMinute] = timezone.match(/([+-])(\d{2}):(\d{2})/)!.slice(1);
+            const tzOffset =
+                parseInt(tzHour, 10) * 60 + parseInt(tzMinute, 10); // Offset in minutes
+            const offsetInMs = tzOffset * 60 * 1000;
+
+            date = new Date(date.getTime() + (sign === "+" ? -offsetInMs : offsetInMs));
+        }
+
+        return date;
+    };
+
+    const parseUTCDate = (dateString: string): Date => {
+        if (!dateString || typeof dateString !== "string") {
+            console.warn(`Invalid or missing date string: "${dateString}"`);
+            return new Date(NaN); // Return an invalid date if the input is not valid
+        }
+
+        try {
+            // Check if the string already has a timezone designator
+            const hasTimezone = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:\d{2})$/.test(dateString);
+
+            // Use our custom parseISODate function
+            const parsedDate = hasTimezone ? parseISODate(dateString) : parseISODate(`${dateString}Z`);
+
+            if (isNaN(parsedDate.getTime())) {
+                console.warn(`Parsed date is invalid: "${dateString}"`);
+                return new Date(NaN); // Return an invalid date if parsing fails
+            }
+
+            return parsedDate;
+        } catch (error) {
+            console.error(`Error parsing UTC date string: "${dateString}".`, error);
+            return new Date(NaN); // Return an invalid date if an exception occurs
+        }
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const notifications = await notificationService.getNotifications();
+            console.log('Fetched Notifications:', notifications); // Debugging
+
+            // Parse and validate dates
+            const validNotifications = notifications.filter(notification => {
+                const date = parseUTCDate(notification.date_Received);
+                if (!isValid(date)) {
+                    console.warn(`Invalid date string: ${notification.date_Received}`);
+                }
+                return isValid(date);
+            });
+
+            // Sort notifications by date_Received descending
+            const sortedNotifications = validNotifications.sort((a, b) => {
+                const dateA = parseUTCDate(a.date_Received).getTime();
+                const dateB = parseUTCDate(b.date_Received).getTime();
+                return dateB - dateA;
+            });
+
+            setData(sortedNotifications);
+        } catch (err: any) {
+            console.error('Fetch Notifications Error:', err);
+        }
+    };
+
+    useEffect(() => {
+        // Initial fetch
+        const initialFetch = async () => {
+            console.log("fetching");
+            await fetchNotifications();
+        };
+        initialFetch();
+
+        // Set up interval to fetch every minute (60000 ms)
+        const intervalId = setInterval(() => {
+            fetchNotifications();
+        }, 60000);
+
+        // Clean up the interval on component unmount
+        return () => clearInterval(intervalId);
+    }, []);
 
     useEffect(() => {
         const fetchAndSetUserData = async () => {
@@ -98,13 +249,6 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         fetchUser();
     }, [userData]);
 
-
-    const [notifications, setNotifications] = useState<AppNotification[]>([
-        { id: 1, sender: "Admin", message: "Your event was approved!", time: "2 hours ago", unread: true },
-        { id: 2, sender: "Community", message: "Reminder: Meetup tomorrow!", time: "1 day ago", unread: true },
-    ]);
-
-    const [readNotifications, setReadNotifications] = useState<Set<number>>(new Set());
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
@@ -121,7 +265,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
         navigate("/auth/login");
     };
 
-    const unreadNotificationsCount = notifications.length - readNotifications.size;
+    const unreadNotificationsCount = data.filter((notification) => notification.unread).length;
 
     const routesWithoutHeader = ["/auth/login", "/auth/register"];
     const routesWithoutSidebar = ["/auth/login", "/auth/register", "/homepage", "/about", "/settings"];
@@ -382,7 +526,6 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
                     </Typography>
                 </MenuItem>
             </Menu>
-
         </Box>
     );
 };
