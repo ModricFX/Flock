@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { authService } from '../../services/authservice';
+import Cookies from "js-cookie";
 
 
 export default function SettingsPage() {
@@ -31,6 +32,9 @@ export default function SettingsPage() {
             const result = await authService.getUserData();
             if (!result.success) {
                 navigate("/auth/login");
+            } else {
+                setUsername(result.data.username);
+                setEmail(result.data.email);
             }
         };
         checkUserData();
@@ -58,26 +62,26 @@ export default function SettingsPage() {
     // File input ref (hidden in UI)
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSaveProfileInfo = () => {
+    const handleSaveProfileInfo = async () => {
         if (!username && !email) {
             window.alert("Please fill out at least one field (username or email).");
             return;
         }
-        // Save logic here...
+        await authService.updateProfile(username, email);
         window.alert("Profile information updated successfully!");
     };
-
-    const handleChangePassword = () => {
+    
+    const handleChangePassword = async () => {
         if (!currentPassword || !newPassword) {
             window.alert("Both current and new passwords are required.");
             return;
         }
-        // Change password logic here...
+        await authService.updatePassword(currentPassword, newPassword);
         window.alert("Password updated successfully!");
     };
 
-    const handleLogout = () => {
-        // Logout logic...
+    const handleLogout = async () => {
+        await authService.logout();
         console.log("Logging out...");
         navigate("/auth/login");
     };
@@ -86,9 +90,9 @@ export default function SettingsPage() {
         setDeleteDialogOpen(true);
     };
 
-    const confirmDeleteAccount = () => {
+    const confirmDeleteAccount = async () => {
         setDeleteDialogOpen(false);
-        // Delete account logic...
+        await authService.deleteAccount();
         window.alert("Your account has been deleted.");
         navigate("/auth/login");
     };
@@ -98,6 +102,13 @@ export default function SettingsPage() {
         if (fileInputRef.current) {
             fileInputRef.current.click();
         }
+    };
+
+    const toggleTheme = () => {
+        const newTheme = selectedTheme === "light" ? "dark" : "light";
+        setSelectedTheme(newTheme);
+        Cookies.set("theme", newTheme);
+        Cookies.set("darkMode", newTheme === "dark" ? "true" : "false");
     };
 
     // Handle file selection
@@ -208,40 +219,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* Appearance */}
-            <Card sx={styles.card}>
-                <CardHeader title="Appearance" />
-                <CardContent>
-                    {/* <Box sx={styles.fieldGroup}>
-                        <FormControl fullWidth sx={styles.textField}>
-                            <InputLabel id="language-select-label">Language</InputLabel>
-                            <Select
-                                labelId="language-select-label"
-                                value={selectedLanguage}
-                                label="Language"
-                                onChange={(e) => setSelectedLanguage(e.target.value as string)}
-                            >
-                                <MenuItem value="en">English</MenuItem>
-                                <MenuItem value="es">Spanish</MenuItem>
-                                <MenuItem value="fr">French</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box> */}
-                    <Box sx={styles.fieldGroup}>
-                        <FormControl fullWidth sx={styles.textField}>
-                            <InputLabel id="theme-select-label">Theme</InputLabel>
-                            <Select
-                                labelId="theme-select-label"
-                                value={selectedTheme}
-                                label="Theme"
-                                onChange={(e) => setSelectedTheme(e.target.value as string)}
-                            >
-                                <MenuItem value="light">Light</MenuItem>
-                                <MenuItem value="dark">Dark</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
-                </CardContent>
-            </Card>
+            
 
             {/* Danger Zone */}
             <Card sx={[styles.card, styles.dangerZoneCard]}>
