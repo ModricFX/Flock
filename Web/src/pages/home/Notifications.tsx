@@ -213,9 +213,10 @@ const Notifications: React.FC = () => {
     });
   };
 
-  const handleDelete = (id: string) => {
-    console.log("Deleted event");
-    // Implement delete functionality if needed
+  const handleDelete = async (id: string) => {
+    console.log("Deleted notification with ID:", id);
+    await notificationService.deleteNotification(parseInt(id));
+    setData(prevData => prevData.filter(item => item.id_Notification.toString() !== id));
   };
 
   const handleOpenModal = async (notification: Notification) => {

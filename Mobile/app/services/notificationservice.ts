@@ -59,6 +59,24 @@ class NotificationService {
     }
 
     /**
+     * Deletes a specific notification.
+     * @param notificationId The ID of the notification to delete.
+     */
+    async deleteNotification(notificationId: number): Promise<void> {
+        try {
+            const token = await this.checkAndRenewToken();
+            await apiService.getApi().delete(`/notification?notificationId=${notificationId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            });
+        } catch (error: any) {
+            throw new Error(error.message || 'Failed to delete notification.');
+        }
+    }
+
+    /**
      * Checks the current token and renews it if necessary.
      * @returns The valid token.
      */

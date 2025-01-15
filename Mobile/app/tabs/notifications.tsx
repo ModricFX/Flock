@@ -149,9 +149,20 @@ export default function Notifications() {
      * Marks the selected notification as read.
      */
     const deleteNotification = async () => {
-        // TODO: Implement delete notification functionality
-        return null;
-    }
+        if (!selectedNotification) return;
+
+        try {
+            await notificationService.deleteNotification(selectedNotification.id_Notification);
+            // Update the local state to remove the deleted notification
+            setData((prevData) =>
+                prevData.filter((item) => item.id_Notification !== selectedNotification.id_Notification)
+            );
+            closeNotificationPopup();
+        } catch (err: any) {
+            Alert.alert('Error', err.message || 'Failed to delete notification.');
+            console.error('Delete Notification Error:', err);
+        }
+    };
 
 
     const markAsRead = async () => {
