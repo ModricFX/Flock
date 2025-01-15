@@ -13,4 +13,6 @@ public interface IUserNotificationRepository
     Task<IEnumerable<UserNotificationJoined>> GetJoinedForUserAsync(int userId);
     Task<UserNotificationJoined> CreateNotificationForUserAsync(CreateNotificationRequestDto newNotification);
     Task<bool> MarkAsReadAsync(int userIdFromToken, int notificationId);
+    
+    Task<bool> DeleteNotification(int userIdFromToken, int notificationId);
 }

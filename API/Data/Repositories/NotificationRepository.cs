@@ -32,6 +32,19 @@ namespace flock.Data.Repositories
             return affectedRows > 0;
         }
 
+        public async Task<bool> DeleteNotification(int userIdFromToken, int notificationId)
+        {
+            const string sql = @"
+                DELETE FROM usernotification WHERE id_user = @UserId AND id_notification = @NotificationId;
+                DELETE FROM notification WHERE id_notification = @NotificationId;
+            ";
+
+            using var connection = _context.CreateConnection();
+            var affectedRows = await connection.ExecuteAsync(sql, new { UserId = userIdFromToken, NotificationId = notificationId });
+
+            return affectedRows > 0;
+        }
+
         public async Task<IEnumerable<UserNotificationJoined>> GetJoinedForUserAsync(int userId)
         {
             const string sql = @"
