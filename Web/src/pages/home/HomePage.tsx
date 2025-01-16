@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
           <Typography variant="h5" gutterBottom>
             Welcome to FLOCK
           </Typography>
-          <Typography variant="body1" paragraph>
+          <Typography variant="body1" component="p">
             FLOCK is a platform that makes coordinating group events and meetups as easy as possible.
             Whether you’re planning a birthday, an office lunch, or a spontaneous get-together with friends,
             we give you the tools to make it all happen — without the usual frustration of back-and-forth messaging.
@@ -96,7 +96,7 @@ const HomePage: React.FC = () => {
               <img
                 src="/PlanEvents.png"
                 alt="Plan your events"
-                style={styles.imgStyle}
+                style={{ ...styles.imgStyle, marginTop: "75px" }}
               />
               <Typography variant="body2" align="center">
                 Plan events with just a few clicks
@@ -114,7 +114,7 @@ const HomePage: React.FC = () => {
             </Box>
           </Box>
 
-          <Typography variant="body1" paragraph>
+          <Typography variant="body1" component="p">
             Ready to see how it works? Scroll down or click "Learn More" to dive deeper
             into what FLOCK has in store. You can sign up immediately to start planning your next event!
           </Typography>
@@ -124,7 +124,7 @@ const HomePage: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             Why FLOCK?
           </Typography>
-          <Typography variant="body1" paragraph>
+          <Typography variant="body1" component="p">
             - Easy scheduling with a visual overview of everyone’s availability<br />
             - Simple sign-up: create an account and begin scheduling right away<br />
             - Automatically handle confirmations and reminders<br />
