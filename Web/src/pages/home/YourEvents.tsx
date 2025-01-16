@@ -192,8 +192,10 @@ const YourEvents: React.FC<YourEventsProps> = ({ events, setEvents }) => {
               label="Start Date"
               type="date"
               fullWidth
-              InputLabelProps={{
-                shrink: true,
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                },
               }}
               variant="outlined"
               value={newEvent.startDate}
@@ -204,8 +206,10 @@ const YourEvents: React.FC<YourEventsProps> = ({ events, setEvents }) => {
               label="Start Time"
               type="time"
               fullWidth
-              InputLabelProps={{
-                shrink: true,
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                },
               }}
               variant="outlined"
               value={newEvent.startTime}
@@ -218,8 +222,10 @@ const YourEvents: React.FC<YourEventsProps> = ({ events, setEvents }) => {
               label="End Date"
               type="date"
               fullWidth
-              InputLabelProps={{
-                shrink: true,
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                },
               }}
               variant="outlined"
               value={newEvent.endDate}
@@ -230,8 +236,10 @@ const YourEvents: React.FC<YourEventsProps> = ({ events, setEvents }) => {
               label="End Time"
               type="time"
               fullWidth
-              InputLabelProps={{
-                shrink: true,
+              slotProps={{
+                inputLabel: {
+                  shrink: true,
+                },
               }}
               variant="outlined"
               value={newEvent.endTime}

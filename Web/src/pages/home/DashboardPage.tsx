@@ -978,8 +978,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                               </Typography>
                             )}
 
-
-
                             <Typography
                               sx={{
                                 display: "flex",
@@ -1006,9 +1004,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                             )}
                           </div>
                         }
-                        primaryTypographyProps={{ component: 'div' }}
-                        secondaryTypographyProps={{ component: 'div' }}
-
+                        slotProps={{
+                          primary: { component: 'div', },
+                          secondary: { component: 'div', },
+                        }}
                       />
                     </ListItem>
                   </Paper>
@@ -1204,8 +1203,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                             )}
                           </div>
                         }
-                        primaryTypographyProps={{ component: 'div' }}
-                        secondaryTypographyProps={{ component: 'div' }}
+                        slotProps={{
+                          primary: { component: 'div', },
+                          secondary: { component: 'div', },
+                        }}
                       />
                     </ListItem>
                   </Paper>
@@ -1248,12 +1249,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   setEventForm({ ...eventForm, title: e.target.value })
                 }
                 placeholder="Title"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EventIcon sx={{ color: "#4CAF50" }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EventIcon sx={{ color: "#4CAF50" }}/>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               <TextField
@@ -1268,12 +1271,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   setEventForm({ ...eventForm, description: e.target.value })
                 }
                 placeholder="Description"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <DescriptionIcon sx={{ color: "#4CAF50" }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <DescriptionIcon sx={{ color: "#4CAF50" }}/>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               <TextField
@@ -1286,12 +1291,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   setEventForm({ ...eventForm, location: e.target.value })
                 }
                 placeholder="Location"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LocationOnIcon sx={{ color: "#4CAF50" }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocationOnIcon sx={{ color: "#4CAF50" }}/>
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
             </Box>
@@ -1318,13 +1325,11 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
                   ))}
                 </List>
 
-
               ) : (
                 <Typography variant="body2" sx={{ color: "#9E9E9E", marginBottom: 2 }}>
                   No days added yet.
                 </Typography>
               )}
-
 
               <Box sx={{ display: "flex", justifyContent: "center", marginTop: "16px" }}>
                 <Button
@@ -1979,7 +1984,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
 
 
 
-
       {/* Voting Modal */}
       <Dialog
         open={votingModalOpen}
@@ -2102,11 +2106,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
-
     </Container >
   );
-
 };
 
 export default DashboardPage;
