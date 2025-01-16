@@ -8,7 +8,7 @@ const AboutPage: React.FC = () => {
         <Typography variant="h4" gutterBottom style={styles.headerText}>
           About FLOCK
         </Typography>
-        <Typography variant="body1" paragraph style={styles.paragraphText}>
+        <Typography variant="body1" component="p" style={styles.paragraphText}>
           FLOCK is built around the idea that coordinating events, plans, and
           projects with friends, family, or coworkers should be both fun and
           simple. We believe in removing barriers to productivity — no more
@@ -16,7 +16,7 @@ const AboutPage: React.FC = () => {
           planning a small meetup or a large group activity, FLOCK is here to
           streamline everything.
         </Typography>
-        <Typography variant="body1" paragraph style={styles.paragraphText}>
+        <Typography variant="body1" component="p" style={styles.paragraphText}>
           Our platform brings together scheduling, invitations, and reminders,
           so you can focus on the fun part: actually getting together! With just
           a few clicks, you can create an event, invite people, and pick dates
@@ -24,7 +24,7 @@ const AboutPage: React.FC = () => {
           background, like sending out notifications and tracking
           confirmations.
         </Typography>
-        <Typography variant="body1" paragraph style={styles.paragraphText}>
+        <Typography variant="body1" component="p" style={styles.paragraphText}>
           Interested in learning more? Feel free to explore, or sign up now to
           start creating your own events. We look forward to seeing how FLOCK
           helps bring your community together!
