@@ -26,7 +26,7 @@ const Root = () => {
             palette: {
               mode: darkMode ? 'dark' : 'light',
               background: {
-                default: darkMode ? '#121212' : '#ffffff',
+                default: darkMode ? '#1b1b1b' : '#ffffff',
               },
               text: {
                 primary: darkMode ? '#ffffff' : '#000000',

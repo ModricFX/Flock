@@ -835,8 +835,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           justifyContent: "center",
           alignItems: "center",
           height: "100vh",
-          // background color depending on darkmode
-          backgroundColor: darkMode ? '#333' : '#fff',
         }}
       >
         <CircularProgress sx={{ color: "#4CAF50", marginBottom: 2 }} />
@@ -864,7 +862,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           sx={{
             padding: 2,
             marginBottom: 3,
-            backgroundColor: darkMode ? '#333' : '#fff',
+            backgroundColor: darkMode ? '#222' : '#fff',
             color: darkMode ? '#fff' : '#000',
           }}
         >
@@ -1063,7 +1061,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
           sx={{
             padding: 2,
             marginBottom: 3,
-            backgroundColor: darkMode ? '#333' : '#fff',
+            backgroundColor: darkMode ? '#222' : '#fff',
             color: darkMode ? '#fff' : '#000',
           }}
         >
@@ -1660,7 +1658,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ darkMode }) => {
         </DialogActions>
 
       </Dialog>
-
 
       {/* Event Details Modal */}
       <Dialog
