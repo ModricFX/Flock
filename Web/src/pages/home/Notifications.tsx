@@ -41,7 +41,7 @@ const Notifications: React.FC = () => {
   const [data, setData] = useState<Notification[]>([]);
 
   const parseISODate = (dateString: string): Date => {
-    if (!dateString || typeof dateString !== "string") {
+    if (!dateString) {
       console.warn(`Invalid date string: "${dateString}"`);
       return new Date(NaN); // Return an invalid date
     }
@@ -104,7 +104,7 @@ const Notifications: React.FC = () => {
   };
 
   const parseUTCDate = (dateString: string): Date => {
-    if (!dateString || typeof dateString !== "string") {
+    if (!dateString) {
       console.warn(`Invalid or missing date string: "${dateString}"`);
       return new Date(NaN); // Return an invalid date if the input is not valid
     }
@@ -128,9 +128,6 @@ const Notifications: React.FC = () => {
     }
   };
   
-
-
-
   const fetchNotifications = async () => {
     try {
       setError(null);

@@ -84,7 +84,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     };
 
     const parseISODate = (dateString: string): Date => {
-        if (!dateString || typeof dateString !== "string") {
+        if (!dateString) {
             console.warn(`Invalid date string: "${dateString}"`);
             return new Date(NaN); // Return an invalid date
         }
@@ -147,7 +147,7 @@ const App: React.FC<AppProps> = ({ darkMode, toggleDarkMode }) => {
     };
 
     const parseUTCDate = (dateString: string): Date => {
-        if (!dateString || typeof dateString !== "string") {
+        if (!dateString) {
             console.warn(`Invalid or missing date string: "${dateString}"`);
             return new Date(NaN); // Return an invalid date if the input is not valid
         }
