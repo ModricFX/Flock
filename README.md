@@ -1,47 +1,55 @@
-# FLOCK
-**Člani skupine:** Žiga Modrić, Timotej Robavs, Tomaž Čede, Miha Ciglar, Blaž Perko
+# Flock - Group Event & Scheduling App
 
-## Opis:
+Flock is a mobile application designed to simplify organizing group events such as workouts, trips, and holidays. It helps participants easily collaborate and agree on the best date and time for their activities, making scheduling effortless and convenient.
 
-Aplikacija omogoča enostavno organizacijo vaj, izletov, dopustov in drugih dogodkov, pri čemer udeležencem omogoča izbiro terminov, ki jim najbolj ustrezajo. Namesto vnaprej določenih fiksnih datumov, aplikacija ponuja dinamično načrtovanje, kjer povabljeni izberejo med predlaganimi dnevi in urami, kar omogoča izbiro termina, ki ustreza večini.
+---
 
-## Ogrodje in razvojno okolje:
+## Features
+- **User Authentication**: Register and log in with a secure account (Google login supported).
+- **Event & Group Creation**: Organize events and create groups to manage recurring activities.
+- **Dynamic Scheduling**: Propose dates and times, and let participants vote on their availability.
+- **Friend Invitations**: Invite friends to join events or groups with simple sharing features.
+- **Availability Tracking**: Easily track who’s available and who has declined participation.
 
-Pri projektu bomo uporabili **Android Studio** in **Rider (web API)**.
+---
 
-## Funkcionalnosti:
+## How It Works
+1. **Sign Up/Login**: Register with an email or Google account.
+2. **Create or Join an Event**: Set up a new event or join an existing group.
+3. **Propose Dates and Times**: Add options for the event’s schedule.
+4. **Vote and Track Availability**: Participants vote on their preferred times, and the app determines the best option.
+5. **Final Scheduling**: Finalize and confirm the agreed schedule.
 
-1. **Prijava uporabnikov:** Vsak uporabnik lahko ustvari svoj račun z uporabniškim imenom, e-poštnim naslovom in geslom ali pa se prijavi s pomočjo Google računa.
+---
 
-2. **Ustvarjanje dogodkov:** Uporabnik lahko ustvari nov dogodek, pri čemer vnese ime, trajanje, opis ter po potrebi doda lokacijo in obvezno opremo. Poleg tega določi časovni razpon dni, v katerih je dogodek mogoče izvesti, ter izbere ure za vsak dan znotraj tega obdobja. Uporabnik lahko tudi označi, da se dogodek ponovi na X dni/tednov/mesecov.
+## Technologies Used
+- **Frontend**: React native
+- **Backend**: ASP.NET Core (C#)
+- **Database**: PostgreSQL
+---
 
-3. **Ustvarjanje skupine:** Ob ustvarjanju dogodka se ustvari tudi skupina, v kateri uporabnik izbere prijatelje, ki jih želi povabiti. Izbrani prijatelji prejmejo obvestilo, da so bili dodani k dogodku.
+## Installation & Running Instructions
 
-4. **Dodajanje prijateljev:** Uporabnik lahko doda prijatelje z iskanjem po njihovem uporabniškem imenu ali e-poštnem naslovu. Povabljeni prijatelj lahko prošnjo sprejme ali zavrne.
+### Backend
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/ModricFX/Flock.git
+   ```
+2. Navigate to the backend folder.
+3. Configure the database connection string in appsettings.json.
+4. Build and run the backend using Rider or your preferred IDE.
+5. Mobile App (Frontend)
+   To build the app write in terminal:
+   ```sh
+   npm install
+   npx expo start
+   ```
+6. Website App (Frontend)
+To build the app write in terminal:
+   ```sh
+   npm install
+   npm run dev
+   ```
 
-5. **Vnos ustreznih terminov:** Udeleženci skupine oziroma dogodka lahko vnesejo dan in uro, ki jim ustrezata, ali določijo razpon dni in ur, ko so na voljo. Prav tako lahko zavrnejo udeležbo na dogodku, če se ga ne morejo udeležiti.
-
-6. **Pregled dogodka:** Med potekom dogodka lahko uporabniki spremljajo termine, ki so jih izbrali drugi udeleženci, čas, ki ostaja do zaključka izbora, ter splošne informacije o dogodku, vključno z imenom, opisom, lokacijo in časovnimi podatki (datum, ura ali časovni razpon).
-
-7. **Obvestila in posodobitve:** Uporabniki so obveščeni, ko jih nekdo doda med prijatelje, ko so povabljeni na dogodek, ob zaključku glasovanja za dogodek (skupaj z izbranim terminom) in z opomnikom, če še niso oddali svojega glasu. Prav tako prejmejo opomnik o prihajajočem dogodku, na primer en dan pred začetkom.
-
-8. **Samodejno določanje najbolj ustreznega termina:** Aplikacija samodejno izbere najboljši termin za dogodek glede na prisotnost uporabnikov.
-
-9. **Izvoz dogodka v koledar:** Uporabnik lahko po zaključku glasovanja izvozi dogodek v svoj koledar.
-
-## Primeri uporabe:
-
-1. **Dogovarjanje za družabni dogodek s prijatelji:** Skupina prijateljev želi organizirati družabno srečanje, vendar imajo vsi različne urnike. Eden izmed prijateljev ustvari dogodek, vpiše možnosti terminov in doda lokacijo. Povabljeni prijatelji izberejo dneve in ure, ki jim najbolj ustrezajo. Aplikacija določi termin z največjim številom prisotnih in pošlje obvestilo o dogovoru.
-
-2. **Načrtovanje družinskega izleta:** Organizator načrtuje vikend izlet in želi vključiti vse člane družine. Ustvari dogodek z opisom, predlaga nekaj možnosti terminov čez vikend ter povabi družinske člane. Vsak označi, kdaj je prost, aplikacija pa določi najboljši termin in obvesti vse člane. Dan pred izletom aplikacija pošlje opomnik.
-
-3. **Sestanki za študijski projekt:** Skupina študentov dela na projektu in potrebuje redne sestanke. En član skupine ustvari dogodek za tedenski sestanek, doda predlagane termine ter povabi sošolce. Ko vsi izberejo svoje možnosti, aplikacija določi termin, ki ustreza večini, in ga doda v koledar vsakega člana.
-
-4. **Načrtovanje teambuildinga v podjetju:** Za učinkovito organizacijo teambuildinga v podjetju aplikacija omogoča preprosto usklajevanje terminov. Vodja ustvari dogodek za teambuilding in določi razpoložljive dni ter ure. Zaposleni v aplikacijo vpišejo svoje preferenčne termine glede razpoložljivosti, nato pa aplikacija samodejno izbere termin, ki ustreza največ zaposlenim, in pošlje vsem obvestilo o potrjenem datumu.
-
-5. **Organizacija tedenskih vaj za športni klub:** Trener ustvarja dogodek za tedenske vaje. Določi časovni razpon več dni in ur ter povabi člane kluba, ki izberejo termine, ki jim najbolj ustrezajo. Aplikacija nato samodejno izbere termin z največjo prisotnostjo, uporabniki pa prejmejo obvestilo in lahko dogodek izvozijo v svoj koledar.
-
-6. **Planiranje občasnih sestankov znotraj društva:** Predsednik društva načrtuje redne mesečne sestanke. Za vsak mesec ustvari dogodek z več termini in povabi člane društva. Ti izberejo, kdaj so prosti, aplikacija pa določi najboljši termin za mesečni sestanek in pošlje vsa obvestila ter omogoči izvoz dogodka v koledar.
-
-7. **Načrtovanje delavnic za tečaj:** Inštruktor želi organizirati delavnice za tečaj in omogoča, da udeleženci glasujejo o terminih. Določi nekaj predlaganih datumov in ur, povabi vse udeležence, ki označijo svoje možnosti. Aplikacija na podlagi prisotnosti določi termin, ki ustreza večini, udeleženci pa prejmejo opomnik in možnost izvoza v koledar.
-
+### License
+This project is licensed under the MIT License. See the LICENSE file for details.
